@@ -9,7 +9,7 @@
 
 /**
  * @file
- * Log接口头文件
+ * Log interface header file
  */
 
 #ifdef __cplusplus
@@ -74,21 +74,21 @@ enum {
 void imp_log_fun(int le, int op, int out, const char* tag, const char* file, int line, const char* func, const char* fmt, ...);
 
 /**
- * 设置打印选项
+ * Set printing options
  *
  * @fn void IMP_Log_Set_Option(int op);
  *
- * @param[in] op 设置打印选项
+ * @param[in] op set printing options
  *
  */
 void IMP_Log_Set_Option(int op);
 
 /**
- * 获取打印选项
+ * Get printing options
  *
  * @fn int IMP_Log_Get_Option(void );
  *
- * @retval 返回系统中的打印选项
+ * @retval returns the system's printing options
  *
  */
 int  IMP_Log_Get_Option(void);
@@ -112,42 +112,42 @@ int  IMP_Log_Get_Option(void);
 
 /**
  * @def IMP_LOG_UNK
- * UNKNOWN等級打印接口
+ * UNKNOWN level of the print interface
  */
 #define IMP_LOG_UNK(tag, fmt, ...)		IMP_LOG(tag, IMP_LOG_LEVEL_UNKNOWN, IMP_LOG_GET_OPTION, fmt, ##__VA_ARGS__)
 /**
  * @def IMP_LOG_VERBOSE
- * VERBOSE等級打印接口
+ * VERBOSE level of the print interface
  */
 #define IMP_LOG_VERBOSE(tag, fmt, ...)		IMP_LOG(tag, IMP_LOG_LEVEL_VERBOSE, IMP_LOG_GET_OPTION, fmt, ##__VA_ARGS__)
 /**
  * @def IMP_LOG_DBG
- * DEBUG等級打印接口
+ * DEBUG level of the print interface
  */
 #define IMP_LOG_DBG(tag, fmt, ...)		IMP_LOG(tag, IMP_LOG_LEVEL_DEBUG, IMP_LOG_GET_OPTION, fmt, ##__VA_ARGS__)
 /**
  * @def IMP_LOG_INFO
- * INFO等級打印接口
+ * INFO level of the print interface
  */
 #define IMP_LOG_INFO(tag, fmt, ...)		IMP_LOG(tag, IMP_LOG_LEVEL_INFO, IMP_LOG_GET_OPTION, fmt, ##__VA_ARGS__)
 /**
  * @def IMP_LOG_WAR
- * WARN等級打印接口
+ * WARN level of the print interface
  */
 #define IMP_LOG_WARN(tag, fmt, ...)		IMP_LOG(tag, IMP_LOG_LEVEL_WARN, IMP_LOG_GET_OPTION, fmt, ##__VA_ARGS__)
 /**
  * @def IMP_LOG_ERR
- * ERROR等級打印接口
+ * ERROR level of the print interface
  */
 #define IMP_LOG_ERR(tag, fmt, ...)		IMP_LOG(tag, IMP_LOG_LEVEL_ERROR, IMP_LOG_GET_OPTION, fmt, ##__VA_ARGS__)
 /**
  * @def IMP_LOG_FATAL
- * FATAL等級打印接口
+ * FATAL level of the print interface
  */
 #define IMP_LOG_FATAL(tag, fmt, ...)		IMP_LOG(tag, IMP_LOG_LEVEL_FATAL, IMP_LOG_GET_OPTION, fmt, ##__VA_ARGS__)
 /**
  * @def IMP_LOG_SILENT
- * SILENT等級打印接口
+ * SILENT level of the print interface
  */
 #define IMP_LOG_SILENT(tag, fmt, ...)		IMP_LOG(tag, IMP_LOG_LEVEL_SILENT, IMP_LOG_GET_OPTION, fmt, ##__VA_ARGS__)
 

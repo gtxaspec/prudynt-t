@@ -12,31 +12,31 @@ extern "C"
 #endif /* __cplusplus */
 
 typedef enum {
-	DMIC_SAMPLE_RATE_8000 = 8000, /**8KHz 采样率*/
-	DMIC_SAMPLE_RATE_16000 = 16000, /*16KHz 采样率*/
+	DMIC_SAMPLE_RATE_8000 = 8000, /**8KHz sampling rate*/
+	DMIC_SAMPLE_RATE_16000 = 16000, /*16KHz sampling rate*/
 } IMPDmicSampleRate;
 
 typedef enum {
-	DMIC_BIT_WIDTH_16 = 16, /**<16 bit 采样精度*/
+	DMIC_BIT_WIDTH_16 = 16, /**<16 bit sampling precision*/
 } IMPDmicBitWidth;
 
 typedef enum {
-	DMIC_SOUND_MODE_MONO = 1,       /*单声道*/
-	DMIC_SOUND_MODE_STEREO = 2,		/*立体音*/
+	DMIC_SOUND_MODE_MONO = 1,       /*Single channel*/
+	DMIC_SOUND_MODE_STEREO = 2,		/*Double channel*/
 } IMPDmicSoundMode;
 
-/*DMIC 输入设备属性*/
+/*DMIC input device attribut*/
 typedef struct {
-	IMPDmicSampleRate samplerate; /**< DMIC采样率 */
-	IMPDmicBitWidth bitwidth;    /**<DMIC采样精度 */
-	IMPDmicSoundMode soundmode;   /*声音模式*/
-	int frmNum;					/**<DMIC录音缓存帧的数目*/
-	int numPerFrm;
-	int chnCnt;  //支持的最大声道数目;
+	IMPDmicSampleRate samplerate; /**< DMIC sampling rate */
+	IMPDmicBitWidth bitwidth;     /**<DMIC sampling precision */
+	IMPDmicSoundMode soundmode;   /*audio channel mode*/
+	int frmNum;					 /*Number of cached frames*/
+	int numPerFrm;				 /*Number of sample points per frame */
+	int chnCnt;					/*Number of channels supported*/
 } IMPDmicAttr;
 
 /**
- DMIC 音频帧结构体.
+ DMIC frame structure.
  */
 typedef struct {
 	IMPDmicBitWidth bitwidth;
@@ -48,15 +48,16 @@ typedef struct {
 	int len;
 } IMPDmicFrame;
 
+/*DMIC audio channel frame structure*/
 typedef struct {
-	IMPDmicFrame rawFrame;  //原始数据;
-	IMPDmicFrame aecFrame;  //选取其中一路AEC处理后的数据;
+	IMPDmicFrame rawFrame;  /*four dmic frame raw data*/
+	IMPDmicFrame aecFrame;  /*one of dmic frame after aec processing*/
 } IMPDmicChnFrame;
 
-/*DMIC 通道参数结构体*/
+/*DMIC channel parameter structure*/
 typedef struct {
-	int usrFrmDepth;  /**<DMIC 音频帧缓存深度*/
-	int Rev;		  /*保留*/
+	int usrFrmDepth;  /**<DMIC audio frame buffer depth*/
+	int Rev;		  /**<retain**/
 } IMPDmicChnParam;
 
 typedef struct {
@@ -66,318 +67,304 @@ typedef struct {
 
 /**
 @int IMP_DMIC_SetUserInfo(int dmicDevId, int aecDmicId, int need_aec);
- *设置麦克阵列的用户需求相关的信息；
- * @param[in] dmicDevId 麦克阵列设备号.
- * @param[in] aecDmicId 用户需要做回声消除处理的麦克的编号;
- * @param[in] need_aec	用户是否需要做回声消除处理(need_aec: 0:不需要 1：需要)
- * @retval 0 成功.
- * @retval 非0 失败.
+ *Set up information about the user requirements of the MAC array;
+ * @param[in] dmicDevId  MAC array device number.
+ * @param[in] aecDmicId  Dmic ID number of MAC array as aec processing.
+ * @param[in] need_aec   Whether the user needs to do echo cancellation.(need_aec: 0:no need 1:need)
+ * @retval 0 success
+ * @retval non-0 failure.
  */
 int IMP_DMIC_SetUserInfo(int dmicDevId, int aecDmicId, int need_aec);
 
 /**
 @fn int IMP_DMIC_SetPubAttr(int dmicDevId, IMPDmicAttr *attr);
- *设置麦克阵列音频输入设备属性;
- * @param[in] dmicDevId 麦克阵列设备号.
- * @param[in] attr 麦克阵列音频设备熟悉指针.
+ Set MAC array input device attribute.
+ * @param[in] dmicDevId  MAC array audio device number.
+ * @param[in] attr  MAC array audio device attribute pointer
  *
- * @retval 0 成功.
- * @retval 非0 失败.
+ * @retval 0 success
+ * @retval non-0 failure.
  *
- * @attention 需要在IMP_DMIC_Enable前调用;
+ * @attention Need to be called before IMP_DMIC_Enable.
  */
 int IMP_DMIC_SetPubAttr(int dmicDevId, IMPDmicAttr *attr);
 
 /**
 @fn int IMP_DMIC_GetPubAttr(int dmicDevId, IMPDmicAttr *attr);
  *
- * 获取麦克阵列音频输入设备属性;
- * @param[in] dmicDevId 麦克阵列设备号.
- * @param[in] attr 麦克阵列音频设备熟悉指针.
+ Get MAC array input device attribute.
+ * @param[in] dmicDevId  MAC array audio device number.
+ * @param[in] attr  MAC array audio device attribute pointer
  *
- * @retval 0 成功.
- * @retval 非0 失败.
+ * @retval 0 success.
+ * @retval non-0 failure.
  *
- * @remarks 无.
+ * @remarks no.
  *
- * @attention 无.
+ * @attention no.
  */
 int IMP_DMIC_GetPubAttr(int dmicDevId, IMPDmicAttr *attr);
 
 /**
 @fn int IMP_DMIC_Enable(int dmicDevId);
  *
- * 启用麦克阵列音频输入设备;
- * @param[in] dmicDevId 麦克阵列设备号.
+ * Enable microphone array audio input device;
+ * Enable MAC array audio device.
+ * @param[in] dmicDevId MAC array audio device number.
  *
- * @retval 0 成功.
- * @retval 非0 失败.
+ * @retval 0 success.
+ * @retval non-0 failure.
  *
- * @remarks 无.
+ * @remarks no.
  *
- * @attention 无.
+ * @attention no.
  */
 int IMP_DMIC_Enable(int dmicDevId);
 
 /**
 @fn int IMP_DMIC_Disable(int dmicDevId);
  *
- * 禁用麦克阵列音频输入设备;
- * @param[in] dmicDevId 麦克阵列设备号.
+ * Diable MAC array audio device.
+ * @param[in] dmicDevId MAC array audio device number.
  *
- * @retval 0 成功.
- * @retval 非0 失败.
+ * @retval 0 success.
+ * @retval non-0 failure.
  *
- * @remarks 无.
+ * @remarks no.
  *
- * @attention 无.
+ * @attention none.
  */
 int IMP_DMIC_Disable(int dmicDevId);
-
 
 /**
 @fn int IMP_DMIC_EnableChn(int dmicDevId, int dmicChnId);
  *
- * 启用麦克阵列音频输入通道;
- * @param[in] dmicDevId 麦克阵列设备号.
- * @param[in] dmicChnId 麦克阵列音频输入通道号.
+ * Enable MAC arrayu audio channel
  *
- * @retval 0 成功.
- * @retval 非0 失败.
+ * @param[in] dmicDevId MAC array audio device number.
+ * @param[in] dmicChnId MAC array audio channel number
  *
- * @remarks 无.
+ * @retval 0 success.
+ * @retval non-0 failure
  *
- * @attention 必须先使能麦克阵列device。
+ * @remarks no.
+ *
+ * @attention Must first enable MAC array device.
  */
 int IMP_DMIC_EnableChn(int dmicDevId, int dmicChnId);
 
 /**
 @fn int IMP_DMIC_DisableChn(int dmicDevId, int dmicChnId);
  *
- * 禁用麦克阵列音频输入通道;
- * @param[in] dmicDevId 麦克阵列设备号.
- * @param[in] dmicChnId 麦克阵列音频输入通道号.
+ * Disable MAC array audio channel
  *
- * @retval 0 成功.
- * @retval 非0 失败.
+ * @param[in] dmicDevId MAC array audio device number.
+ * @param[in] dmicChnId MAC array audio channel number
  *
- * @remarks 无.
+ * @retval 0 success.
+ * @retval non-0 failure
+ * @remarks no.
  *
- * @attention 与IMP_DMIC_EnableChn 配套使用;
+ * @attention It supports the use of IMP_DMIC_EnableChn.
  */
 int IMP_DMIC_DisableChn(int dmicDevId, int dmicChnId);
-
 /**
 @fn int IMP_DMIC_SetChnParam(int dmicDevId, int dmicChnId, IMPDmicChnParam *chnParam);
  *
- * 设置麦克阵列音频输入通道参数.
- * @param[in] dmicDevId 麦克阵列设备号.
- * @param[in] dmicChnId 麦克阵列音频输入通道号.
- * @param[in] chnParam 麦克阵列音频通道参数.
+ * Set MAC array audio channel parameters.
+ * @param[in] dmicDevId MAC array audio device number.
+ * @param[in] dmicChnId MAC array audio channel number
+ * @param[in] chnParam MAC array channel frame structure pointer.
  *
- * @retval 0 成功.
- * @retval 非0 失败.
+ * @retval 0 success.
+ * @retval non-0 failure.
  *
- * @remarks 无.
+ * @remarks none.
  *
- * @attention 在IMP_DMIC_EnableChn 前调用.
+ * @attention Supporting the use of IMP_DMIC_EnableChn.
  */
 int IMP_DMIC_SetChnParam(int dmicDevId, int dmicChnId, IMPDmicChnParam *chnParam);
 
 /**
 @fn int IMP_DMIC_GetChnParam(int dmicDevId, int dmicChnId, IMPDmicChnParam *chnParam);
  *
- * 获取麦克阵列音频输入通道参数.
- * @param[in] dmicDevId 麦克阵列设备号.
- * @param[in] dmicChnId 麦克阵列音频输入通道号.
- * @param[in] chnParam 麦克阵列音频通道参数.
+ * Set MAC array audio channel parameters.
  *
- * @retval 0 成功.
- * @retval 非0 失败.
+ * @param[in] dmicDevId MAC array audio device number.
+ * @param[in] dmicChnId MAC array audio channel number
+ * @param[in] chnParam MAC array channel frame structure pointer.
  *
- * @remarks 无.
+ * @retval 0 success.
+ * @retval non-0 failure.
+ * @remarks no.
  *
- * @attention 无.
+ * @attention no.
  */
 int IMP_DMIC_GetChnParam(int dmicDevId, int dmicChnId, IMPDmicChnParam *chnParam);
 
 /**
 * @fn int IMP_DMIC_GetFrame(int dmicDevId, int dmicChnId, IMPDmicChnFrame *chnFrm, IMPBlock block);
 *
-* 获取麦克阵列音频帧.
+* Get Mac array channel audio frame.
 *
-* @param[in] dmicDevId 麦克阵列音频设备号.
-* @param[in] dmicChnId 麦克阵列音频输入通道号.
-* @param[out] chnFrm   麦克阵列音频通道音频帧结构体指针.
-* @param[in] block 阻塞/非阻塞标识.
+* @param[in] dmicDevId MAC array audio device number.
+* @param[in] dmicChnId MAC array audio channel number
+* @param[out] chnFrm   MAC array channel audio frame structure pointer.
+* @param[in] block block Blocking / non blocking identifier.
 *
-* @retval 0 成功.
-* @retval 非0 失败.
+* @retval 0 success.
+* @retval non-0 failure.
 *
-* @remarks 无.
 */
 int IMP_DMIC_GetFrame(int dmicDevId, int dmicChnId, IMPDmicChnFrame *chnFrm, IMPBlock block);
 
 /**
 * @fn int IMP_DMIC_ReleaseFrame(int dmicDevId, int dmicChnId, IMPDmicChnFrame *chnFrm);
 *
-* 释放麦克阵列音频通道音频帧.
+* Release Mac array channel audio frame.
 *
-* @param[in] dmicDevId 麦克阵列音频设备号.
-* @param[in] dmicChnId 麦克阵列音频输入通道号.
-* @param[out] chnFrm   麦克阵列音频通道音频帧结构体指针.
+* @param[in] dmicDevId MAC array audio device number.
+* @param[in] dmicChnId MAC array audio channel number
+* @param[out] chnFrm   MAC array channel audio frame structure pointer.
 *
-* @retval 0 成功.
-* @retval 非0 失败.
+* @retval 0 success.
+* @retval non-0 failure.
 *
-* @remarks 无.
+* @remarks no.
 *
-* @attention 与IMP_DMIC_GetFrame 配套使用.
+* @attention It supports the use of IMP_DMIC_GetFrame.
 */
 int IMP_DMIC_ReleaseFrame(int dmicDevId, int dmicChnId, IMPDmicChnFrame *chnFrm);
-
 
 /**
 * @fn int IMP_DMIC_EnableAecRefFrame(int dmicDevId, int dmicChnId, int audioAoDevId, int aoChn);
 *
-* 打开获取参考帧.
+* Open access reference frame.
+* @param[in] dmicDevId MAC array audio device number.
+* @param[in] dmicChnId MAC array audio channel number
+* @param[out] audioAoDevId audio output device number.
 *
-* @param[in] dmicDevId 麦克阵列音频设备号.
-* @param[in] dmicChnId 麦克阵列音频输入通道号.
-* @param[out] audioAoDevId 音频输出设备号.
+* @retval 0 success.
+* @retval non-0 failure.
 *
-* @retval 0 成功.
-* @retval 非0 失败.
+* @remarks Use this current interface before using IMP_DMIC_GetFrameAndRef.
 *
-* @remarks 调用IMP_DMIC_GetFrameAndRef 之前调用.
-*
-* @attention 无.
+* @attention no.
 */
 int IMP_DMIC_EnableAecRefFrame(int dmicDevId, int dmicChnId, int audioAoDevId, int aoChn);
 
 /**
-* @fn int IMP_AI_GetFrameAndRef(int audioDevId, int aiChn, IMPAudioFrame *frm, IMPAudioFrame *ref, IMPBlock block)
+* @fn int IMP_DMIC_GetFrameAndRef(int dmicDevId, int dmicChnId, IMPDmicChnFrame *chnFrm, IMPDmicFrame *ref, IMPBlock block);
+* Get audio frame and output reference frame.
 *
-* 获取音频帧和输出参考帧.
+* @param[in] dmicDevId MAC array audio device number.
+* @param[in] dmicChnId MAC array audio channel number
+* @param[out] chnFrm   MAC array channel audio frame structure pointer.
+* @param[out] ref reference frame structure pointer.
+* @param[in] block block Blocking / non blocking identifier.
 *
-* @param[in]  dmicDevId 麦克阵列音频设备号.
-* @param[in]  dmicChnId 麦克阵列音频输入通道号.
-* @param[out] chnFrm    麦克阵列音频通道音频帧结构体指针.
-* @param[out] ref		参考帧结构体指针.
-* @param[in] block 阻塞/非阻塞标识.
-*
-* @retval 0 成功.
-* @retval 非0 失败.
+* @retval 0 success.
+* @retval non-0 failure.
 **/
 int IMP_DMIC_GetFrameAndRef(int dmicDevId, int dmicChnId, IMPDmicChnFrame *chnFrm, IMPDmicFrame *ref, IMPBlock block);
 
 /**
- ** @fn int IMP_AI_EnableAec(int aiDevId, int aiChn, int aoDevId, int aoChn)
+ ** @fn int IMP_DMIC_EnableAec(int dmicDevId, int dmicChnId, int aoDevId, int aoChId);
  *
- * 启用指定音频输入和音频输出的回声抵消功能.
+ * Enable audio echo cancellation feature of the specified audio input and audio output.
  *
- * @param[in] dmicDevId 需要进行回声抵消的麦克阵列音频输入设备号.
- * @param[in] dmicChnId 需要进行回声抵消的麦克阵列音频输入通道号.
- * @param[in] aoDevId 需要进行回声抵消的音频输出设备号.
- * @param[in] aoChn 需要进行回声抵消的音频输出通道号.
- * @retval 0 成功.
- * @retval 非0 失败.
+ * @param[in] dmicDevId MAC array audio device number.
+ * @param[in] dmicChnId MAC array audio channel number
+ * @param[in] aoDevId Need to perform audio echo cancellation of the audio output device number.
+ * @param[in] aoChn Need to perform audio echo cancellation of the audio output channel number.
+ * @retval 0 success.
+ * @retval non-0 failure.
  */
 int IMP_DMIC_EnableAec(int dmicDevId, int dmicChnId, int aoDevId, int aoChId);
-
 /**
   * @fn int IMP_DMIC_PollingFrame(int dmicDevId, int dmicChnId, unsigned int timeout_ms);
-  * Polling音频流缓存.
-  * @param[in] dmicDevId 麦克阵列音频设备号.
-  * @param[in] dmicChnId 麦克阵列音频输入通道号.
-  * @param[in] timeout_ms Polling超时时间.
+  * Polling encoded audio stream cache.
+  * @param[in] dmicDevId MAC array audio device number.
+  * @param[in] dmicChnId MAC array audio channel number
+  * @param[in] timeout_ms Polling timeout time.
   *
-  * @retval 0 成功.
-  * @retval 非0 失败.
+  * @retval 0 success.
+  * @retval non-0 failure.
   *
-  * @remarks 无.
+  * @remarks no.
   *
-  * @attention 在使用IMP_DMIC_GetChnParam之前使用该接口，当该接口调用成功之后表示音频
-  *数据已经准备完毕，可以使用IMP_DMIC_GetFrame获取音频数据.
+  * @attention Use the interface before using IMP_DMIC_GetFrame, and when the interface is called successfully, then the audio data is ready, and you can use IMP_DMIC_GetFrame to get audio data.
+
   */
 int IMP_DMIC_DisableAec(int dmicDevId, int dmicChnId);
-
 /**
-  * @fn int IMP_DMIC_DisableAec(int dmicDevId, int dmicChnId);
-  * 关闭DMIC的AEC功能.
-  * @param[in] dmicDevId 麦克阵列音频设备号.
-  * @param[in] dmicChnId 麦克阵列音频输入通道号.
-  *
-  * @retval 0 成功.
-  * @retval 非0 失败.
-  *
-  * @remarks 无.
-  *
-  * @attention IMP_DMIC_DisableAec要和IMP_DMIC_EnableAec配对使用
-  */
+ * @fn int IMP_DMIC_DisableAec(int dmicDevId, int dmicChnId);
+ * close AEC function.
+ * @param[in] dmicDevId MAC array audio device number.
+ * @param[in] dmicChnId MAC array audio channel number.
+ *
+ * @retval 0 success.
+ * @retval non-0 failure.
+ *
+ * @remarks no.
+ *
+ * @attention IMP_DMIC_DisableAec should be matche with IMP_DMIC_EnableAec
+ *
+ */
 int IMP_DMIC_PollingFrame(int dmicDevId, int dmicChnId, unsigned int timeout_ms);
 
 /**
-*   @fn int IMP_DMIC_SetVol(int dmicDevId, int dmicChnId, int dmicVol);
-*   Set 麦克阵列的音量大小.
+*	@fn int IMP_DMIC_SetVol(int dmicDevId, int dmicChnId, int dmicVol);
+*   Set audio input volume.
 *
-*	@param[in] dmicDevId 麦克阵列音频设备号.
-*	@param[in] dmicChnId 麦克阵列音频输入通道号.
-*	@param[in] dmicVol   麦克阵列音频输入音量大小.
-
-*   @retval 0 成功.
-*   @retval 非 0 失败.
-*
-*   @remarks 音量的取值范围为[-30 ~ 120]. -30代表静音,120表示将声音放大30dB,步长0.5dB.
-*   @remarks 其中60是音量设置的一个临界点，在这个值上软件不对音量做增加或减小，当音量值小于60时，每下降1，音量减小0.                                    5dB；当音量值大于60时，上增加1，音量增加0.5dB。
-*/
-int IMP_DMIC_SetVol(int dmicDevId, int dmicChnId, int dmicVol);
-
-/**
-*   @fn int IMP_DMIC_GetVol(int dmicDevId, int dmicChnId, int *dmicVol);
-*   获取麦克阵列的音量大小
-*
-*	@param[in] dmicDevId 麦克阵列音频设备号.
-*	@param[in] dmicChnId 麦克阵列音频输入通道号.
-*	@param[out] dmicVol   麦克阵列音频输入音量大小.
-
+*   @param[in] dmicDevId MAC array audio device number.
+*   @param[in] dmicChnId MAC array audio channel number
+*   @param[in] dmic vol of MAC array
 *   @retval 0 success.
 *   @retval non-0 failure.
-
-*   @remarks no.
-*   @attention no.
+*	@remarks volume in the range of [-30 ~ 120]. - 30 represents mute, 120 is to amplify the sound of to 30dB, step 0.5dB.
+*	@remarks 60 is to set the volume to a critical point. In this case, the software does not increase or decrease the volume, when the volume          value is less than 60, for each drop of 1, the volume is decreased by 0.5dB; when the volume value is greater than 60, for each rise of 1, the volume is increased by 0.5dB.
+*/
+int IMP_DMIC_SetVol(int dmicDevId, int dmicChnId, int dmicVol);
+/**
+*	@fn int IMP_DMIC_SetVol(int dmicDevId, int dmicChnId, int dmicVol);
+*   Set audio input volume.
+*
+*   @param[in] dmicDevId MAC array audio device number.
+*   @param[in] dmicChnId MAC array audio channel number
+*   @param[out] dmic vol of MAC array.
+*   @retval 0 success.
+*   @retval non-0 failure.
+*	@remarks no.
+*	@attention no.
 */
 int IMP_DMIC_GetVol(int dmicDevId, int dmicChnId, int *dmicVol);
 
+
 /**
 *  @fn int IMP_DMIC_SetGain(int dmicDevId, int dmicChnId, int dmicGain);
-*  设置麦克阵列的输入增益.
+*  Set MAC array dmic input gain.
 *
-*	@param[in] dmicDevId 麦克阵列音频设备号.
-*	@param[in] dmicChnId 麦克阵列音频输入通道号.
-*	@param[out] dmicGain  麦克阵列音频输入增益.
+*   @param[in] dmicDevId MAC array audio device number.
+*   @param[in] dmicChnId MAC array audio channel number
+*   @param[out] dmic of MAC array input gain, range [0 ~ 31].
 *
 *   @retval 0 success.
 *   @retval non-0 failure.
-
-*   @remarks no.
-*   @attention no.
 */
 int IMP_DMIC_SetGain(int dmicDevId, int dmicChnId, int dmicGain);
 
 /**
 *  @fn int IMP_DMIC_GetGain(int dmicDevId, int dmicChnId, int *dmicGain);
-*   获取麦克阵列的输入增益.
-
- *	@param[in]  dmicDevId 麦克阵列音频设备号.
-*	@param[in]  dmicChnId 麦克阵列音频输入通道号.
-*	@param[out] dmicGain  麦克阵列音频输入增益.
+*  Get MAC array dmic input gain.
 *
+*   @param[in] dmicDevId MAC array audio device number.
+*   @param[in] dmicChnId MAC array audio channel number
+*	@param[out] dmicGain MAC audio input gain 
 *   @retval 0 success.
 *   @retval non-0 failure.
 *
 *   @remarks no.
-*   @attention no.
 */
 int IMP_DMIC_GetGain(int dmicDevId, int dmicChnId, int *dmicGain);
 

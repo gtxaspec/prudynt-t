@@ -1,5 +1,5 @@
 set(WYZEDOM_SOURCE
-  musl_shim.cpp
+  musl_shim.c
   main.cpp
   IMP.cpp
   Encoder.cpp
@@ -7,54 +7,32 @@ set(WYZEDOM_SOURCE
   RTSP.cpp
   IMPServerMediaSubsession.cpp
   IMPDeviceSource.cpp
-  OSD.cpp
   GPIO.cpp
-  Motion.cpp
-  MotionClip.cpp
-  MotionTSMux.cpp
-  MotionMP4Mux.cpp
-  CVR.cpp
   Scripts.cpp
-  MuxQueue.cpp
   Config.cpp
-  Night.cpp
-  SunTrack.cpp
 )
-
-
 
 add_executable(${PROJECT_NAME} ${WYZEDOM_SOURCE})
-target_include_directories(${PROJECT_NAME} PUBLIC
-  ../3rdparty/install/include
-  ../3rdparty/install/include/liveMedia
-  ../3rdparty/install/include/groupsock
-  ../3rdparty/install/include/UsageEnvironment
-  ../3rdparty/install/include/BasicUsageEnvironment
-  ../3rdparty/install/include/freetype2
-  ../blob/include
 
+target_include_directories(${PROJECT_NAME} PUBLIC
+  ${LIVE555_INCLUDE_DIR}
+  ${LIVE555_INCLUDE_DIR}/liveMedia
+  ${LIVE555_INCLUDE_DIR}/groupsock
+  ${LIVE555_INCLUDE_DIR}/UsageEnvironment
+  ${LIVE555_INCLUDE_DIR}/BasicUsageEnvironment
+  ../blob/include
 )
+
 target_link_directories(${PROJECT_NAME} PUBLIC
-  ../3rdparty/install/lib
-  ../blob/lib
-   ../../../output/build/xz-5.2.10/src/liblzma/.libs
+  ${LIVE555_LIB_DIR}
 )
+
 target_link_libraries(${PROJECT_NAME}
   pthread
-  imp alog rt crypto ssl
+  imp alog rt
   liveMedia
   groupsock
   BasicUsageEnvironment
   UsageEnvironment
-  freetype.a
-  lzma
-  atomic
-  avdevice
-  avformat
-  avfilter
-  avcodec
-  swresample
-  swscale
-  avutil
   config++
 )

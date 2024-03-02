@@ -17,7 +17,7 @@ extern "C"{
 
 /**
  * @file
- * IMP utils头文件
+ * IMP utils header file
  */
 
 #undef offsetof

@@ -14,17 +14,17 @@ void RTSP::run() {
     UsageEnvironment *env = BasicUsageEnvironment::createNew(*scheduler);
 
     RTSPServer *rtspServer;
-    if (Config::singleton()->rtspAuthRequired) {
+/*    if (Config::singleton()->rtspAuthRequired) {
         UserAuthenticationDatabase *auth = new UserAuthenticationDatabase;
         auth->addUserRecord(
             Config::singleton()->rtspUsername.c_str(),
             Config::singleton()->rtspPassword.c_str()
         );
         rtspServer = RTSPServer::createNew(*env, 8554, auth);
-    }
-    else {
+    }*/
+    //else {
         rtspServer = RTSPServer::createNew(*env, 8554);
-    }
+   // }
     if (rtspServer == NULL) {
         LOG_ERROR("Failed to create RTSP server: " << env->getResultMsg() << "\n");
         return;

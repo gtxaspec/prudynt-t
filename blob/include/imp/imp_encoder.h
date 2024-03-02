@@ -19,88 +19,94 @@ extern "C"
 
 /**
  * @file
- * IMP视频编码头文件
+ * IMP Video Encoder header file
  */
 
 /**
  * @defgroup IMP_Encoder
  * @ingroup imp
- * @brief 视频编码（JPEG, H264, H265）模块，包含编码通道管理，编码参数设置等功能
- * @section enc_struct 1 模块结构
- * Encoder模块内部结构如下如：
+ * @brief Video Encoder Module(JPEG, H264, H265), it contains encoder channel management, encoder parameter setting and other functions.
+ *
+ * @section enc_struct 1 Encoder Module Structure
+ * The internal structure of the Encoder is as follows:
  * @image html encoder_struct.jpg
- * 如上图所示，编码模块由若干个Group组成（在T15上支持两个Group），每个Group由编码Channel组成。
- * 每个编码Channel附带一个输出码流缓冲区，这个缓冲区由多个buffer组成。
- * @section enc_channel 2 编码Channel
- * 一个编码Channel可以完成一种协议的编码, 每个Group可以添加2个编码channel。
- * @section enc_rc 3 码率控制
+ * As shown in the figure above, The Encoder Module consists of several groups(Two groups are supported on T15), Each group consists of Encoder channels.
+ * Each Encoder channel is attached with an output stream area, This area consists of multiple buffers.
+ *
+ * @section enc_channel 2 Encoder Channel
+ * A Encoder Channel can realize the encoding of a protocol, Each group can add two encoding channels.
+ *
+ * @section enc_rc 3 Rate Control
  * @subsection enc_cbr 3.1 CBR
- * CBR（Constent Bit Rate）恒定比特率，即在码率统计时间内编码码率恒定。
- * 以H.264 编码为例，用户可设置maxQp，minQp，bitrate等。
- * maxQp，minQp 用于控制图像的质量范围， bitrate 用于钳位码率统计时间内的平均编码码率。
- * 当编码码率大于恒定码率时，图像QP 会逐步向maxQp 调整，当编码码率远小于恒定码率时，图像QP 会逐步向minQp 调整。
- * 当图像QP 达到maxQp 时，QP 被钳位到最大值，bitrate 的钳位效果失效，编码码率有可能会超出bitrate。
- * 当图像QP 达到minQp 时，QP 被钳位到最小值，此时编码的码率已经达到最大值，而且图像质量最好。
+ *		CBR(Constent Bit Rate), Keep the bitrate constant in the encoding statistics time.
+ *		Take H264 code as an example, Users can set maxQp, minQp, bitrate an so on.
+ *		maxQp, minQp: it is used to control the quality range of an image.
+ *		bitrate: It is used for the average encoding rate in the statistical time of clamp bit rate.
+ *		When the encoding bitrate is greater than the constant bitrate, the image QP will gradually adjust to maxqp.
+ *		When the encoding bitrate is much less than the constant bitrate, the image QP will gradually adjust to minqp.
+ *		When the image QP reaches maxqp, QP is clamped to the maximum, bitrate clamping effect is invalid, and the encoding bitrate may exceed bitrate.
+ *		When the image QP reaches minqp, QP is clamped to the minimum value, and the bitrate of encoding has reached the maximum value and the image quality is the best.
  * @subsection enc_FixQP 3.2 FixQP
- * Fix Qp 固定Qp 值。在码率统计时间内，编码图像所有宏块Qp 值相同，采用用户设定的图像Qp值。
+ *		Fix Qp, Fixed QP value.
+ *		In the bitrate statistics time, the QP values of all macroblocks in the coded image are the same, and the image QP values set by user.
  * @{
  */
 
 /**
- * 定义H.264码流NALU类型
+ * Defining the Nalu type of H.264
  */
 typedef enum {
-	IMP_H264_NAL_UNKNOWN		= 0,	/**< 未指定 */
-	IMP_H264_NAL_SLICE		    = 1,	/**< 一个非IDR图像的编码条带  */
-	IMP_H264_NAL_SLICE_DPA	    = 2,	/**< 编码条带数据分割块A */
-	IMP_H264_NAL_SLICE_DPB	    = 3,	/**< 编码条带数据分割块B */
-	IMP_H264_NAL_SLICE_DPC	    = 4,	/**< 编码条带数据分割块C */
-	IMP_H264_NAL_SLICE_IDR	    = 5,	/**< IDR图像的编码条带 */
-	IMP_H264_NAL_SEI			= 6,	/**< 辅助增强信息 (SEI) */
-	IMP_H264_NAL_SPS			= 7,	/**< 序列参数集 */
-	IMP_H264_NAL_PPS			= 8,	/**< 图像参数集 */
-	IMP_H264_NAL_AUD			= 9,	/**< 访问单元分隔符 */
-	IMP_H264_NAL_FILLER		    = 12,	/**< 填充数据 */
+	IMP_H264_NAL_UNKNOWN		= 0,	/**< Undefined */
+	IMP_H264_NAL_SLICE		    = 1,	/**< A encoding strip for non IDR image */
+	IMP_H264_NAL_SLICE_DPA	    = 2,	/**< Encoding stripe data partition block A */
+	IMP_H264_NAL_SLICE_DPB	    = 3,	/**< Encoding stripe data partition block B */
+	IMP_H264_NAL_SLICE_DPC	    = 4,	/**< Encoding stripe data partition block C */
+	IMP_H264_NAL_SLICE_IDR	    = 5,	/**< Encoding strip of IDR image */
+	IMP_H264_NAL_SEI			= 6,	/**< SEI(Supplemental Enhancement Information) */
+	IMP_H264_NAL_SPS			= 7,	/**< SPS(Sequence Paramater Set) */
+	IMP_H264_NAL_PPS			= 8,	/**< PPS(Picture Paramater Set) */
+	IMP_H264_NAL_AUD			= 9,	/**< Access unit separator */
+	IMP_H264_NAL_FILLER		    = 12,	/**< Fill in data */
 } IMPEncoderH264NaluType;
 
 /**
- * 定义H.265码流NALU类型
+ * Defining the Nalu type of H.265
  */
 typedef enum {
-    IMP_H265_NAL_SLICE_TRAIL_N      = 0,        /**< 尾随图像, 不带参考信息 */
-    IMP_H265_NAL_SLICE_TRAIL_R      = 1,        /**< 尾随图像, 带参考信息 */
-    IMP_H265_NAL_SLICE_TSA_N        = 2,        /**< 时域子层接入点图像, 不带参考信息 */
-    IMP_H265_NAL_SLICE_TSA_R        = 3,        /**< 时域子层接入点图像, 带参考信息 */
-    IMP_H265_NAL_SLICE_STSA_N       = 4,        /**< 逐步时域子层接入点图像, 不带参考信息 */
-    IMP_H265_NAL_SLICE_STSA_R       = 5,        /**< 逐步时域子层接入点图像, 带参考信息 */
-    IMP_H265_NAL_SLICE_RADL_N       = 6,        /**< 可解码随机接入前置图像, 不带参考信息 */
-    IMP_H265_NAL_SLICE_RADL_R       = 7,        /**< 可解码随机接入前置图像, 带参考信息 */
-    IMP_H265_NAL_SLICE_RASL_N       = 8,        /**< 跳过随机接入的前置图像, 不带参考信息 */
-    IMP_H265_NAL_SLICE_RASL_R       = 9,        /**< 跳过随机接入的前置图像, 带参考信息 */
-    IMP_H265_NAL_SLICE_BLA_W_LP     = 16,       /**< 断点连接接入, 带前置图像 */
-    IMP_H265_NAL_SLICE_BLA_W_RADL   = 17,       /**< 断点连接接入, 带前置图像RADL */
-    IMP_H265_NAL_SLICE_BLA_N_LP     = 18,       /**< 断点连接接入, 不带前置图像 */
-    IMP_H265_NAL_SLICE_IDR_W_RADL   = 19,       /**< 即时解码刷新, 带前置图像RADL */
-    IMP_H265_NAL_SLICE_IDR_N_LP     = 20,       /**< 即时解码刷新, 不带前置图像 */
-    IMP_H265_NAL_SLICE_CRA          = 21,       /**< 纯随机接入, 带前置图像*/
-    IMP_H265_NAL_VPS                = 32,       /**< 视频参数集 */
-    IMP_H265_NAL_SPS                = 33,       /**< 序列参数集 */
-    IMP_H265_NAL_PPS                = 34,       /**< 图像参数集 */
-    IMP_H265_NAL_AUD                = 35,       /**< 访问单元分隔符 */
-    IMP_H265_NAL_EOS                = 36,       /**< 序列结束 */
-    IMP_H265_NAL_EOB                = 37,       /**< 比特流结束 */
-    IMP_H265_NAL_FILLER_DATA        = 38,       /**< 填充数据 */
-    IMP_H265_NAL_PREFIX_SEI         = 39,       /**< 辅助增强信息 (SEI) */
-    IMP_H265_NAL_SUFFIX_SEI         = 40,       /**< 辅助增强信息 (SEI) */
-    IMP_H265_NAL_INVALID            = 64,       /**< 无效NAL类型 */
+    IMP_H265_NAL_SLICE_TRAIL_N      = 0,        /**< Trailing image without reference information */
+    IMP_H265_NAL_SLICE_TRAIL_R      = 1,        /**< Trailing image with reference information */
+    IMP_H265_NAL_SLICE_TSA_N        = 2,        /**< Sub layer access point image in time domain without reference information */
+    IMP_H265_NAL_SLICE_TSA_R        = 3,        /**< Sub layer access point image in time domain with reference information */
+    IMP_H265_NAL_SLICE_STSA_N       = 4,        /**< Step by step time domain sub layer access point image without reference information */
+    IMP_H265_NAL_SLICE_STSA_R       = 5,        /**< Step by step time domain sub layer access point image with reference information */
+    IMP_H265_NAL_SLICE_RADL_N       = 6,        /**< The front image can be decoded randomly without reference information */
+    IMP_H265_NAL_SLICE_RADL_R       = 7,        /**< The front image can be decoded randomly with reference information */
+    IMP_H265_NAL_SLICE_RASL_N       = 8,        /**< Skip the front image of random access, without reference information */
+    IMP_H265_NAL_SLICE_RASL_R       = 9,        /**< Skip the front image of random access, with reference information */
+    IMP_H265_NAL_SLICE_BLA_W_LP     = 16,       /**< Breakpoint connection access with front image */
+    IMP_H265_NAL_SLICE_BLA_W_RADL   = 17,       /**< Breakpoint connection access with front image RADL */
+    IMP_H265_NAL_SLICE_BLA_N_LP     = 18,       /**< Breakpoint connection access without front image */
+    IMP_H265_NAL_SLICE_IDR_W_RADL   = 19,       /**< Instant decoding refresh with front image RADL */
+    IMP_H265_NAL_SLICE_IDR_N_LP     = 20,       /**< Instant decoding refresh without front image */
+    IMP_H265_NAL_SLICE_CRA          = 21,       /**< Pure random access with front image	*/
+    IMP_H265_NAL_VPS                = 32,       /**< Video Parameter Set */
+    IMP_H265_NAL_SPS                = 33,       /**< SPS(Sequence Paramater Set) */
+    IMP_H265_NAL_PPS                = 34,       /**< PPS(Picture Paramater Set) */
+    IMP_H265_NAL_AUD                = 35,       /**< Access unit separator */
+    IMP_H265_NAL_EOS                = 36,       /**< End of sequence */
+    IMP_H265_NAL_EOB                = 37,       /**< End of bitstream */
+    IMP_H265_NAL_FILLER_DATA        = 38,       /**< Fill in data */
+    IMP_H265_NAL_PREFIX_SEI         = 39,       /**< SEI(Supplemental Enhancement Information) */
+    IMP_H265_NAL_SUFFIX_SEI         = 40,       /**< SEI(Supplemental Enhancement Information) */
+    IMP_H265_NAL_INVALID            = 64,       /**< Invalid nal type */
 } IMPEncoderH265NaluType;
 
 /**
- * 定义H.264和H.265编码Channel码流NAL类型
+ * Define the nal type of H.264 and h.265 encoding channel stream
  */
 typedef union {
-	IMPEncoderH264NaluType		h264NalType;		/**< H264E NALU 码流包类型 */
-	IMPEncoderH265NaluType		h265NalType;		/**< H265E NALU 码流包类型 */
+	IMPEncoderH264NaluType		h264NalType;		/**< H264E NALU */
+	IMPEncoderH265NaluType		h265NalType;		/**< H265E NALU */
 } IMPEncoderNalType;
 
 typedef enum {
@@ -116,28 +122,52 @@ typedef enum {
   IMP_ENC_SLICE_MAX_ENUM,       /**< sentinel */
 } IMPEncoderSliceType;
 
-/**x
- * 定义编码帧码流包结构体
+/**
+ * Define the packet structure of coded frame and stream
  */
 typedef struct {
-	uint32_t	offset;						/**< 码流包地址偏移 */
-	uint32_t	length;							/**< 码流包长度 */
-	int64_t	timestamp;						/**< 时间戳，单位us */
-	bool	frameEnd;						/**< 帧结束标识 */
-	IMPEncoderNalType   nalType;				/**< H.264和H.265编码Channel码流NAL类型 */
-	IMPEncoderSliceType sliceType;
+	uint32_t	offset;						/**< Stream packet offset */
+	uint32_t	length;						/**< Stream packet length */
+	int64_t	timestamp;						/**< Time stamp, unit us */
+	bool	frameEnd;						/**< End of frame flag */
+	IMPEncoderNalType   nalType;			/**< Nal type of encoder channel */
+	IMPEncoderSliceType sliceType;          /**< Nal type of encoder slice */
 } IMPEncoderPack;
 
+typedef struct {
+  int32_t       iNumBytes;       /**< Number of bytes in the stream */
+  uint32_t      uNumIntra;       /**< Number of 8x8 blocks coded with intra mode */
+  uint32_t      uNumSkip;        /**< Number of 8x8 blocks coded with skip mode */
+  uint32_t      uNumCU8x8;       /**< Number of 8x8 CUs */
+  uint32_t      uNumCU16x16;     /**< Number of 16x16 CUs */
+  uint32_t      uNumCU32x32;     /**< Number of 32x32 CUs */
+  uint32_t      uNumCU64x64;     /**< Number of 64x64 CUs */
+  int16_t       iSliceQP;        /**< Slice QP value */
+  int16_t       iMinQP;          /**< Minimum QP value */
+  int16_t       iMaxQP;          /**< Maximum QP value */
+} IMPEncoderStreamInfo;
+
+typedef struct {
+  int32_t       iNumBytes;       /**< Number of bytes in the stream */
+  int16_t       iQPfactor;       /**< JPEG QP param */
+} IMPEncoderJpegInfo;
+
 /**
- * 定义编码帧码流类型结构体
+ * Define the structure of coded frame stream type
  */
 typedef struct {
-	uint32_t		  phyAddr;          /**< 帧码流物理地址 */
-	uint32_t		  virAddr;          /**< 帧码流包虚拟地址 */
-	uint32_t		  streamSize;       /**< virAddr对应分配的地址空间大小 */
-	IMPEncoderPack  *pack;				/**< 帧码流包结构 */
-	uint32_t        packCount;			/**< 一帧码流的所有包的个数 */
-	uint32_t        seq;				/**< 编码帧码流序列号 */
+	uint32_t        phyAddr;            /**< Physical address of frame */
+	uint32_t        virAddr;            /**< Virtual address of frame */
+	uint32_t        streamSize;         /**< Size of the allocated virtual address */
+	IMPEncoderPack  *pack;				/**< Frame stream packet */
+	uint32_t        packCount;			/**< The number of all packets in a frame stream */
+	uint32_t        seq;				/**< Sequence number of coded frame */
+	bool            isVI;
+	union
+	{
+		IMPEncoderStreamInfo streamInfo;
+		IMPEncoderJpegInfo jpegInfo;
+	};
 } IMPEncoderStream;
 
 typedef enum {
@@ -193,18 +223,26 @@ typedef enum {
 } IMPEncoderEncTools;
 
 /**
- * 定义编码器裁剪属性，针对输入编码器的图像先做裁剪，与编码通道的尺寸进行比较再做缩放
+ * Define encoder croping attributes, image of the input encoder is cropped first, then compared with the size of the encoding channel, and then scaled
  */
 typedef struct {
-    bool		enable;		/**< 是否进行裁剪,取值范围:[FALSE, TRUE],TRUE:使能裁剪,FALSE:不使能裁剪 */
-    uint32_t	x;			/**< 裁剪的区域,左上角x坐标 */
-    uint32_t	y;			/**< 裁剪的区域,左上角y坐标 */
-    uint32_t	w;			/**< 裁剪的区域,宽 */
-    uint32_t	h;			/**< 裁剪的区域,高 */
+    bool		enable;		/**< Crop or not, range: [FALSE, TRUE], TRUE: crop, FALSE: not crop */
+    uint32_t	x;			/**< The x-coordinate of the upper left corner of the crop region */
+    uint32_t	y;			/**< The y-coordinate of the upper left corner of the crop region */
+    uint32_t	w;			/**< Width of Crop Region */
+    uint32_t	h;			/**< Height of Crop Region */
 } IMPEncoderCropCfg;
 
 /**
- * 定义编码器属性结构体
+ * Define encoder entropy mode
+ */
+typedef enum {
+  IMP_ENC_ENTROPY_MODE_CAVLC = 0x1,     /* AVC only */
+  IMP_ENC_ENTROPY_MODE_CABAC = 0x2,
+} IMPEncoderEntropyMode;
+
+/**
+ * Define encoder attribute structure
  */
 typedef struct {
   IMPEncoderProfile       eProfile;
@@ -215,19 +253,21 @@ typedef struct {
   IMPEncoderPicFormat     ePicFormat;
   uint32_t                eEncOptions;
   uint32_t                eEncTools;
-  IMPEncoderCropCfg       crop;           /**< 编码器裁剪属性 */
+  IMPEncoderCropCfg       crop;           /**< Encoder croping properties */
 } IMPEncoderEncAttr;
 
 typedef enum {
   IMP_ENC_GOP_CTRL_MODE_DEFAULT       = 0x02,
   IMP_ENC_GOP_CTRL_MODE_PYRAMIDAL     = 0x04,
+  IMP_ENC_GOP_CTRL_MODE_SMARTP		  = 0xfe,
   IMP_ENC_GOP_CTRL_MAX_ENUM           = 0xff,
 } IMPEncoderGopCtrlMode;
 
 typedef struct {
   IMPEncoderGopCtrlMode   uGopCtrlMode;
   uint16_t                uGopLength;
-  uint8_t                 uNumB;
+  //uint8_t                 uNumB;
+  uint16_t				  uNotifyUserLTInter;
   uint32_t                uMaxSameSenceCnt;
   bool                    bEnableLT;
   uint32_t                uFreqLT;
@@ -307,11 +347,12 @@ typedef struct {
 } IMPEncoderAttrRcMode;
 
 /**
- * 定义编码channel帧率结构体,frmRateNum和frmRateDen经过最大公约数整除后两者之间的最小公倍数不能超过64，最好在设置之前就被最大公约数整除
+ * Define the frame rate structure of the encoded channel
+ * The minimum common multiple between frmratenum and frmrateden after the maximum common divisor division cannot exceed 64, preferably by the maximum common divisor before setting
  */
 typedef struct {
-	uint32_t	frmRateNum;				/**< 在一秒钟内的时间单元的数量, 以时间单元为单位。即帧率的分子 */
-	uint32_t	frmRateDen;				/**< 在一帧内的时间单元的数量, 以时间单元为单位。即帧率的分母 */
+	uint32_t	frmRateNum;				/**< The number of time units in a second, in units of time. Frame rate molecules */
+	uint32_t	frmRateDen;				/**< The number of time units in a second, in units of time. Frame rate denominator */
 } IMPEncoderFrmRate;
 
 
@@ -321,234 +362,260 @@ typedef struct {
 } IMPEncoderRcAttr;
 
 /**
- * 定义编码Channel属性结构体
+ * Define encoded channel attribute structure
  */
 typedef struct {
-	IMPEncoderEncAttr     encAttr;	/**< 编码器属性结构体 */
-	IMPEncoderRcAttr      rcAttr;		/**< 码率控制器属性结构体,只针对H264和h265 */
-	IMPEncoderGopAttr     gopAttr;	/**< 编码器属性结构体 */
+	IMPEncoderEncAttr     encAttr;	/**< Encoder attribute structure */
+	IMPEncoderRcAttr      rcAttr;	/**< Rate controller attribute structure, only for H264 and H265 */
+	IMPEncoderGopAttr     gopAttr;	/**< Encoder attribute structure */
 } IMPEncoderChnAttr;
 
 /**
- * 定义编码Channel的状态结构体
+ * Define the state structure of encoded channel
  */
 typedef struct {
-	bool		registered;			/**< 注册到Group标志，取值范围:{TRUE, FALSE}，TRUE:注册，FALSE:未注册 */
-	uint32_t	leftPics;			/**< 待编码的图像数 */
-	uint32_t	leftStreamBytes;	/**< 码流buffer剩余的byte数 */
-	uint32_t	leftStreamFrames;	/**< 码流buffer剩余的帧数 */
-	uint32_t	curPacks;			/**< 当前帧的码流包个数 */
-	uint32_t	work_done;			/**< 通道程序运行状态，0：正在运行，1，未运行 */
+	bool		registered;			/**< Flag registered to the group, range: [TRUE, FALSE], TRUE: registered, FALSE: no registered */
+	uint32_t	leftPics;			/**< Number of images to be encoded */
+	uint32_t	leftStreamBytes;	/**< The number of bytes remaining in the bitstream buffer */
+	uint32_t	leftStreamFrames;	/**< The number of frames remaining in the bitstream buffer */
+	uint32_t	curPacks;			/**< The number of stream packets in the current frame */
+	uint32_t	work_done;			/**< Channel program running status, 0: running, 1: no running */
 } IMPEncoderChnStat;
 
 /**
  * @fn int IMP_Encoder_CreateGroup(int encGroup)
  *
- * 创建编码Group
+ * Create Encoding Group.
  *
- * @param[in] encGroup Group号,取值范围:[0, @ref NR_MAX_ENC_GROUPS - 1]
+ * @param[in] encGroup: Group ID, range: [0, @ref NR_MAX_ENC_GROUPS - 1]
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 一路Group仅支持一路分辨率，不同分辨率需启动新的Group。一路Group允许最多注册2个编码channel
+ * @remarks One way group only supports one way resolution, and a new group needs to be started for different resolutions
+ * One way group allows up to 2 coding channels to be registered.
  *
- * @attention 如果指定的Group已经存在，则返回失败
+ * @attention If the group already exists, then return fails.
  */
 int IMP_Encoder_CreateGroup(int encGroup);
 
 /**
  * @fn int IMP_Encoder_DestroyGroup(int encGroup)
  *
- * 销毁编码Grouop.
+ * Destroy Encoding Group.
  *
- * @param[in] encGroup Group号,取值范围:[0, @ref NR_MAX_ENC_GROUPS - 1]
+ * @param[in] encGroup: Group ID, range: [0, @ref NR_MAX_ENC_GROUPS - 1]
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 销毁Group时，必须保证Group为空，即没有任何Channel在Group中注册，或注册到Group中
- * 的Channel已经反注册，否则返回失败
+ * @remarks When destroying a group, it must be ensured that the group is empty, that is, no channel is registered in the group.
  *
- * @attention 销毁并不存在的Group，则返回失败
+ * @attention If destroy a nonexistent group, then return fails.
  */
 int IMP_Encoder_DestroyGroup(int encGroup);
 
-
+/**
+* @fn int IMP_Encoder_SetDefaultParam(IMPEncoderChnAttr *chnAttr, IMPEncoderProfile profile, IMPEncoderRcMode rcMode, uint16_t uWidth, uint16_t uHeight, uint32_t frmRateNum, uint32_t frmRat
+*
+* Set encoding default properties.
+*
+* @param[out] chnAttr: Struct for encoding.
+* @param[in]  profile: Encoding profile.
+* @param[in]  rcMode:  Rate control mode.
+* @param[in]  uWidth:  Encoding width.
+* @param[in]  uHeight: Encoding height.
+* @param[in]  frmRateNum: Encoding fps num.
+* @param[in]  frmRateDen: Encoding fps den.
+* @param[in]  uGopLength: GOP length.
+* @param[in]  uMaxSameSenceCnt: GOPLength = uGopLength * uMaxSameSenceCnt, Default is 2.
+* @param[in]  iInitialQP: Initialize QP, Default is -1.
+* @param[in]  uTargetBitRate: Target bitrate.
+*
+* @retval 0				success.
+* @retval ~0			failed.
+*
+* @remarks If you are not familiar with coding related parameters, please use the default values.
+*
+* @attention none.
+*/
 int IMP_Encoder_SetDefaultParam(IMPEncoderChnAttr *chnAttr, IMPEncoderProfile profile, IMPEncoderRcMode rcMode, uint16_t uWidth, uint16_t uHeight, uint32_t frmRateNum, uint32_t frmRateDen, uint32_t uGopLength, int uMaxSameSenceCnt, int iInitialQP, uint32_t uTargetBitRate);
 
 /**
  * @fn int IMP_Encoder_CreateChn(int encChn, const IMPEncoderChnAttr *attr)
  *
- * 创建编码Channel
+ * Create Encoder Channel.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[in] attr 编码Channel属性指针
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[in] attr:   Encode channel property pointer.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 编码Channel属性由两部分组成，编码器属性和码率控制属性
- * @remarks 编码器属性首先需要选择编码协议，然后分别对各种协议对应的属性进行赋值
+ * @remarks The coding channel attribute consists of two parts: encoder attribute and rate control attribute.
+ * @remarks Encoder attributes need to select the coding protocol first, and then assign the corresponding attributes to each protocol.
  */
 int IMP_Encoder_CreateChn(int encChn, const IMPEncoderChnAttr *attr);
 
 /**
  * @fn int IMP_Encoder_DestroyChn(int encChn)
  *
- * 销毁编码Channel
+ * Destroy Encoder Channel.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @attention 销毁并不存在的Channel，则返回失败
- * @attention 销毁前必须保证Channel已经从Group反注册，否则返回失败
+ * @attention Destroy channels that do not exist, then return fails.
+ * @attention Before destroying, you must ensure that the channel has been de registered from the group, otherwise it will return fails.
  */
 int IMP_Encoder_DestroyChn(int encChn);
 
 /**
  * @fn int IMP_Encoder_GetChnAttr(int encChn, IMPEncoderChnAttr * const attr)
  *
- * 获取编码Channel的属性
+ * Gets the properties of the encoding channel.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[in] attr 编码Channel属性
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[in] attr:   Encoding channel properties.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  */
 int IMP_Encoder_GetChnAttr(int encChn, IMPEncoderChnAttr * const attr);
 
 /**
  * @fn int IMP_Encoder_RegisterChn(int encGroup, int encChn)
  *
- * 注册编码Channel到Group
+ * Register encoding channel to group.
  *
- * @param[in] encGroup 编码Group号,取值范围: [0, @ref NR_MAX_ENC_GROUPS - 1]
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] encGroup: Group ID, range: [0, @ref NR_MAX_ENC_GROUPS - 1].
+ * @param[in] encChn:   Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @attention 注册并不存在的Channel，则返回失败
- * @attention 注册Channel到不存在的Group，否则返回失败
- * @attention 同一个编码Channel只能注册到一个Group，如果该Channel已经注册到某个Group，则返回失败
- * @attention 如果一个Group已经被注册，那么这个Group就不能再被其他的Channel注册，除非之前注册关系被解除
+ * @attention If you register a channel that does not exist, then return fails.
+ * @attention If the channel is registered to a nonexistent group, then return fails.
+ * @attention The same coding channel can only be registered to one group. If the channel has been registered to a group, then return fails.
+ * @attention If a group has been registered, it cannot be registered by other channels.
  */
 
 int IMP_Encoder_RegisterChn(int encGroup, int encChn);
 /**
  * @fn int IMP_Encoder_UnRegisterChn(int encChn)
  *
- * 反注册编码Channel到Group
+ * Unregister encoding channel to group.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks Channel注销之后，编码Channel会被复位，编码Channel里的码流buffer都会被清空，如果用户还在使用
- * 未及时释放的码流buffer，将不能保证buffer数据的正确性，用户可以使用IMP_Encoder_Query接口来查询编
- * 码Channel码流buffer状态，确认码流buffer里的码流取完之后再反注册Channel
+ * @remarks After the channel is logged off, the encoding channel will be reset and the code stream buffers in the encoding channel will be cleared,
+ * If the user is still using the bitstream buffer that has not been released in time, the correctness of the buffer data cannot be guaranteed,
+ * Users can use IMP_Encoder_Query interface to query the status of the code channel buffer, After the register of the bitstream is completed,
+ * the buffer is retrieved.
  *
- * @attention 注销未创建的Channel，则返回失败
- * @attention 注销未注册的Channel，则返回失败
- * @attention 如果编码Channel未停止接收图像编码，则返回失败
+ * @attention Unregister the uncreated channel, then return fails.
+ * @attention Unregister the unregistered channel, then return fails.
+ * @attention If the encoding channel does not stop receiving image encoding, then return fails.
  */
 int IMP_Encoder_UnRegisterChn(int encChn);
 
 /**
  * @fn int IMP_Encoder_StartRecvPic(int encChn)
  *
- * 开启编码Channel接收图像
+ * Start receiving coded channel image.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval non-0			failed.
  *
- * @remarks 开启编码Channel接收图像后才能开始编码
+ * @remarks The encoding can only be started after the encoding channel receives the image.
  *
- * @attention 如果Channel未创建，则返回失败
- * @attention 如果Channel没有注册到Group，则返回失败
+ * @attention If the channel is not created, then return fails.
+ * @attention If channel is not registered with group, then return fails.
  */
 int IMP_Encoder_StartRecvPic(int encChn);
 
 /**
  * @fn int IMP_Encoder_StopRecvPic(int encChn)
  *
- * 停止编码Channel接收图像
+ * End receiving coded channel image.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 此接口并不判断当前是否停止接收，即允许重复停止接收不返回错误
- * @remarks 调用此接口仅停止接收原始数据编码，码流buffer并不会被消除
+ * @remarks This interface does not determine whether the reception is stopped or not, it allows repeated stop reception without returning errors.
+ * @remarks Calling this interface only stops receiving the original data encoding, and the stream buffer will not be eliminated.
  *
- * @attention 如果Channel未创建，则返回失败
- * @attention 如果Channel没有注册到Group，则返回失败
+ * @attention If the channel is not created, then return fails.
+ * @attention If channel is not registered with group, then return fails.
  */
 int IMP_Encoder_StopRecvPic(int encChn);
 
 /**
  * @fn int IMP_Encoder_Query(int encChn, IMPEncoderChnStat *stat)
  *
- * 查询编码Channel状态
+ * Query encoded channel status.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[out] stat 编码Channel状态
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[out] stat:  Encoding channel status.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval non-0			failed.
  *
- * @remarks 无
+ * @remarks none.
  *
- * @attention 无
+ * @attention none.
  */
 int IMP_Encoder_Query(int encChn, IMPEncoderChnStat *stat);
 
 /**
  * @fn int IMP_Encoder_GetStream(int encChn, IMPEncoderStream *stream, bool blockFlag)
  *
- * 获取编码的码流
+ * Get the encoded stream.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[in] stream 码流结构体指针
- * @param[in] blockFlag 是否使用阻塞方式获取，0：非阻塞，1：阻塞
+ * @param[in] encChn:    Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[in] stream:    stream structure pointer.
+ * @param[in] blockFlag: Whether to use blocking method to obtain, 0: no blocking, 1: blocking.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 每次获取一帧码流的数据
- * @remarks 如果用户长时间不获取码流,码流缓冲区就会满。一个编码Channel如果发生码流缓冲区满,就会把后
- * 面接收的图像丢掉,直到用户获取码流,从而有足够的码流缓冲可以用于编码时,才开始继续编码。建议用户
- * 获取码流接口调用与释放码流的接口调用成对出现,且尽快释放码流,防止出现由于用户态获取码流,释放不
- * 及时而导致的码流 buffer 满,停止编码。
- * @remarks 对于H264和H265类型码流，一次调用成功获取一帧的码流，这帧码流可能包含多个包。
- * @remarks 对于JPEG类型码流，一次调用成功获取一帧的码流，这帧码流只包含一个包，这一帧包含了JPEG图片文件的完整信息。
+ * @remarks Get the data of one frame at a time.
+ * @remarks If the user does not get the stream for a long time, the code stream buffer will be full. If a code stream buffer is full,
+ * a coded channel will lose the image received later, Only when the user obtains the code stream and has enough buffer for coding, can the coding continue.
+ * It is suggested that the user interface call to acquire the code stream and the interface call to release the code stream appear in pairs,
+ * and the code stream should be released as soon as possible to prevent the user state from acquiring the code stream,
+ * If the bit stream buffer is full due to untimely release, the encoding is stopped.
+ * @remarks For H264 and h265 code streams, call success to get a frame code stream, which may contain multiple packets.
+ * @remarks For JPEG type code stream, call success to get one frame code stream at a time. This frame code stream only contains one package,
+ * and this frame contains the complete information of JPEG image file.
  *
- * 示例：
+ * example:
  * @code
  * int ret;
- * ret = IMP_Encoder_PollingStream(ENC_H264_CHANNEL, 1000); //Polling码流Buffer，等待可获取状态
+ * ret = IMP_Encoder_PollingStream(ENC_H264_CHANNEL, 1000);   //Polling Stream Buffer.
  * if (ret < 0) {
  *     printf("Polling stream timeout\n");
  *     return -1;
  * }
  *
  * IMPEncoderStream stream;
- * ret = IMP_Encoder_GetStream(ENC_H264_CHANNEL, &stream, 1); //获取一帧码流，阻塞方式
+ * ret = IMP_Encoder_GetStream(ENC_H264_CHANNEL, &stream, 1); //Get a frame stream by blocking.
  * if (ret < 0) {
  *     printf("Get Stream failed\n");
  *     return -1;
  * }
  *
  * int i, nr_pack = stream.packCount;
- * for (i = 0; i < nr_pack; i++) { //保存这一帧码流的每个包
+ * for (i = 0; i < nr_pack; i++) {                            //Save each packet of this frame stream.
  *     ret = write(stream_fd, (void *)stream.pack[i].virAddr,
  *                stream.pack[i].length);
  *     if (ret != stream.pack[i].length) {
@@ -558,315 +625,579 @@ int IMP_Encoder_Query(int encChn, IMPEncoderChnStat *stat);
  * }
  * @endcode
  *
- * @attention 如果pstStream为NULL,则返回失败；
- * @attention 如果Channel未创建，则返回失败；
+ * @attention If pststream is null, then return fails.
+ * @attention If the channel is not created, then return fails.
  */
 int IMP_Encoder_GetStream(int encChn, IMPEncoderStream *stream, bool blockFlag);
 
 /**
  * @fn int IMP_Encoder_ReleaseStream(int encChn, IMPEncoderStream *stream)
  *
- * 释放码流缓存
+ * Release the encoded stream.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[in] stream 码流结构体指针
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[in] stream: stream structure pointer.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 此接口应当和IMP_Encoder_GetStream配对起来使用，\n
- * 用户获取码流后必须及时释放已经获取的码流缓存，否则可能会导致码流buffer满，影响编码器编码。\n
- * 并且用户必须按先获取先
- * 释放的顺序释放已经获取的码流缓存；
- * @remarks 在编码Channel反注册后，所有未释放的码流包均无效，不能再使用或者释放这部分无效的码流缓存。
+ * @remarks This interface should be with imp_ Encoder_ Getstream pairs to use,user must release the obtained bit stream buffer in time after acquiring the bit stream,
+ * otherwise the bit stream buffer may be full and the encoder coding will be affected.
+ * And the user must release the obtained bitstream cache in the order of acquire first and release first.
+ * @remarks After the de registration of the coding channel, all the unreleased stream packets are invalid and can no longer be used or released.
  *
- * @attention 如果pstStream为NULL,则返回失败；
- * @attention 如果Channel未创建，则返回失败；
- * @attention 释放无效的码流会返回失败。
+ * @attention If pststream is null, then return fails.
+ * @attention If the channel is not created, then return fails.
+ * @attention If the invalid stream is released, then return fails.
  */
 int IMP_Encoder_ReleaseStream(int encChn, IMPEncoderStream *stream);
 
 /**
  * @fn int IMP_Encoder_PollingStream(int encChn, uint32_t timeoutMsec)
  *
- * Polling码流缓存
+ * Polling encoded stream.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[in] timeoutMsec 超时时间，单位：毫秒
+ * @param[in] encChn:      Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[in] timeoutMsec: overtimes, unit: ms.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 在获取码流之前可以用过此API进行Polling，当码流缓存不为空时或超时时函数返回。
+ * @remarks Before obtaining the code stream, you can use this API to poll. When the code stream cache is not empty or the time is over, the function returns.
  *
- * @attention 无
+ * @attention none.
  */
 int IMP_Encoder_PollingStream(int encChn, uint32_t timeoutMsec);
 
 /**
  * @fn int IMP_Encoder_PollingModuleStream(uint32_t *encChnBitmap, uint32_t timeoutMsec)
  *
- * Polling整个编码模组各个已编码channel的码流
+ * Poling the encoded stream of each channel of the whole encoding module.
  *
- * @param[out] encChnBitmap 每一位的位数代表对应的channel号，若有已编码好的码流，则对应的位置1，否则置0
- * @param[in] timeoutMsec 超时时间，单位：毫秒
+ * @param[out] encChnBitmap: Each bits represents the corresponding channel number, If there is a coded stream, the corresponding position 1, otherwise set to 0.
+ * @param[in] timeoutMsec:   overtimes, unit: ms.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 在获取码流之前可以用过此API进行Polling，当码流缓存不为空时或超时时函数返回。
- * @remarks *encChnBitmap 对应置1的位只有在调用IMP_Encoder_ReleaseStream时当检测到该位对应的channel码流缓存不为空时时才会被置零
+ * @remarks Before obtaining the code stream, you can use this API to poll. When the code stream cache is not empty or the time is over, the function returns.
+ * @remarks *encChnBitmap The bit corresponding to 1 is only used after calling IMP_Encoder_ReleaseStream,
+ * if it is detected that the channel stream cache corresponding to this bit is not empty, it will be set to zero.
  *
- * @attention 无
+ * @attention none.
  */
 int IMP_Encoder_PollingModuleStream(uint32_t *encChnBitmap, uint32_t timeoutMsec);
 
 /**
  * @fn int IMP_Encoder_GetFd(int encChn)
  *
- * 获取编码Channel对应的设备文件句柄
+ * Get the device file handle corresponding to the encoding channel.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
  *
- * @retval >=0 成功, 返回设备文件描述符
- * @retval < 0 失败
+ * @retval >=0			success, return the device file descriptor.
+ * @retval < 0			failed.
  *
- * @remarks 在使用IMP_Encoder_PollingStream不合适的场合，比如在同一个地方Polling多个编码channel的编码完成情况时,
- * 可以使用此文件句柄调用select, poll等类似函数来阻塞等待编码完成事件
- * @remarks 调用此API需要通道已经存在
+ * @remarks If using IMP_Encoder_PollingStream is not suitable, For example, When the coding of multiple coding channels is completed in the same place,
+ * you can use this file handle to call select, poll and other similar functions to block waiting for encoding to complete.
+ * @remarks If the channel is not created, then return fails.
  *
- * @attention 无
+ * @attention none.
  */
 int IMP_Encoder_GetFd(int encChn);
 
 /**
  * @fn int IMP_Encoder_SetbufshareChn(int encChn, int shareChn)
  *
- * 设置jpeg通道共享265/264编码通道内存
+ * Set JPEG channel to share H265/H264 encoding channel.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[in] sharechn 被共享内存的264/265编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] encChn:   Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[in] sharechn: Shared H264/H265 channel number, range: [0, @ref NR_MAX_ENC_CHN - 1].
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 调用此API之前被共享内存编码通道已创建
- * @remarks 此API需要在通道创建之前调用
+ * @remarks Shared encoding channel created before calling this API.
+ * @remarks This API needs to be called before the channel is created.
  *
- * @attention 无
+ * @attention none.
  */
 int IMP_Encoder_SetbufshareChn(int encChn, int shareChn);
 
 /**
  * @fn int IMP_Encoder_SetChnResizeMode(int encChn, int en);
  *
- * 设置编码缩放是否需要申请额外rmem内存
+ * Set whether additional rmem memory is required for encoding scaling.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[in] en 使能不需要申请rmem，1：不需要申请rmem，0：需要申请rmem
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[in] en:     alloc rmem or not, 1: no alloc rmem, 0: alloc rmem.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 此API只在编码缩放的分辨率小于原始分辨率的情况下调用，编码缩放的分辨率大于原始分辨率无需调用
+ * @remarks This API is only called when the resolution of encoding scaling is less than the original resolution,
+ * there is no need to call when the resolution of encoding scaling is greater than the original resolution.
  *
- * @attention 无
+ * @attention none.
  */
 int IMP_Encoder_SetChnResizeMode(int encChn, int en);
 
 /**
  * @fn int IMP_Encoder_SetMaxStreamCnt(int encChn, int nrMaxStream)
  *
- * 设置码流缓存Buffer个数
+ * Set the number of stream buffers.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[in] nrMaxStream 码流Buffer数,取值范围: [1, @ref NR_MAX_ENC_CHN_STREAM]
+ * @param[in] encChn:      Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[in] nrMaxStream: number of stream buffers, range: [1, @ref NR_MAX_ENC_CHN_STREAM].
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 由于码流缓存Buffer个数在通道创建时就已经固定，因此次API需要在通道创建之前调用。
- * @remarks 若通道创建之前不调用此API设置码流缓存Buffer个数，则使用SDK默认的buffer个数。
+ * @remarks Because the number of Buffer buffers is fixed at the time the channel is created, the secondary API needs to be called before the channel is created.
+ * @remarks If this API is not called to set the number of buffers in the bitstream cache before the channel is created, the default number of buffers in the SDK is used.
  *
- * @attention 无
+ * @attention none.
  */
 int IMP_Encoder_SetMaxStreamCnt(int encChn, int nrMaxStream);
 
 /**
  * @fn int IMP_Encoder_GetMaxStreamCnt(int encChn, int *nrMaxStream)
  *
- * 获取码流Buffer数
+ * Get the number of stream buffers.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[out] nrMaxStream 码流Buffer数变量指针
+ * @param[in] encChn:       Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[out] nrMaxStream: stream buffer number variable pointer.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 无
+ * @remarks none.
  *
- * @attention 无
+ * @attention none.
  */
 int IMP_Encoder_GetMaxStreamCnt(int encChn, int *nrMaxStream);
 
 /**
  * @fn int IMP_Encoder_RequestIDR(int encChn)
  *
- * 请求IDR帧
+ * Request IDR frame.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 在调用此API后，会在最近的编码帧申请IDR帧编码。
+ * @remarks After calling this API, IDR frame coding will be applied in the latest coding frame.
  *
- * @attention 此API只适用于H264和h265编码channel
+ * @attention This API is only applicable to H264 and H265 encoding channels.
  */
 int IMP_Encoder_RequestIDR(int encChn);
 
 /**
  * @fn int IMP_Encoder_FlushStream(int encChn)
  *
- * 刷掉编码器里残留的旧码流，并以IDR帧开始编码
+ * Wipe out old stream in the encoder, and the encoding starts with the IDR frame.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 在调用此API后，会在最近的编码帧申请IDR帧编码。
+ * @remarks After calling this API, IDR frame coding will be applied in the latest coding frame.
  *
- * @attention 无
+ * @attention none.
  */
 int IMP_Encoder_FlushStream(int encChn);
 
 /**
  * @fn int IMP_Encoder_GetChnFrmRate(int encChn, IMPEncoderFrmRate *pstFps)
  *
- * 获取帧率控制属性
+ * Get frame rate control properties.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[out] pstFpsCfg 帧率控制属性参数
+ * @param[in] encChn:     Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[out] pstFpsCfg: Frame rate control attribute parameters.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 调用此API会获取通道的帧率控制属性，调用此API需要通道已经存在。
+ * @remarks Calling this API will get the frame rate control property of the channel. Calling this API requires that the channel already exists.
  *
- * @attention 此API只适用于H264和h265编码channel
+ * @attention This API is only applicable to H264 and H265 encoding channels.
  */
 int IMP_Encoder_GetChnFrmRate(int encChn, IMPEncoderFrmRate *pstFps);
 
 /**
  * @fn int IMP_Encoder_SetChnFrmRate(int encChn, const IMPEncoderFrmRate *pstFps)
  *
- * 动态设置帧率控制属性
+ * Set frame rate control properties dynamically.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[out] pstFpsCfg 帧率控制属性参数
+ * @param[in] encChn:     Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[out] pstFpsCfg: Frame rate control attribute parameters.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 调用此API会重新设置编码器帧率属性，帧率属性在下一个GOP生效，最大延时1秒钟生效，调用此API需要通道已经存在。
- * @remarks 如果调用IMP_FrameSource_SetChnFPS()函数动态改变系统帧率，那么需要调用该函数修改编码器帧率，完成正确参数配置。
+ * @remarks Calling this API will reset the encoder frame rate attribute. The frame rate attribute takes effect in the next GOP with a maximum delay of 1 second.
+ * Calling this API requires that the channel already exists.
+ * @remarks If IMP_FRAMESOURCE_SETCHNFPS is called to change frame rate of the system dynamically, then the function is needed to modify the frame rate of the encoder
+ * and complete the correct parameter configuration.
  *
- * @attention 此API只适用于H264和h265编码channel
+ * @attention This API is only applicable to H264 and H265 encoding channels.
  */
 int IMP_Encoder_SetChnFrmRate(int encChn, const IMPEncoderFrmRate *pstFps);
 
+/**
+ * @fn int IMP_Encoder_SetChnBitRate(int encChn, int iTargetBitRate, int iMaxBitRate)
+ *
+ * Set bitrate attribute dynamically.
+ *
+ * @param[in] encChn:         Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[in] iTargetBitRate: Target bitrate, iMaxBitRate Max bitrate unit: "bit/s".
+ *
+ * @retval 0			success.
+ * @retval ~0			failed.
+ *
+ * @remarks Calling this API will reset the code rate attribute of the encoder. The code rate attribute takes effect in the next GOP with a maximum delay of 1 second.
+ * Calling this API requires that the channel already exists.
+ *
+ * @attention This API is only applicable to H264 and H265 encoding channels.
+ */
 int IMP_Encoder_SetChnBitRate(int encChn, int iTargetBitRate, int iMaxBitRate);
 
+/**
+* @fn int IMP_Encoder_SetChnGopLength(int encChn, int iGopLength);
+*
+* Set the gopplength property of the encoding channel.
+*
+* @param[in] encChn Channel ID,range: [0, @ref NR_MAX_ENC_CHN - 1].
+* @param[in] iGopLength GopLength attr.
+*
+* @retval 0				success.
+* @retval ~0			failed.
+*
+* @remarks none.
+*
+* @attention none.
+*/
 int IMP_Encoder_SetChnGopLength(int encChn, int iGopLength);
 
 /**
  * @fn int IMP_Encoder_GetChnAttrRcMode(int encChn, IMPEncoderAttrRcMode *pstRcModeCfg).
  *
- * 获取码率控制模式属性
+ * Get the rate control mode attribute.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[out] pstRcCfg 码率控制模式属性参数
+ * @param[in] encChn:    Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[out] pstRcCfg: Rate control mode attribute parameters.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 调用此API会获取通道的码率控制模式属性，调用此API需要通道已经存在。
+ * @remarks Calling this API will get the bit rate control mode property of the channel. Calling this API requires that the channel already exists.
  *
- * @attention 此API只适用于H264和h265编码channel
+ * @attention This API is only applicable to H264 and H265 encoding channels.
  */
 int IMP_Encoder_GetChnAttrRcMode(int encChn, IMPEncoderAttrRcMode *pstRcModeCfg);
 
 /**
  * @fn int IMP_Encoder_SetChnAttrRcMode(int encChn, const IMPEncoderAttrRcMode *pstRcModeCfg).
  *
- * 设置码率控制模式属性
+ * Set rate control mode properties.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[in] pstRcCfg 码率控制模式属性参数
+ * @param[in] encChn:   Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[in] pstRcCfg: Rate control mode attribute parameters.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 调用此API会设置通道的码率控制模式属性，下一个IDR生效,调用此API需要通道已经存在。
+ * @remarks Calling this API will set the bit rate control mode property of the channel, and the next IDR will take effect.
+ * Calling this API requires that the channel already exists.
  *
- * @attention 目前，码率控制模式支持ENC_RC_MODE_FIXQP, ENC_RC_MODE_CBR, ENC_RC_MODE_VBR 与 ENC_RC_MODE_SMART
- * @attention 此API只适用于H264和h265编码channel
+ * @attention Currently, the code rate control mode supports ENC_RC_MODE_FIXQP, ENC_RC_MODE_CBR, ENC_RC_MODE_VBR, ENC_RC_MODE_CAPPED_QUALITY.
+ * @attention This API is only applicable to H264 and H265 encoding channels.
  */
 int IMP_Encoder_SetChnAttrRcMode(int encChn, const IMPEncoderAttrRcMode *pstRcModeCfg);
 
+/**
+* @fn int IMP_Encoder_GetChnGopAttr(int encChn, IMPEncoderGopAttr *pGopAttr);
+*
+* Obtain encoding channel GOP properties.
+*
+* @param[in] encChn: Channel ID,range: [0, @ref NR_MAX_ENC_CHN - 1]
+* @param[out] pGopAttr: GOP attr
+*
+* @retval 0				success
+* @retval ~0			failed
+*
+* @remarks none.
+*
+* @attention none
+*/
 int IMP_Encoder_GetChnGopAttr(int encChn, IMPEncoderGopAttr *pGopAttr);
+
+/**
+* @fn int IMP_Encoder_SetChnGopAttr(int encChn, const IMPEncoderGopAttr *pGopAttr);
+*
+* Set encoding channel GOP properties.
+*
+* @param[in] encChn: Channel ID,range: [0, @ref NR_MAX_ENC_CHN - 1]
+* @param[in] pGopAttr: GOP attr
+*
+* @retval 0				success.
+* @retval ~0			failed.
+*
+* @remarks none.
+*
+* @attention none
+*/
 int IMP_Encoder_SetChnGopAttr(int encChn, const IMPEncoderGopAttr *pGopAttr);
+
+/**
+ * @fn int IMP_Encoder_SetChnQp(int encChn, int iQP)
+ *
+ * Setting the rate control property QP dynamically.
+ *
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] iQP:    QP, range: [iMinQP, iMaxQP]
+ *
+ * @retval 0			success.
+ * @retval ~0			failed.
+ *
+ * @remarks Calling this API will reset the QP of the next frame, and the set QP will take effect in the next frame.
+ *			Calling this API requires that the channel already exists.
+ *
+ * @attention This API is only applicable to H264 and H265 encoding channels.
+ */
+int IMP_Encoder_SetChnQp(int encChn, int iQP);
+
+/**
+ * @fn int IMP_Encoder_SetChnQpBounds(int encChn, int iMinQP, int iMaxQP);
+ *
+ * Dynamically set the bit rate control attributes maxqp and minqp.
+ *
+ * @param[in] encChn: Channel ID,range: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] iMinQP: iMinQP value,range: [0, 51]
+ * @param[in] iMaxQP: iMaxQP value,range: [0, 51]
+ *
+ * @retval 0			success.
+ * @retval ~0			failed.
+ *
+ * @remarks Calling this API will reset the QP range of the next frame.
+ *			Calling this API requires that the channel already exists.
+ *
+ * @attention This API is only applicable to H264 and H265 encoding channels.
+ */
+int IMP_Encoder_SetChnQpBounds(int encChn, int iMinQP, int iMaxQP);
+
+/**
+ * @fn int IMP_Encoder_SetChnQpIPDelta(int encChn, int uIPDelta)
+ *
+ * Setting the rate control property IPDelta dynamically.
+ *
+ * @param[in] encChn:   Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1]
+ * @param[in] IPDelta   QP difference between I frame and the first P frame after it
+ *
+ * @retval 0			success
+ * @retval ~0			failed
+ *
+ * @remarks	Calling this API requires that the channel already exists.
+ *
+ * @attention This API is only applicable to H264 and H265 encoding channels.
+ */
+int IMP_Encoder_SetChnQpIPDelta(int encChn, int uIPDelta);
 
 /**
  * @fn int IMP_Encoder_SetFisheyeEnableStatus(int encChn, int enable)
  *
- * 设置Ingenic提供的鱼眼矫正算法的使能状态
+ * Set the enabling state of the fish eye correction algorithm provided by ingenic.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[in] enable 0:不使能(默认),1:使能
+ * @param[in] encChn: Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[in] enable: 0: unable(default), 1: enable.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @remarks 由于鱼眼矫正算法的使能状态在通道创建时就已经固定，因此次API需要在通道创建之前调用。
- * @remarks 若通道创建之前不调用此API设置Ingenic提供的鱼眼矫正算法的使能状态,则默认不使能，即不能使用君正提供的鱼眼矫正算法。
+ * @remarks Because the enabling state of the fisheye correction algorithm is fixed at the time of the creation of the channel,
+ * the secondary API needs to be called before the channel is created.
+ * @remarks If this API is not called to set the enable state of the fish eye correction algorithm provided by ingenic before the channel is created,
+ * it is not enabled by default, the fish eye correction algorithm provided by Junzheng cannot be used.
  *
- * @attention 此API只适用于H264和h265编码channel
+ * @attention This API is only applicable to H264 and H265 encoding channels.
  */
 int IMP_Encoder_SetFisheyeEnableStatus(int encChn, int enable);
 
 /**
  * @fn int IMP_Encoder_GetFisheyeEnableStatus(int encChn, int *enable)
  *
- * 获取Ingenic提供的鱼眼矫正算法的使能状态
+ * Get the enabling state of the fish eye correction algorithm provided by ingenic.
  *
- * @param[in] encChn 编码Channel号,取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[out] enable 返回设置的Ingenic提供的鱼眼矫正算法的使能状态,0:未使能,1:已使能
+ * @param[in] encChn:  Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[out] enable: return Enable state, 0: unable, 1: enable.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0			success.
+ * @retval ~0			failed.
  *
- * @attention 此API只适用于H264和h265编码channel
+ * @attention This API is only applicable to H264 and H265 encoding channels.
  */
 int IMP_Encoder_GetFisheyeEnableStatus(int encChn, int *enable);
 
 /**
  * @fn int IMP_Encoder_GetChnEncType(int encChn, IMPEncoderEncType *encType)
  *
- * 获取图像编码协议类型
+ * Get image encoding protocol type.
  *
- * @param[in] encChn 编码Channel号, 取值范围: [0, @ref NR_MAX_ENC_CHN - 1]
- * @param[out] encType 返回获取图像编码协议类型
+ * @param[in] encChn:   Channel ID, range: [0, @ref NR_MAX_ENC_CHN - 1].
+ * @param[out] encType: return encoding protocol type.
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0				success.
+ * @retval ~0				failed.
  *
- * @remarks 如果通道未创建, 则返回失败
+ * @remarks If the channel is not created, then return fails.
  *
- * @attention 无
+ * @attention none.
  */
 int IMP_Encoder_GetChnEncType(int encChn, IMPEncoderEncType *encType);
+
+/**
+ * @brief IMP_Encoder_SetPool(int chnNum, int poolID);
+ *
+ * bind channel to mempool, let chnNum malloc from pool.
+ *
+ * @param[in] chnNum		Channel ID.
+ * @param[in] poolID		Pool ID.
+ *
+ * @retval 0				success.
+ * @retval other values		failed.
+ *
+ * @remarks In order to solve the fragmentation of rmem, the channel encoder is bound to
+ * the corresponding MemPool. The encoder applies for MEM in the MemPool. If it is not
+ * called, the encoder will apply in rmem. At this time, there is the possibility of
+ * fragmentation for rmem.
+ *
+ * @attention: chnNum is greater than or equal to 0 and less than 32.
+ */
+int IMP_Encoder_SetPool(int chnNum, int poolID);
+
+/**
+ * @brief IMP_Encoder_GetPool(int chnNum);
+ *
+ * Get Pool ID by chnannel ID.
+ *
+ * @param[in] chnNum		Channel ID.
+ *
+ * @retval  >=0 && < 32     success.
+ * @retval other values		failed.
+ *
+ * @remarks obtains poolid through channelid, which cannot be used by customers temporarily.
+ *
+ * @attention	none.
+ */
+int IMP_Encoder_GetPool(int chnNum);
+
+/**
+ * @brief IMP_Encoder_SetStreamBufSize(int encChn, uint32_t nrStreamSize);
+ *
+ * Set size of Stream buffer.
+ *
+ * @param[in] encChn:       Channel ID.
+ * @param[in] nrStreamSize: size of Stream buffer.
+ *
+ * @retval  >=0 && < 32     success.
+ * @retval  <0			    failed.
+ *
+ * @remarks This API must be called before the channel is created.
+ *
+ * @attention none.
+ */
+int IMP_Encoder_SetStreamBufSize(int encChn, uint32_t nrStreamSize);
+
+/**
+ * @brief IMP_Encoder_GetStreamBufSize(int encChn, uint32_t *nrStreamSize);
+ *
+ * Get size of Stream buffer.
+ *
+ * @param[in] encChn:        Channel ID.
+ * @param[out] nrStreamSize: size of Stream buffer.
+ *
+ * @retval  >=0 && < 32    success.
+ * @retval  <0			   failed.
+ *
+ * @remarks This API must be called after the channel is created.
+ *
+ * @attention none.
+ */
+int IMP_Encoder_GetStreamBufSize(int encChn, uint32_t *nrStreamSize);
+
+/**
+ * @brief IMP_Encoder_GetChnAveBitrate(int encChn, IMPEncoderStream *stream, int frames, double *br);
+ *
+ * Gets the average bit rate of the specified number of frames.
+ *
+ * @param[in] encChn       Channel ID.
+ * @param[in] stream       Stream.
+ * @param[in] frame        Count the number of frames(Integral multiple of GOP length).
+ * @param[out] br          Average bitrate.
+ *
+ * @retval  >=0 && < 32    success.
+ * @retval  <0			   failed.
+ *
+ * @remarks   This API must be called after using IMP_Encoder_GetStream.
+ *
+ * @attention none.
+ */
+int IMP_Encoder_GetChnAveBitrate(int encChn, IMPEncoderStream *stream, int frames, double *br);
+
+/**
+ * @brief IMP_Encoder_GetChnEvalInfo(int encChn, void *info);
+ *
+ * Obtain the evaluation parameters of each frame in the channel.
+ *
+ * @param[in] encChn       Channel ID.
+ * @param[out] info        Eval info.
+ *
+ * @retval  >=0 && < 32    success.
+ * @retval  <0			   failed.
+ *
+ * @remarks   This API must be called after using IMP_Encoder_GetStream.
+ *
+ * @attention none.
+ */
+int IMP_Encoder_GetChnEvalInfo(int encChn, void *info);
+
+/**
+ * @fn int IMP_Encoder_SetChnEntropyMode(int encChn,IMPEncoderEntropyMode eEntropyMode)
+ *
+ * Set entropy mode in the channel
+ *
+ * @param[in] encChn          Channel ID.
+ * @param[in] eEntropyMode    Entropy mode.
+ *
+ * @retval 0                  success.
+ * @retval <0                 failed.
+ *
+ * @remarks This API is only applicable to IMP_ENC_PROFILE_AVC_MAIN or IMP_ENC_PROFILE_AVC_HIGH
+ * @remarks This API needs to be called before the channel is created.
+ *
+ * @attention This API is only applicable to H264 encoding channels.
+ */
+int IMP_Encoder_SetChnEntropyMode(int encChn,IMPEncoderEntropyMode eEntropyMode);
+
+/**
+ * @brief IMP_Encoder_SetFrameRelease(int encChn, int num, int den);
+ *
+ * Set release frame num and den.
+ *
+ * @param[in] encChn:        Channnel ID.
+ * @param[in] num:           release num.
+ * @param[in] den:           release den.
+ *
+ * @retval  >=0            success.
+ * @retval  <0			   failed.
+ *
+ * @remarks This API must be called after the channel is created.
+ *
+ * @attention none.
+ */
+int IMP_Encoder_SetFrameRelease(int encChn, int num, int den);
 
 /**
  * @}

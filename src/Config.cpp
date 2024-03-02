@@ -9,7 +9,7 @@ Config* Config::instance = nullptr;
 Config::Config() {
     libconfig::Config lc;
     try {
-        lc.readFile("/home/wyze/config/prudynt.cfg");
+        lc.readFile("/etc/prudynt.cfg");
     }
     catch (...) {
         LOG_WARN("Failed to load prudynt configuration file");
