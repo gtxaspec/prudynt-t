@@ -2,7 +2,7 @@
 
 rtsp: {
     auth_required: true;
-    name: thingino prudynt";
+    name: "thingino prudynt";
     username: "thingino";
     password: "thingino";
     port: 554;
