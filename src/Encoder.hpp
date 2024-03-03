@@ -11,6 +11,7 @@
 
 #include "MsgChannel.hpp"
 #include "Logger.hpp"
+#include "OSD.hpp"
 
 struct H264NALUnit {
     std::vector<uint8_t> data;
@@ -53,6 +54,8 @@ public:
     }
 
 private:
+    OSD osd;
+
     int system_init();
     int framesource_init();
     int encoder_init();

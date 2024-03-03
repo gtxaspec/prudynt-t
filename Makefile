@@ -1,16 +1,13 @@
-TOP = $(shell realpath ../../)
+CC = ${CROSS_COMPILE}gcc
+CXX = ${CROSS_COMPILE}g++
 
-CC = $(TOP)/host/bin/mipsel-linux-gcc
-CXX = $(TOP)/host/bin/mipsel-linux-g++
 CCACHE = ccache
 CFLAGS = -Wall -Wextra -Wno-unused-parameter -O2 -DNO_OPENSSL=1
 CXXFLAGS = $(CFLAGS) -std=c++20
 LDFLAGS = -lrt
-LIBS = -limp -lalog -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++
+LIBS = -limp -lalog -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lfreetype -lz
 
-LIVE555_INCLUDE_DIR = $(TOP)/staging/usr/include
-LIVE555_LIB_DIR = $(TOP)/target/usr/lib
-BLOB_INCLUDE_DIR = ./blob/include
+LIBIMP_INC_DIR = ./include
 
 SRC_DIR = ./src
 OBJ_DIR = ./obj
@@ -24,20 +21,17 @@ $(info $(OBJECTS))
 
 TARGET = $(BIN_DIR)/prudynt
 
-$(info Using LIVE555 inc dir: $(LIVE555_INCLUDE_DIR))
-$(info Using BLOB_INCLUDE_DIR: $(BLOB_INCLUDE_DIR))
-
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(@D)
-	$(CCACHE) $(CXX) $(CXXFLAGS) -I$(BLOB_INCLUDE_DIR) -I$(LIVE555_INCLUDE_DIR) -I$(LIVE555_INCLUDE_DIR)/liveMedia -I$(LIVE555_INCLUDE_DIR)/groupsock -I$(LIVE555_INCLUDE_DIR)/UsageEnvironment -I$(LIVE555_INCLUDE_DIR)/BasicUsageEnvironment -c $< -o $@
+	$(CCACHE) $(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(@D)
-	$(CCACHE) $(CC) $(CFLAGS) -I$(BLOB_INCLUDE_DIR) -c $< -o $@
+	$(CCACHE) $(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -c $< -o $@
 
 $(TARGET): $(OBJECTS)
 	@mkdir -p $(@D)
-	$(CCACHE) $(CXX) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS) -L$(LIVE555_LIB_DIR)
+	$(CCACHE) $(CXX) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS)
 
 .PHONY: all clean
 

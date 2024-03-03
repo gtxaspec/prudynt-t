@@ -4,12 +4,12 @@
 #include <imp/imp_log.h>
 #include <imp/imp_common.h>
 #include <imp/imp_encoder.h>
+#include <imp/imp_osd.h>
 #include <ctime>
 
 #define MODULE "ENCODER"
 
 #include "IMP.hpp"
-#include "GPIO.hpp"
 #include "Encoder.hpp"
 
 std::mutex Encoder::sinks_lock;
@@ -37,10 +37,23 @@ bool Encoder::init() {
         return true;
     }
 
+    ret = osd.init();
+    if (ret) {
+        LOG_ERROR("OSD Init Failed");
+        return true;
+    }
+
     IMPCell fs = { DEV_ID_FS, 0, 0 };
+    IMPCell osd_cell = { DEV_ID_OSD, 0, 0 };
     IMPCell enc = { DEV_ID_ENC, 0, 0 };
     //Framesource -> OSD
-    ret = IMP_System_Bind(&fs, &enc);
+    ret = IMP_System_Bind(&fs, &osd_cell);
+    if (ret < 0) {
+        LOG_ERROR("IMP_System_Bind(FS, OSD) == " << ret);
+        return true;
+    }
+    //OSD -> Encoder
+    ret = IMP_System_Bind(&osd_cell, &enc);
     if (ret < 0) {
         LOG_ERROR("IMP_System_Bind(OSD, ENC) == " << ret);
         return true;
@@ -165,6 +178,7 @@ void Encoder::run() {
                 }
             }
         }
+        osd.update();
         IMP_Encoder_ReleaseStream(0, &stream);
         last_nal_ts = nal_ts;
         std::this_thread::yield();
