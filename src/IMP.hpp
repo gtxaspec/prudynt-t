@@ -4,6 +4,8 @@
 #include <imp/imp_framesource.h>
 #include <imp/imp_system.h>
 #include <imp/imp_isp.h>
+#include <sysutils/su_base.h>
+#include <imp/imp_system.h>
 
 class IMP {
 public:

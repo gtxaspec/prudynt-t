@@ -96,9 +96,17 @@ int IMP::system_init() {
     //If you see IMP-3.11.0 or lower, expect bad video
     //quality and other bugs.
     //Version IMP-3.12.0 works well in my experience.
-    IMPVersion version;
-    ret = IMP_System_GetVersion(&version);
-    std::cout << "IMP Library Version " << version.aVersion << std::endl;
+ 
+    IMPVersion impVersion;
+    ret = IMP_System_GetVersion(&impVersion);
+    std::cout << "IMP Library Version " << impVersion.aVersion << std::endl;
+
+    SUVersion suVersion;
+    ret = SU_Base_GetVersion(&suVersion);
+    std::cout << "Device Software Version: " << suVersion.chr << std::endl;
+
+    const char* cpuInfo = IMP_System_GetCPUInfo();
+    std::cout << "CPU Information: " << cpuInfo << std::endl;
 
     ret = IMP_ISP_Open();
     if (ret < 0) {
