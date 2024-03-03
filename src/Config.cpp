@@ -17,6 +17,9 @@ Config::Config() {
         return;
     }
     loadDefaults();
+
+
+    lc.lookupValue("stream.fps", streamFps);
     lc.lookupValue("night.enabled", nightEnabled);
     lc.lookupValue("night.mode", nightModeString);
     lc.lookupValue("night.infrared", nightInfrared);
@@ -63,6 +66,7 @@ void Config::loadDefaults() {
     motionStrictIDR = false;
     cvrEnabled = false;
     cvrRotateTime = 3600;
+    streamFps = 30;
 }
 
 bool Config::validateConfig() {
@@ -96,6 +100,10 @@ bool Config::validateConfig() {
     }
     if (cvrRotateTime <= 60) {
         LOG_ERROR("CVR rotation time out of range.");
+        return false;
+    }
+    if (streamFps < 30) {
+        LOG_ERROR("FPS out of range.");
         return false;
     }
     return true;

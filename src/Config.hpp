@@ -15,6 +15,7 @@ private:
     bool validateConfig();
 
 public:
+    int streamFps;
     bool nightEnabled;
     bool nightInfrared;
     bool nightColor;
