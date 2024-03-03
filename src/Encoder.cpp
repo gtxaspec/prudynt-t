@@ -137,7 +137,8 @@ void Encoder::run() {
         //all have identical timestamps.
         int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
         if (nal_ts - last_nal_ts > 1.5*(1000000/IMP::FRAME_RATE)) {
-            LOG_WARN("The encoder dropped a frame.");
+            // Silence for now until further tests / THINGINO
+            //LOG_WARN("The encoder dropped a frame.");
         }
         struct timeval encode_time;
         encode_time.tv_sec  = nal_ts / 1000000;
