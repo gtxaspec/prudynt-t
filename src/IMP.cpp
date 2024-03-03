@@ -146,7 +146,7 @@ int IMP::system_init() {
         return ret;
     }
 
-    ret = IMP_ISP_Tuning_SetSensorFPS(Config::singleton()->streamFps, 1);
+    ret = IMP_ISP_Tuning_SetSensorFPS(Config::singleton()->sensorFps, 1);
 
     return ret;
 }

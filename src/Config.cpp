@@ -9,7 +9,7 @@ Config* Config::instance = nullptr;
 Config::Config() {
     libconfig::Config lc;
     try {
-        lc.readFile("/home/wyze/config/prudynt.cfg");
+        lc.readFile("/etc/prudynt.cfg");
     }
     catch (...) {
         LOG_WARN("Failed to load prudynt configuration file");
@@ -18,26 +18,27 @@ Config::Config() {
     }
     loadDefaults();
 
-    lc.lookupValue("sensor.model", sensorModel);
-    lc.lookupValue("stream.fps", streamFps);
-    lc.lookupValue("night.enabled", nightEnabled);
-    lc.lookupValue("night.mode", nightModeString);
-    lc.lookupValue("night.infrared", nightInfrared);
-    lc.lookupValue("night.color", nightColor);
-    lc.lookupValue("sun_track.latitude", sunTrackLatitude);
-    lc.lookupValue("sun_track.longitude", sunTrackLongitude);
+
     lc.lookupValue("rtsp.auth_required", rtspAuthRequired);
     lc.lookupValue("rtsp.username", rtspUsername);
     lc.lookupValue("rtsp.password", rtspPassword);
     lc.lookupValue("rtsp.name", rtspName);
-    lc.lookupValue("motion.enabled", motionEnabled);
-    lc.lookupValue("motion.pre_time", motionPreTime);
-    lc.lookupValue("motion.post_time", motionPostTime);
-    lc.lookupValue("motion.sensitivity", motionSensitivity);
-    lc.lookupValue("motion.debounce", motionDebounce);
-    lc.lookupValue("motion.strict_idr", motionStrictIDR);
-    lc.lookupValue("cvr.enabled", cvrEnabled);
-    lc.lookupValue("cvr.rotate_time", cvrRotateTime);
+    lc.lookupValue("rtsp.port", rtspPort);
+
+    lc.lookupValue("sensor.model", sensorModel);
+    lc.lookupValue("sensor.i2c_address", sensorI2Caddress);
+    lc.lookupValue("sensor.fps", sensorFps);
+
+    lc.lookupValue("stream0.fps", streamFps);
+    lc.lookupValue("stream0.buffers", stream0buffers);
+    lc.lookupValue("stream0.bitrate", stream0bitrate);
+    lc.lookupValue("stream0.osd_pos_width", stream0osdPosWidth);
+    lc.lookupValue("stream0.osd_pos_height", stream0osdPosHeight);
+
+    lc.lookupValue("osd.font_size", OSDFontSize);
+    lc.lookupValue("osd.font_path", OSDFontPath);
+    lc.lookupValue("osd.font_stroke_size", OSDFontStrokeSize);
+    lc.lookupValue("osd.enabled", OSDEnabled);
 
     if (!validateConfig()) {
         LOG_ERROR("Configuration is invalid, using defaults.");
@@ -47,29 +48,15 @@ Config::Config() {
 }
 
 void Config::loadDefaults() {
-    nightEnabled = true;
-    nightInfrared = true;
-    nightColor = false;
-    nightModeString = "sun_track";
-    nightMode = NIGHT_MODE_SUN_TRACK;
-    sunTrackLatitude = 40.71;
-    sunTrackLongitude = -74;
     rtspAuthRequired = false;
     rtspUsername = "";
     rtspPassword = "";
     rtspName = "thingino";
     rtspPort = 554;
-    motionEnabled = true;
-    motionPreTime = 5;
-    motionPostTime = 5;
-    motionSensitivity = 2;
-    motionDebounce = 3;
-    motionStrictIDR = false;
-    cvrEnabled = false;
-    cvrRotateTime = 3600;
     streamFps = 24;
     sensorModel = "gc2053";
     sensorI2Caddress = 0x37;
+    sensorFps = 24;
     stream0buffers = 2;
     stream0width = 1920;
     stream0height = 1080;
@@ -79,42 +66,15 @@ void Config::loadDefaults() {
     OSDFontPath = "/usr/share/fonts/NotoSansMono-Regular.ttf";
     OSDFontSize = 96;
     OSDFontStrokeSize = 96;
+    OSDEnabled = 1;
 }
 
 bool Config::validateConfig() {
-    if (nightModeString.compare("sun_track") != 0) {
+    /*if (nightModeString.compare("sun_track") != 0) {
         LOG_ERROR("The only supported night mode is sun_track.");
         return false;
-    }
-    if (sunTrackLatitude < -90 || sunTrackLatitude > 90) {
-        LOG_ERROR("Sun track latitude out of range.");
-        return false;
-    }
-    if (sunTrackLongitude < -180 || sunTrackLatitude > 180) {
-        LOG_ERROR("Sun track longitude out of range.");
-        return false;
-    }
-    if (motionSensitivity < 0 || motionSensitivity > 4) {
-        LOG_ERROR("Motion sensitivity out of range.");
-        return false;
-    }
-    if (motionPreTime < 0) {
-        LOG_ERROR("Motion prebuffer time out of range.");
-        return false;
-    }
-    if (motionPostTime < 0) {
-        LOG_ERROR("Motion postbuffer time out of range.");
-        return false;
-    }
-    if (motionDebounce < 1) {
-        LOG_ERROR("Motion debounce must be at least one frame");
-        return false;
-    }
-    if (cvrRotateTime <= 60) {
-        LOG_ERROR("CVR rotation time out of range.");
-        return false;
-    }
-    if (streamFps < 30) {
+    }*/
+    if (streamFps > 30) {
         LOG_ERROR("FPS out of range.");
         return false;
     }

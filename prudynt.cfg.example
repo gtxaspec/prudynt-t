@@ -1,10 +1,30 @@
-# RTSP settings
-rtsp: {
-    # If true, the RTSP server will demand authentication
-    # with the below credentials.
-    auth_required: true;
+# Prudynt Settings
 
-    # Credentials for the RTSP server
-    username: "wyze";
-    password: "wyzertsp";
+rtsp: {
+    auth_required: true;
+    name: thingino prudynt";
+    username: "thingino";
+    password: "thingino";
+    port: 554;
+};
+
+sensor: {
+	model: "gc2053";
+	i2c_address: 0x37;
+	fps: 24;
+};
+
+stream0: {
+	osd_pos_width: 5;
+	osd_pos_height: 5;
+	buffers: 2;
+	bitrate: 1000;
+	fps: 30;
+};
+
+osd: {
+	font_size: 96;
+	font_path: "/usr/share/fonts/NotoSansMono-Regular.ttf";
+	font_stroke_size: 96;
+	enabled: 1;
 };

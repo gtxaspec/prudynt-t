@@ -17,6 +17,7 @@ private:
 public:
     int streamFps;
     int sensorI2Caddress;
+    int sensorFps;
     int stream0buffers;
     int stream0height;
     int stream0width;
@@ -38,6 +39,7 @@ public:
     std::string rtspPassword;
     std::string rtspName;
     int rtspPort;
+    int OSDEnabled;
     bool rtspAuthRequired;
     bool motionEnabled;
     int motionPreTime;

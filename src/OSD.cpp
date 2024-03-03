@@ -215,10 +215,13 @@ bool OSD::init() {
     timestamp.imp_grp_attr.scaley = 1;
     IMP_OSD_SetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
 
-    ret = IMP_OSD_Start(0);
-    if (ret < 0) {
-        std::cout << "IMP_OSD_Start() == " << ret << std::endl;
-        return true;
+    //  Lazy way for now, just don't draw the OSD
+    if (Config::singleton()->OSDEnabled == 1) {
+        ret = IMP_OSD_Start(0);
+        if (ret < 0) {
+            std::cout << "IMP_OSD_Start() == " << ret << std::endl;
+            return true;
+        }
     }
 
     std::cout << "OSDINIT DONE" << std::endl;
