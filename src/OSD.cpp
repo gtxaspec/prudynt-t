@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include "OSD.hpp"
+#include "Config.hpp"
 
 int OSD::freetype_init() {
     int error;
@@ -12,7 +13,7 @@ int OSD::freetype_init() {
 
     error = FT_New_Face(
         freetype,
-        "/usr/share/fonts/NotoSansMono-Regular.ttf",
+        Config::singleton()->OSDFontPath.c_str(),
         0,
         &fontface
     );
@@ -32,12 +33,12 @@ int OSD::freetype_init() {
 
     FT_Stroker_Set(
         stroker,
-        3*64,
+        Config::singleton()->OSDFontStrokeSize,
         FT_STROKER_LINECAP_SQUARE,
         FT_STROKER_LINEJOIN_ROUND,
         0
     );
-    FT_Set_Char_Size(fontface, 0, 32*64, 96, 96);
+    FT_Set_Char_Size(fontface, 0, 32*64, Config::singleton()->OSDFontSize, Config::singleton()->OSDFontSize);
 
     //Prerender glyphs needed for displaying date & time.
     std::string prerender_list = "0123456789 /APM:";
@@ -198,8 +199,8 @@ bool OSD::init() {
     timestamp.stroke_color = 0x000000FF;
     timestamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
     timestamp.imp_attr.type = OSD_REG_PIC;
-    timestamp.imp_attr.rect.p0.x = 5;
-    timestamp.imp_attr.rect.p0.y = 5;
+    timestamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdPosWidth;
+    timestamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdPosHeight;
     timestamp.imp_attr.fmt = PIX_FMT_BGRA;
     timestamp.data = NULL;
     timestamp.imp_attr.data.picData.pData = timestamp.data;

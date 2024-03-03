@@ -18,7 +18,7 @@ Config::Config() {
     }
     loadDefaults();
 
-
+    lc.lookupValue("sensor.model", sensorModel);
     lc.lookupValue("stream.fps", streamFps);
     lc.lookupValue("night.enabled", nightEnabled);
     lc.lookupValue("night.mode", nightModeString);
@@ -57,7 +57,8 @@ void Config::loadDefaults() {
     rtspAuthRequired = false;
     rtspUsername = "";
     rtspPassword = "";
-    rtspName = "Wyzecam";
+    rtspName = "thingino";
+    rtspPort = 554;
     motionEnabled = true;
     motionPreTime = 5;
     motionPostTime = 5;
@@ -66,7 +67,18 @@ void Config::loadDefaults() {
     motionStrictIDR = false;
     cvrEnabled = false;
     cvrRotateTime = 3600;
-    streamFps = 30;
+    streamFps = 24;
+    sensorModel = "gc2053";
+    sensorI2Caddress = 0x37;
+    stream0buffers = 2;
+    stream0width = 1920;
+    stream0height = 1080;
+    stream0bitrate = 1000;
+    stream0osdPosWidth = 5;
+    stream0osdPosHeight = 5;
+    OSDFontPath = "/usr/share/fonts/NotoSansMono-Regular.ttf";
+    OSDFontSize = 96;
+    OSDFontStrokeSize = 96;
 }
 
 bool Config::validateConfig() {

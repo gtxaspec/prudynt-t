@@ -11,6 +11,7 @@
 
 #include "IMP.hpp"
 #include "Encoder.hpp"
+#include "Config.hpp"
 
 std::mutex Encoder::sinks_lock;
 std::map<uint32_t,EncoderSink> Encoder::sinks;
@@ -85,9 +86,9 @@ int Encoder::encoder_init() {
     rc_attr = &channel_attr.rcAttr;
 
     IMP_Encoder_SetDefaultParam(
-        &channel_attr, IMP_ENC_PROFILE_HEVC_MAIN, IMP_ENC_RC_MODE_VBR, 1920, 1080,
+        &channel_attr, IMP_ENC_PROFILE_HEVC_MAIN, IMP_ENC_RC_MODE_VBR, Config::singleton()->stream0width, Config::singleton()->stream0height,
         IMP::FRAME_RATE, 1, IMP::FRAME_RATE * 2, 1,
-        -1, 1000
+        -1, Config::singleton()->stream0bitrate
     );
 
     ret = IMP_Encoder_CreateChn(0, &channel_attr);

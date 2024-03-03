@@ -16,6 +16,17 @@ private:
 
 public:
     int streamFps;
+    int sensorI2Caddress;
+    int stream0buffers;
+    int stream0height;
+    int stream0width;
+    int stream0bitrate;
+    int stream0osdPosWidth;
+    int stream0osdPosHeight;
+    std::string OSDFontPath;
+    int OSDFontSize;
+    int OSDFontStrokeSize;
+    std::string sensorModel;
     bool nightEnabled;
     bool nightInfrared;
     bool nightColor;
@@ -26,6 +37,7 @@ public:
     std::string rtspUsername;
     std::string rtspPassword;
     std::string rtspName;
+    int rtspPort;
     bool rtspAuthRequired;
     bool motionEnabled;
     int motionPreTime;

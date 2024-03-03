@@ -20,10 +20,10 @@ void RTSP::run() {
             Config::singleton()->rtspUsername.c_str(),
             Config::singleton()->rtspPassword.c_str()
         );
-        rtspServer = RTSPServer::createNew(*env, 8554, auth);
+        rtspServer = RTSPServer::createNew(*env,  Config::singleton()->rtspPort, auth);
     }
     else {
-        rtspServer = RTSPServer::createNew(*env, 8554);
+        rtspServer = RTSPServer::createNew(*env,  Config::singleton()->rtspPort);
     }
     if (rtspServer == NULL) {
         LOG_ERROR("Failed to create RTSP server: " << env->getResultMsg() << "\n");

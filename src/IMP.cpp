@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include "IMP.hpp"
+#include "Config.hpp"
 
 const int IMP::FRAME_RATE = 24;
 
@@ -26,12 +27,11 @@ bool IMP::init() {
 IMPSensorInfo IMP::create_sensor_info(std::string sensor) {
     IMPSensorInfo out;
     memset(&out, 0, sizeof(IMPSensorInfo));
-    //if (sensor.compare("gc2053") == 0) {
-    std::cout << "Choosing GC2053" << std::endl;
-        std::strcpy(out.name, "gc2053");
+    std::cout << "SENSOR: " << Config::singleton()->sensorModel.c_str() << std::endl;
+        std::strcpy(out.name, Config::singleton()->sensorModel.c_str());
         out.cbus_type = TX_SENSOR_CONTROL_INTERFACE_I2C;
-        std::strcpy(out.i2c.type, "gc2053");
-        out.i2c.addr = 0x37;
+        std::strcpy(out.i2c.type, Config::singleton()->sensorModel.c_str());
+        out.i2c.addr = Config::singleton()->sensorI2Caddress;
         return out;
     //}
 }
@@ -48,18 +48,18 @@ IMPFSChnAttr IMP::create_fs_attr() {
     out.pixFmt = PIX_FMT_NV12;
     out.outFrmRateNum = IMP::FRAME_RATE;
     out.outFrmRateDen = 1;
-    out.nrVBs = 2;
+    out.nrVBs = Config::singleton()->stream0buffers;
     out.type = FS_PHY_CHANNEL;
     out.crop.enable = 0;
     out.crop.top = 0;
     out.crop.left = 0;
-    out.crop.width = 1920;
-    out.crop.height = 1080;
+    out.crop.width = Config::singleton()->stream0width;
+    out.crop.height = Config::singleton()->stream0height;
     out.scaler.enable = 0;
-    out.scaler.outwidth = 1920;
-    out.scaler.outheight = 1080;
-    out.picWidth = 1920;
-    out.picHeight = 1080;
+    out.scaler.outwidth = Config::singleton()->stream0width;
+    out.scaler.outheight = Config::singleton()->stream0height;
+    out.picWidth = Config::singleton()->stream0width;
+    out.picHeight = Config::singleton()->stream0height;
     return out;
 }
 
@@ -115,7 +115,7 @@ int IMP::system_init() {
     }
     std::cout << "ISP Opened" << std::endl;
 
-    IMPSensorInfo sinfo = create_sensor_info("gc2053");
+    IMPSensorInfo sinfo = create_sensor_info(Config::singleton()->sensorModel.c_str());
     ret = IMP_ISP_AddSensor(&sinfo);
     if (ret < 0) {
         std::cout << "Error: IMP_ISP_AddSensor() == " << ret << std::endl;
@@ -146,6 +146,7 @@ int IMP::system_init() {
         return ret;
     }
 
-    ret = IMP_ISP_Tuning_SetSensorFPS(IMP::FRAME_RATE, 1);
+    ret = IMP_ISP_Tuning_SetSensorFPS(Config::singleton()->streamFps, 1);
+
     return ret;
 }

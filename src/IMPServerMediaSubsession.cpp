@@ -4,6 +4,7 @@
 #include "H265VideoRTPSink.hh"
 #include "H265VideoStreamDiscreteFramer.hh"
 #include "GroupsockHelper.hh"
+#include "Config.hpp"
 
 IMPServerMediaSubsession* IMPServerMediaSubsession::createNew(
     UsageEnvironment& env,
