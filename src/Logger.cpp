@@ -19,7 +19,7 @@ bool Logger::have_file = false;
 
 bool Logger::init() {
     LOG_INFO("Logger Init.");
-    Logger::log_file.open("/home/wyze/logs/prudynt", std::fstream::out | std::fstream::app);
+    Logger::log_file.open("/tmp/prudynt", std::fstream::out | std::fstream::app);
     if (!Logger::log_file.fail()) {
         have_file = true;
     }
