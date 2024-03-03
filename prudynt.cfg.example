@@ -28,4 +28,5 @@ osd: {
 	font_path: "/usr/share/fonts/NotoSansMono-Regular.ttf";
 	font_stroke_size: 96;
 	enabled: 1;
+	format: "%I:%M:%S %p %m/%d/%Y";
 };

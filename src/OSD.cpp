@@ -237,7 +237,7 @@ void OSD::update() {
         last_ts_time = current;
         struct tm *ltime = localtime(&current);
         char formatted[256];
-        strftime(formatted, 256, "%I:%M:%S %p %m/%d/%Y", ltime);
+        strftime(formatted, 256, Config::singleton()->OSDFormat.c_str(), ltime);
         formatted[255] = '\0';
         set_text(&timestamp, std::string(formatted));
         IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);

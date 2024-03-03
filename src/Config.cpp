@@ -39,6 +39,8 @@ Config::Config() {
     lc.lookupValue("osd.font_path", OSDFontPath);
     lc.lookupValue("osd.font_stroke_size", OSDFontStrokeSize);
     lc.lookupValue("osd.enabled", OSDEnabled);
+    lc.lookupValue("osd.format", OSDFormat);
+
 
     if (!validateConfig()) {
         LOG_ERROR("Configuration is invalid, using defaults.");
@@ -68,6 +70,7 @@ void Config::loadDefaults() {
     OSDFontSize = 96;
     OSDFontStrokeSize = 96;
     OSDEnabled = 1;
+    OSDFormat = "%I:%M:%S %p %m/%d/%Y";
 }
 
 bool Config::validateConfig() {

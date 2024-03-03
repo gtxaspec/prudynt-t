@@ -26,6 +26,7 @@ public:
     int stream0osdPosWidth;
     int stream0osdPosHeight;
     std::string OSDFontPath;
+    std::string OSDFormat;
     int OSDFontSize;
     int OSDFontStrokeSize;
     std::string sensorModel;
