@@ -29,7 +29,7 @@ Config::Config() {
     lc.lookupValue("sensor.i2c_address", sensorI2Caddress);
     lc.lookupValue("sensor.fps", sensorFps);
 
-    lc.lookupValue("stream0.fps", streamFps);
+    lc.lookupValue("stream0.fps", stream0fps);
     lc.lookupValue("stream0.buffers", stream0buffers);
     lc.lookupValue("stream0.bitrate", stream0bitrate);
     lc.lookupValue("stream0.osd_pos_width", stream0osdPosWidth);
@@ -53,7 +53,6 @@ void Config::loadDefaults() {
     rtspPassword = "";
     rtspName = "thingino";
     rtspPort = 554;
-    streamFps = 24;
     sensorModel = "gc2053";
     sensorI2Caddress = 0x37;
     sensorFps = 24;
@@ -61,6 +60,8 @@ void Config::loadDefaults() {
     stream0width = 1920;
     stream0height = 1080;
     stream0bitrate = 1000;
+    stream0fps = 24;
+    stream0gop = 30;
     stream0osdPosWidth = 5;
     stream0osdPosHeight = 5;
     OSDFontPath = "/usr/share/fonts/NotoSansMono-Regular.ttf";
@@ -74,7 +75,7 @@ bool Config::validateConfig() {
         LOG_ERROR("The only supported night mode is sun_track.");
         return false;
     }*/
-    if (streamFps > 30) {
+    if (sensorFps > 30) {
         LOG_ERROR("FPS out of range.");
         return false;
     }

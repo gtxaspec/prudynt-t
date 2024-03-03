@@ -15,7 +15,8 @@ private:
     bool validateConfig();
 
 public:
-    int streamFps;
+    int stream0fps;
+    int stream0gop;
     int sensorI2Caddress;
     int sensorFps;
     int stream0buffers;

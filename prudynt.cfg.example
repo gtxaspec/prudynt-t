@@ -19,7 +19,8 @@ stream0: {
 	osd_pos_height: 5;
 	buffers: 2;
 	bitrate: 1000;
-	fps: 30;
+	fps: 24;
+	gop: 30;
 };
 
 osd: {

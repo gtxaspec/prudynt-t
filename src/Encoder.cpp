@@ -87,7 +87,7 @@ int Encoder::encoder_init() {
 
     IMP_Encoder_SetDefaultParam(
         &channel_attr, IMP_ENC_PROFILE_HEVC_MAIN, IMP_ENC_RC_MODE_VBR, Config::singleton()->stream0width, Config::singleton()->stream0height,
-        IMP::FRAME_RATE, 1, IMP::FRAME_RATE * 2, 1,
+        Config::singleton()->stream0fps, 1, Config::singleton()->stream0gop, 1,
         -1, Config::singleton()->stream0bitrate
     );
 
