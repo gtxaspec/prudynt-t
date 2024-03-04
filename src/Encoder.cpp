@@ -38,26 +38,47 @@ bool Encoder::init() {
         return true;
     }
 
-    ret = osd.init();
-    if (ret) {
-        LOG_ERROR("OSD Init Failed");
-        return true;
-    }
+    if (Config::singleton()->OSDEnabled == 0) {
+        // If OSD is not enabled, initialize without OSD and bind FrameSource directly to Encoder
+        ret = osd.init();
+        if (ret) {
+            LOG_ERROR("OSD Init Failed");
+            return true;
+        }
 
-    IMPCell fs = { DEV_ID_FS, 0, 0 };
-    IMPCell osd_cell = { DEV_ID_OSD, 0, 0 };
-    IMPCell enc = { DEV_ID_ENC, 0, 0 };
-    //Framesource -> OSD
-    ret = IMP_System_Bind(&fs, &osd_cell);
-    if (ret < 0) {
-        LOG_ERROR("IMP_System_Bind(FS, OSD) == " << ret);
-        return true;
-    }
-    //OSD -> Encoder
-    ret = IMP_System_Bind(&osd_cell, &enc);
-    if (ret < 0) {
-        LOG_ERROR("IMP_System_Bind(OSD, ENC) == " << ret);
-        return true;
+        IMPCell fs = { DEV_ID_FS, 0, 0 };
+        IMPCell enc = { DEV_ID_ENC, 0, 0 };
+        // Framesource -> ENC
+        ret = IMP_System_Bind(&fs, &enc);
+        if (ret < 0) {
+            LOG_ERROR("IMP_System_Bind(FS, ENC) == " << ret);
+            return true;
+        }
+
+    } else {
+        // If OSD is enabled, initialize OSD and bind FrameSource to OSD, then OSD to Encoder
+        ret = osd.init();
+        if (ret) {
+            LOG_ERROR("OSD Init Failed");
+            return true;
+        }
+
+        IMPCell fs = { DEV_ID_FS, 0, 0 };
+        IMPCell osd_cell = { DEV_ID_OSD, 0, 0 };
+        IMPCell enc = { DEV_ID_ENC, 0, 0 };
+        // Framesource -> OSD
+        ret = IMP_System_Bind(&fs, &osd_cell);
+        if (ret < 0) {
+            LOG_ERROR("IMP_System_Bind(FS, OSD) == " << ret);
+            return true;
+        }
+        // OSD -> Encoder
+        ret = IMP_System_Bind(&osd_cell, &enc);
+        if (ret < 0) {
+            LOG_ERROR("IMP_System_Bind(OSD, ENC) == " << ret);
+            return true;
+        }
+
     }
 
     ret = IMP_FrameSource_EnableChn(0);
@@ -194,7 +215,9 @@ void Encoder::run() {
                 }
             }
         }
-        osd.update();
+        if (Config::singleton()->OSDEnabled == 1) {
+            osd.update();
+        }
         IMP_Encoder_ReleaseStream(0, &stream);
         last_nal_ts = nal_ts;
         std::this_thread::yield();
