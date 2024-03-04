@@ -20,10 +20,9 @@ void RTSP::run() {
             Config::singleton()->rtspUsername.c_str(),
             Config::singleton()->rtspPassword.c_str()
         );
-        rtspServer = RTSPServer::createNew(*env,  Config::singleton()->rtspPort, auth);
-    }
-    else {
-        rtspServer = RTSPServer::createNew(*env,  Config::singleton()->rtspPort);
+        rtspServer = RTSPServer::createNew(*env, Config::singleton()->rtspPort, auth);
+    } else {
+        rtspServer = RTSPServer::createNew(*env, Config::singleton()->rtspPort);
     }
     if (rtspServer == NULL) {
         LOG_ERROR("Failed to create RTSP server: " << env->getResultMsg() << "\n");
@@ -32,36 +31,49 @@ void RTSP::run() {
     OutPacketBuffer::maxSize = 500000;
 
     int sink_id = Encoder::connect_sink(this, "SPSPPS");
-    H264NALUnit sps, pps, vps;
+    H264NALUnit sps, pps; // Declare outside the loop!
+    H264NALUnit* vps = nullptr; // Use a pointer for VPS
     bool have_pps = false, have_sps = false, have_vps = false;
-    //Read from the stream until we capture the SPS and PPS.
-    while (!have_vps || !have_pps || !have_sps) {
+    // Read from the stream until we capture the SPS and PPS. Only capture VPS if needed.
+    while (!have_pps || !have_sps || (Config::singleton()->stream0format == "H265" && !have_vps)) {
         H264NALUnit unit = encoder->wait_read();
-        uint8_t nalType = (unit.data[0] & 0x7E) >> 1;
-        if (nalType == 33) {
-            LOG_INFO("Got SPS");
-            sps = unit;
-            have_sps = true;
-        }
-        if (nalType == 34) {
-            LOG_INFO("Got PPS");
-            pps = unit;
-            have_pps = true;
-        }
-        if (nalType == 32) {
-            LOG_INFO("Got VPS");
-            vps = unit;
-            have_vps = true;
+        if (Config::singleton()->stream0format == "H265") {
+            uint8_t nalType = (unit.data[0] & 0x7E) >> 1; // H265 NAL unit type extraction
+            if (nalType == 33) { // SPS for H265
+                LOG_INFO("Got SPS (H265)");
+                sps = unit;
+                have_sps = true;
+            } else if (nalType == 34) { // PPS for H265
+                LOG_INFO("Got PPS (H265)");
+                pps = unit;
+                have_pps = true;
+            } else if (nalType == 32) { // VPS, only for H265
+                LOG_INFO("Got VPS");
+                if (!vps) vps = new H264NALUnit(unit); // Allocate and store VPS
+                have_vps = true;
+            }
+        } else { // Assuming H264 if not H265
+            uint8_t nalType = (unit.data[0] & 0x1F); // H264 NAL unit type extraction
+            if (nalType == 7) { // SPS for H264
+                LOG_INFO("Got SPS (H264)");
+                sps = unit;
+                have_sps = true;
+            } else if (nalType == 8) { // PPS for H264
+                LOG_INFO("Got PPS (H264)");
+                pps = unit;
+                have_pps = true;
+            }
+            // No VPS in H264, so no need to check for it
         }
     }
     Encoder::remove_sink(sink_id);
-    LOG_INFO("Got VPS, PPS, & SPS.");
+    LOG_INFO("Got necessary NAL Units.");
 
     ServerMediaSession *sms = ServerMediaSession::createNew(
         *env, "unicast", "Main", Config::singleton()->rtspName.c_str()
     );
     IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
-        *env, vps, sps, pps
+        *env, (Config::singleton()->stream0format == "H265" ? vps : nullptr), sps, pps // Conditional VPS
     );
     sms->addSubsession(sub);
     rtspServer->addServerMediaSession(sms);
@@ -70,4 +82,10 @@ void RTSP::run() {
     LOG_INFO("Play this stream from: " << url);
 
     env->taskScheduler().doEventLoop();
+
+    // Clean up VPS if it was allocated
+    if (vps) {
+        delete vps;
+        vps = nullptr;
+    }
 }

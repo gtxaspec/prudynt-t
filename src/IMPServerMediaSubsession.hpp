@@ -10,33 +10,35 @@ class IMPServerMediaSubsession: public OnDemandServerMediaSubsession {
 public:
     static IMPServerMediaSubsession* createNew(
         UsageEnvironment& env,
-        H264NALUnit vps,
+        H264NALUnit* vps,  // Change to pointer for optional VPS
         H264NALUnit sps,
         H264NALUnit pps
     );
 protected:
+    // Constructor with VPS as a pointer for optional usage
     IMPServerMediaSubsession(
         UsageEnvironment& env,
-        H264NALUnit vps,
+        H264NALUnit* vps,  // Change to pointer for optional VPS
         H264NALUnit sps,
         H264NALUnit pps
     );
     virtual ~IMPServerMediaSubsession();
 
 protected:
-    virtual FramedSource *createNewStreamSource(
+    virtual FramedSource* createNewStreamSource(
         unsigned clientSessionId,
-        unsigned &estBitrate
+        unsigned& estBitrate
     );
-    virtual RTPSink *createNewRTPSink(
-        Groupsock *rtpGroupsock,
-        unsigned char rtyPayloadTypeIfDynamic,
-        FramedSource *inputSource
+    virtual RTPSink* createNewRTPSink(
+        Groupsock* rtpGroupsock,
+        unsigned char rtpPayloadTypeIfDynamic,
+        FramedSource* inputSource
     );
 
 private:
-    StreamReplicator *replicator;
-    H264NALUnit vps, sps, pps;
+    StreamReplicator* replicator;
+    H264NALUnit* vps; // Change to pointer for optional VPS
+    H264NALUnit sps, pps;
 };
 
-#endif
+#endif // IMPServerMediaSubsession_hpp

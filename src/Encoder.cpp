@@ -84,9 +84,17 @@ int Encoder::encoder_init() {
     IMPEncoderChnAttr channel_attr;
     memset(&channel_attr, 0, sizeof(IMPEncoderChnAttr));
     rc_attr = &channel_attr.rcAttr;
+    IMPEncoderProfile encoderProfile;
+
+    // Allow user to specify the profile directly in the future with fallback defaults
+    if (Config::singleton()->stream0format == "H265") {
+        encoderProfile = IMP_ENC_PROFILE_HEVC_MAIN;
+    } else {
+        encoderProfile = IMP_ENC_PROFILE_AVC_HIGH;
+    }
 
     IMP_Encoder_SetDefaultParam(
-        &channel_attr, IMP_ENC_PROFILE_HEVC_MAIN, IMP_ENC_RC_MODE_VBR, Config::singleton()->stream0width, Config::singleton()->stream0height,
+        &channel_attr, encoderProfile, IMP_ENC_RC_MODE_VBR, Config::singleton()->stream0width, Config::singleton()->stream0height,
         Config::singleton()->stream0fps, 1, Config::singleton()->stream0gop, 1,
         -1, Config::singleton()->stream0bitrate
     );
@@ -152,9 +160,11 @@ void Encoder::run() {
             nalu.imp_ts = stream.pack[i].timestamp;
             timeradd(&imp_time_base, &encode_time, &nalu.time);
             nalu.duration = 0;
-            if (stream.pack[i].nalType.h265NalType == 19 ||
-                stream.pack[i].nalType.h265NalType == 20 ||
-                stream.pack[i].nalType.h265NalType == 1) {
+            if (stream.pack[i].nalType.h264NalType == 5 || stream.pack[i].nalType.h264NalType == 1) {
+                nalu.duration = last_nal_ts - nal_ts;
+            } else if (stream.pack[i].nalType.h265NalType == 19 ||
+                    stream.pack[i].nalType.h265NalType == 20 ||
+                    stream.pack[i].nalType.h265NalType == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             }
             //We use start+4 because the encoder inserts 4-byte MPEG
@@ -165,7 +175,11 @@ void Encoder::run() {
             std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
             for (std::map<uint32_t,EncoderSink>::iterator it=Encoder::sinks.begin();
                  it != Encoder::sinks.end(); ++it) {
-                if (stream.pack[i].nalType.h265NalType == 32) {
+                if (stream.pack[i].nalType.h264NalType == 7 ||
+                    stream.pack[i].nalType.h264NalType == 8 ||
+                    stream.pack[i].nalType.h264NalType == 5) {
+                    it->second.IDR = true;
+                } else if (stream.pack[i].nalType.h265NalType == 32) {
                     it->second.IDR = true;
                 }
                 if (it->second.IDR) {
