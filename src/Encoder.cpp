@@ -115,10 +115,25 @@ int Encoder::encoder_init() {
     }
 
     IMP_Encoder_SetDefaultParam(
-        &channel_attr, encoderProfile, IMP_ENC_RC_MODE_VBR, Config::singleton()->stream0width, Config::singleton()->stream0height,
-        Config::singleton()->stream0fps, 1, Config::singleton()->stream0gop, 1,
+        &channel_attr, encoderProfile, IMP_ENC_RC_MODE_CAPPED_QUALITY, Config::singleton()->stream0width, Config::singleton()->stream0height,
+        Config::singleton()->stream0fps, 1, Config::singleton()->stream0gop, 2,
         -1, Config::singleton()->stream0bitrate
     );
+
+    switch (rc_attr->attrRcMode.rcMode) {
+        case IMP_ENC_RC_MODE_CAPPED_QUALITY:
+        rc_attr->attrRcMode.attrVbr.uTargetBitRate = Config::singleton()->stream0bitrate;
+        rc_attr->attrRcMode.attrVbr.uMaxBitRate = Config::singleton()->stream0bitrate * 1.333;
+        rc_attr->attrRcMode.attrVbr.iInitialQP = -1;
+        rc_attr->attrRcMode.attrVbr.iMinQP = 20;
+        rc_attr->attrRcMode.attrVbr.iMaxQP = 45;
+        rc_attr->attrRcMode.attrVbr.iIPDelta = 3;
+        rc_attr->attrRcMode.attrVbr.iPBDelta = 3;
+        //rc_attr->attrRcMode.attrVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
+        rc_attr->attrRcMode.attrVbr.uMaxPictureSize = Config::singleton()->stream0width;
+        rc_attr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
+        break;
+    }
 
     ret = IMP_Encoder_CreateChn(0, &channel_attr);
     if (ret < 0) {
@@ -209,8 +224,8 @@ void Encoder::run() {
                         //This prevents the MsgChannels from clogging up with
                         //old data.
                         LOG_WARN("Sink " << it->second.name << " clogged! Discarding NAL.");
-                        //H264NALUnit old_nal;
-                        //it->second.chn->read(&old_nal);
+                        H264NALUnit old_nal;
+                        it->second.chn->read(&old_nal);
                     }
                 }
             }
