@@ -1,11 +1,11 @@
 # Prudynt Settings
 
 rtsp: {
-    auth_required: true;
-    name: "thingino prudynt";
-    username: "thingino";
-    password: "thingino";
-    port: 554;
+	auth_required: true;
+	name: "thingino prudynt";
+	username: "thingino";
+	password: "thingino";
+	port: 554;
 };
 
 sensor: {
