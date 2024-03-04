@@ -42,6 +42,7 @@ Config::Config() {
     lc.lookupValue("osd.font_stroke_size", OSDFontStrokeSize);
     lc.lookupValue("osd.font_color", OSDFontColor);
     lc.lookupValue("osd.font_stroke_color", OSDFontStrokeColor);
+    lc.lookupValue("osd.font_stroke_enabled", OSDFontStrokeEnable);
     lc.lookupValue("osd.enabled", OSDEnabled);
     lc.lookupValue("osd.format", OSDFormat);
 

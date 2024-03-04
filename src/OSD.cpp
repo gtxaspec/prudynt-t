@@ -173,7 +173,9 @@ void OSD::set_text(OSDTextItem *ti, std::string text) {
         int cpx = pen_x;
         int cpy = pen_y;
 
+    if (Config::singleton()->OSDFontStrokeEnable) {
         draw_glyph(ti, stroke_bitmaps[ti->text[i]], &cpx, &cpy, item_height, item_width, Config::singleton()->OSDFontStrokeColor);
+    }
         draw_glyph(ti, bitmaps[ti->text[i]], &pen_x, &pen_y, item_height, item_width, Config::singleton()->OSDFontColor);
     }
 }
@@ -215,13 +217,10 @@ bool OSD::init() {
     timestamp.imp_grp_attr.scaley = 1;
     IMP_OSD_SetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
 
-    //  Lazy way for now, just don't draw the OSD
-    if (Config::singleton()->OSDEnabled == 1) {
-        ret = IMP_OSD_Start(0);
-        if (ret < 0) {
-            std::cout << "IMP_OSD_Start() == " << ret << std::endl;
-            return true;
-        }
+    ret = IMP_OSD_Start(0);
+    if (ret < 0) {
+        std::cout << "IMP_OSD_Start() == " << ret << std::endl;
+        return true;
     }
 
     std::cout << "OSDINIT DONE" << std::endl;

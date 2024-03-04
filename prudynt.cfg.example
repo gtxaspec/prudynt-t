@@ -27,9 +27,10 @@ stream0: {
 osd: {
 	enabled: 1;
 	font_path: "/usr/share/fonts/UbuntuMono-Regular2.ttf";
-	font_size: 96;
+	font_size: 64;
 	font_color: 0xFFFFFFFF;
-	font_stroke_size: 96;
-	font_stroke_color: 0x0;
+	font_stroke_enabled: 0;
+	font_stroke_size: 64;
+	font_stroke_color: 0xFF000000;
 	format: "%I:%M:%S %p %m/%d/%Y";
 };
