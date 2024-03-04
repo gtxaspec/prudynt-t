@@ -1,5 +1,10 @@
 #include <iostream>
 #include <unistd.h>
+#include <syslog.h>
+
+// Undefine conflicting macros from syslog.h
+#undef LOG_INFO
+#undef LOG_DEBUG
 
 #define MODULE "LOGGER"
 
@@ -14,19 +19,12 @@ const char* text_levels[] = {
 
 Logger::Level Logger::level = DEBUG;
 std::mutex Logger::log_mtx;
-std::fstream Logger::log_file;
-bool Logger::have_file = false;
 
 bool Logger::init() {
+    // Initialize the syslog
+    openlog("prudynt", LOG_PID | LOG_NDELAY, LOG_USER);
+
     LOG_INFO("Logger Init.");
-    Logger::log_file.open("/tmp/prudynt", std::fstream::out | std::fstream::app);
-    if (!Logger::log_file.fail()) {
-        have_file = true;
-    }
-    else {
-        LOG_INFO("Failed to open log file.");
-        return true;
-    }
     return false;
 }
 
@@ -38,9 +36,21 @@ void Logger::log(Level lvl, std::string module, LogMsg msg) {
     std::stringstream fmt;
     fmt << "[" << text_levels[lvl] << ":" << module << "]: " << msg.log_str << std::endl;
 
+    // Output to console
     std::cout << fmt.str();
-    if (Logger::have_file) {
-        Logger::log_file << fmt.str();
-        Logger::log_file.flush();
+
+    // Output to syslog
+    int syslogPriority;
+    switch (lvl) {
+        case ERROR: syslogPriority = 3; break;
+        case WARN:  syslogPriority = 4; break;
+        case INFO:  syslogPriority = 6; break;
+        case DEBUG: syslogPriority = 7; break;
+        default:    syslogPriority = 7; break;
     }
+
+    syslog(syslogPriority, "[%s:%s]: %s", text_levels[lvl], module.c_str(), msg.log_str.c_str());
 }
+
+// Remember to close the syslog
+// closelog();
