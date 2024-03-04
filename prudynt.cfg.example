@@ -15,18 +15,19 @@ sensor: {
 };
 
 stream0: {
-	osd_pos_width: 5;
-	osd_pos_height: 5;
-	buffers: 2;
+	format: "H265"
 	bitrate: 1000;
+	buffers: 2;
 	fps: 24;
 	gop: 30;
+	osd_pos_width: 5;
+	osd_pos_height: 5;
 };
 
 osd: {
-	font_size: 96;
-	font_path: "/usr/share/fonts/NotoSansMono-Regular.ttf";
-	font_stroke_size: 96;
 	enabled: 1;
+	font_path: "/usr/share/fonts/UbuntuMono-Regular2.ttf";
+	font_size: 96;
+	font_stroke_size: 96;
 	format: "%I:%M:%S %p %m/%d/%Y";
 };

@@ -2,10 +2,6 @@
 
 #include <string>
 
-enum NightMode {
-    NIGHT_MODE_SUN_TRACK
-};
-
 class Config {
 public:
     static Config* singleton();
@@ -15,42 +11,31 @@ private:
     bool validateConfig();
 
 public:
-    int stream0fps;
-    int stream0gop;
+    std::string sensorModel;
     int sensorI2Caddress;
     int sensorFps;
+
+    std::string stream0format;
+    int stream0fps;
+    int stream0gop;
     int stream0buffers;
     int stream0height;
     int stream0width;
     int stream0bitrate;
     int stream0osdPosWidth;
     int stream0osdPosHeight;
-    std::string OSDFontPath;
-    std::string OSDFormat;
-    int OSDFontSize;
-    int OSDFontStrokeSize;
-    std::string sensorModel;
-    bool nightEnabled;
-    bool nightInfrared;
-    bool nightColor;
-    std::string nightModeString;
-    NightMode nightMode;
-    double sunTrackLatitude;
-    double sunTrackLongitude;
+
     std::string rtspUsername;
     std::string rtspPassword;
     std::string rtspName;
     int rtspPort;
-    int OSDEnabled;
     bool rtspAuthRequired;
-    bool motionEnabled;
-    int motionPreTime;
-    int motionPostTime;
-    int motionSensitivity;
-    int motionDebounce;
-    bool motionStrictIDR;
-    bool cvrEnabled;
-    int cvrRotateTime;
+
+    std::string OSDFontPath;
+    std::string OSDFormat;
+    int OSDFontSize;
+    int OSDFontStrokeSize;
+    int OSDEnabled;
 private:
     static Config* instance;
 };

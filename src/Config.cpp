@@ -16,6 +16,7 @@ Config::Config() {
         loadDefaults();
         return;
     }
+
     loadDefaults();
 
 
@@ -29,6 +30,7 @@ Config::Config() {
     lc.lookupValue("sensor.i2c_address", sensorI2Caddress);
     lc.lookupValue("sensor.fps", sensorFps);
 
+    lc.lookupValue("stream0.format", stream0format);
     lc.lookupValue("stream0.fps", stream0fps);
     lc.lookupValue("stream0.buffers", stream0buffers);
     lc.lookupValue("stream0.bitrate", stream0bitrate);
@@ -66,6 +68,7 @@ void Config::loadDefaults() {
     stream0gop = 30;
     stream0osdPosWidth = 5;
     stream0osdPosHeight = 5;
+    stream0format = "H265";
     OSDFontPath = "/usr/share/fonts/NotoSansMono-Regular.ttf";
     OSDFontSize = 96;
     OSDFontStrokeSize = 96;

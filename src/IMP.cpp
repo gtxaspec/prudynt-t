@@ -3,8 +3,6 @@
 #include "IMP.hpp"
 #include "Config.hpp"
 
-const int IMP::FRAME_RATE = 24;
-
 bool IMP::init() {
     int ret;
 
@@ -46,7 +44,7 @@ IMPFSChnAttr IMP::create_fs_attr() {
     //PIX_FMT_NV12
     //Of those, I have only gotten PIX_FMT_NV12 to produce frames.
     out.pixFmt = PIX_FMT_NV12;
-    out.outFrmRateNum = IMP::FRAME_RATE;
+    out.outFrmRateNum = Config::singleton()->stream0fps;
     out.outFrmRateDen = 1;
     out.nrVBs = Config::singleton()->stream0buffers;
     out.type = FS_PHY_CHANNEL;
@@ -99,11 +97,11 @@ int IMP::system_init() {
  
     IMPVersion impVersion;
     ret = IMP_System_GetVersion(&impVersion);
-    std::cout << "IMP Library Version " << impVersion.aVersion << std::endl;
+    std::cout << "LIBIMP Version " << impVersion.aVersion << std::endl;
 
     SUVersion suVersion;
     ret = SU_Base_GetVersion(&suVersion);
-    std::cout << "Device Software Version: " << suVersion.chr << std::endl;
+    std::cout << "SYSUTILS Version: " << suVersion.chr << std::endl;
 
     const char* cpuInfo = IMP_System_GetCPUInfo();
     std::cout << "CPU Information: " << cpuInfo << std::endl;
