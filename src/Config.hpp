@@ -36,6 +36,8 @@ public:
     int OSDFontSize;
     int OSDFontStrokeSize;
     int OSDEnabled;
+    unsigned int OSDFontColor;
+    unsigned int OSDFontStrokeColor;
 private:
     static Config* instance;
 };

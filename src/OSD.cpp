@@ -173,8 +173,8 @@ void OSD::set_text(OSDTextItem *ti, std::string text) {
         int cpx = pen_x;
         int cpy = pen_y;
 
-        draw_glyph(ti, stroke_bitmaps[ti->text[i]], &cpx, &cpy, item_height, item_width, 0x0);
-        draw_glyph(ti, bitmaps[ti->text[i]], &pen_x, &pen_y, item_height, item_width, 0xFFFFFFFF);
+        draw_glyph(ti, stroke_bitmaps[ti->text[i]], &cpx, &cpy, item_height, item_width, Config::singleton()->OSDFontStrokeColor);
+        draw_glyph(ti, bitmaps[ti->text[i]], &pen_x, &pen_y, item_height, item_width, Config::singleton()->OSDFontColor);
     }
 }
 
