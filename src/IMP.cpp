@@ -145,6 +145,17 @@ int IMP::system_init() {
     }
 
     ret = IMP_ISP_Tuning_SetSensorFPS(Config::singleton()->sensorFps, 1);
+    if (ret < 0) {
+        std::cout << "ERROR: IMP_ISP_Tuning_SetSensorFPS() == " << ret << std::endl;
+        return ret;
+    }
+
+    // Set the ISP to DAY on launch
+    ret = IMP_ISP_Tuning_SetISPRunningMode(IMPISP_RUNNING_MODE_DAY);
+    if (ret < 0) {
+        std::cout << "ERROR: IMP_ISP_Tuning_SetISPRunningMode() == " << ret << std::endl;
+        return ret;
+    }
 
     return ret;
 }
