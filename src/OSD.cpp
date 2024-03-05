@@ -2,6 +2,7 @@
 #include <vector>
 #include "OSD.hpp"
 #include "Config.hpp"
+#include "Logger.hpp"
 
 int OSD::freetype_init() {
     int error;
@@ -182,16 +183,16 @@ void OSD::set_text(OSDTextItem *ti, std::string text) {
 
 bool OSD::init() {
     int ret;
-    std::cout << "OSDINIT" << std::endl;
+    LOG_DEBUG("OSD init begin");
 
     if (freetype_init()) {
-        std::cout << "FREETYPE init failed." << std::endl;
+        LOG_DEBUG("FREETYPE init failed.");
         return true;
     }
 
     ret = IMP_OSD_CreateGroup(0);
     if (ret < 0) {
-        std::cout << "IMP_OSD_CreateGroup() == " << ret << std::endl;
+        LOG_DEBUG("IMP_OSD_CreateGroup() == " + std::to_string(ret));
         return true;
     }
 
@@ -219,11 +220,11 @@ bool OSD::init() {
 
     ret = IMP_OSD_Start(0);
     if (ret < 0) {
-        std::cout << "IMP_OSD_Start() == " << ret << std::endl;
+        LOG_DEBUG("IMP_OSD_Start() == " + std::to_string(ret));
         return true;
     }
 
-    std::cout << "OSDINIT DONE" << std::endl;
+    LOG_DEBUG("OSD init done");
     return false;
 }
 

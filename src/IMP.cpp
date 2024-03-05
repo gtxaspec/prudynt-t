@@ -2,19 +2,20 @@
 #include <cstring>
 #include "IMP.hpp"
 #include "Config.hpp"
+#include "Logger.hpp"
 
 bool IMP::init() {
     int ret;
 
     ret = system_init();
     if (ret < 0) {
-        std::cout << "System Init Failed" << std::endl;
+        LOG_DEBUG("System Init Failed");
         return true;
     }
 
     ret = framesource_init();
     if (ret < 0) {
-        std::cout << "Framesource Init Failed" << std::endl;
+        LOG_DEBUG("Framesource Init Failed");
         return true;
     }
 
@@ -25,7 +26,7 @@ bool IMP::init() {
 IMPSensorInfo IMP::create_sensor_info(std::string sensor) {
     IMPSensorInfo out;
     memset(&out, 0, sizeof(IMPSensorInfo));
-    std::cout << "SENSOR: " << Config::singleton()->sensorModel.c_str() << std::endl;
+    LOG_DEBUG("LIBIMP Version " << Config::singleton()->sensorModel.c_str());
         std::strcpy(out.name, Config::singleton()->sensorModel.c_str());
         out.cbus_type = TX_SENSOR_CONTROL_INTERFACE_I2C;
         std::strcpy(out.i2c.type, Config::singleton()->sensorModel.c_str());
@@ -67,13 +68,13 @@ int IMP::framesource_init() {
     IMPFSChnAttr fs_chn_attr = create_fs_attr();
     ret = IMP_FrameSource_CreateChn(0, &fs_chn_attr);
     if (ret < 0) {
-        std::cout << "IMP_FrameSource_CreateChn() == " << ret << std::endl;
+        LOG_DEBUG("IMP_FrameSource_CreateChn() == " + std::to_string(ret));
         return ret;
     }
 
     ret = IMP_FrameSource_SetChnAttr(0, &fs_chn_attr);
     if (ret < 0) {
-        std::cout << "IMP_FrameSource_SetChnAttr() == " << ret << std::endl;
+        LOG_DEBUG("IMP_FrameSource_CreateChn() == " + std::to_string(ret));
         return ret;
     }
 
@@ -97,63 +98,63 @@ int IMP::system_init() {
  
     IMPVersion impVersion;
     ret = IMP_System_GetVersion(&impVersion);
-    std::cout << "LIBIMP Version " << impVersion.aVersion << std::endl;
+    LOG_DEBUG("LIBIMP Version " << impVersion.aVersion);
 
     SUVersion suVersion;
     ret = SU_Base_GetVersion(&suVersion);
-    std::cout << "SYSUTILS Version: " << suVersion.chr << std::endl;
+    LOG_DEBUG("SYSUTILS Version: " << suVersion.chr);
 
     const char* cpuInfo = IMP_System_GetCPUInfo();
-    std::cout << "CPU Information: " << cpuInfo << std::endl;
+    LOG_DEBUG("CPU Information: " << cpuInfo);
 
     ret = IMP_ISP_Open();
     if (ret < 0) {
-        std::cout << "Error: IMP_ISP_Open() == " << ret << std::endl;
+        LOG_DEBUG("Error: IMP_ISP_Open() == " + std::to_string(ret));
         return ret;
     }
-    std::cout << "ISP Opened" << std::endl;
+    LOG_DEBUG("ISP Opened");
 
     IMPSensorInfo sinfo = create_sensor_info(Config::singleton()->sensorModel.c_str());
     ret = IMP_ISP_AddSensor(&sinfo);
     if (ret < 0) {
-        std::cout << "Error: IMP_ISP_AddSensor() == " << ret << std::endl;
+        LOG_DEBUG("Error: IMP_ISP_AddSensor() == " + std::to_string(ret));
         return ret;
     }
-    std::cout << "Sensor Added" << std::endl;
+    LOG_DEBUG("Sensor Added");
 
     ret = IMP_ISP_EnableSensor();
     if (ret < 0) {
-        std::cout << "Error: IMP_ISP_EnableSensor() == " << ret << std::endl;
+        LOG_DEBUG("Error: IMP_ISP_EnableSensor() == " + std::to_string(ret));
         return ret;
     }
-    std::cout << "Sensor Enabled" << std::endl;
+    LOG_DEBUG("Sensor Enabled");
 
     ret = IMP_System_Init();
     if (ret < 0) {
-        std::cout << "Error: IMP_System_Init() == " << ret << std::endl;
+        LOG_DEBUG("Error: IMP_System_Init() == " + std::to_string(ret));
         return ret;
     }
-    std::cout << "System Initialized" << std::endl;
+    LOG_DEBUG("System Initialized");
 
     //Enable tuning.
     //This is necessary to customize the sensor's image output.
     //Denoising, WDR, Night Mode, and FPS customization require this.
     ret = IMP_ISP_EnableTuning();
     if (ret < 0) {
-        std::cout << "ERROR: IMP_ISP_EnableTuning() == " << ret << std::endl;
+        LOG_DEBUG("ERROR: IMP_ISP_EnableTuning() == " + std::to_string(ret));
         return ret;
     }
 
     ret = IMP_ISP_Tuning_SetSensorFPS(Config::singleton()->sensorFps, 1);
     if (ret < 0) {
-        std::cout << "ERROR: IMP_ISP_Tuning_SetSensorFPS() == " << ret << std::endl;
+        LOG_DEBUG("ERROR: IMP_ISP_Tuning_SetSensorFPS() == " + std::to_string(ret));
         return ret;
     }
 
     // Set the ISP to DAY on launch
     ret = IMP_ISP_Tuning_SetISPRunningMode(IMPISP_RUNNING_MODE_DAY);
     if (ret < 0) {
-        std::cout << "ERROR: IMP_ISP_Tuning_SetISPRunningMode() == " << ret << std::endl;
+        LOG_DEBUG("ERROR: IMP_ISP_Tuning_SetISPRunningMode() == " + std::to_string(ret));
         return ret;
     }
 
