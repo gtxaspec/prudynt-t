@@ -32,7 +32,6 @@ IMPSensorInfo IMP::create_sensor_info(std::string sensor) {
         std::strcpy(out.i2c.type, Config::singleton()->sensorModel.c_str());
         out.i2c.addr = Config::singleton()->sensorI2Caddress;
         return out;
-    //}
 }
 
 IMPFSChnAttr IMP::create_fs_attr() {

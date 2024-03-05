@@ -40,7 +40,7 @@ FramedSource* IMPServerMediaSubsession::createNewStreamSource(
     unsigned& estBitrate
 ) {
     LOG_DEBUG("Create Stream Source.");
-    estBitrate = 5000; // The expected bitrate?
+    estBitrate = Config::singleton()->rtspEstBitRate; // The expected bitrate?
 
     IMPDeviceSource* imp = IMPDeviceSource::createNew(envir());
     // Here we need to decide based on the format whether to use H264 or H265 framer
@@ -57,7 +57,7 @@ RTPSink* IMPServerMediaSubsession::createNewRTPSink(
     unsigned char rtpPayloadTypeIfDynamic,
     FramedSource* fs
 ) {
-    increaseSendBufferTo(envir(), rtpGroupsock->socketNum(), 300*1024);
+    increaseSendBufferTo(envir(), rtpGroupsock->socketNum(), Config::singleton()->rtspSendBufferSize);
     // Use VPS only if it's available (non-nullptr and we are in H265 mode)
     if (Config::singleton()->stream0format == "H265" && vps) {
         return H265VideoRTPSink::createNew(

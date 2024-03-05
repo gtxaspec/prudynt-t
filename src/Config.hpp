@@ -4,15 +4,16 @@
 
 class Config {
 public:
+    // We only need one instance of Config
     static Config* singleton();
-private:
-    Config();
-    void loadDefaults();
-    bool validateConfig();
 
+private:
+    // Private constructor to prevent instantiation
+    Config();
 public:
+    // Public configuration settings
     std::string sensorModel;
-    int sensorI2Caddress;
+    unsigned int sensorI2Caddress;
     int sensorFps;
 
     std::string stream0format;
@@ -30,15 +31,20 @@ public:
     std::string rtspName;
     int rtspPort;
     bool rtspAuthRequired;
+    int rtspEstBitRate;
+    int rtspOutBufferSize;
+    int rtspSendBufferSize;
 
     std::string OSDFontPath;
     std::string OSDFormat;
     int OSDFontSize;
     int OSDFontStrokeSize;
-    int OSDEnabled;
+    bool OSDEnabled;
     unsigned int OSDFontColor;
     unsigned int OSDFontStrokeColor;
-    int OSDFontStrokeEnable;
+    bool OSDFontStrokeEnable;
+
 private:
+    // Holds the singleton instance
     static Config* instance;
 };

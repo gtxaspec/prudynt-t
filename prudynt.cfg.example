@@ -1,11 +1,14 @@
 # Prudynt Settings
 
 rtsp: {
-	auth_required: true;
+	port: 554;
 	name: "thingino prudynt";
+	est_bitrate: 5000;
+	out_buffer_size: 500000;
+	send_buffer_size: 307200;
+	auth_required: true;
 	username: "thingino";
 	password: "thingino";
-	port: 554;
 };
 
 sensor: {
@@ -15,8 +18,10 @@ sensor: {
 };
 
 stream0: {
-	format: "H265"
+	format: "H264"
 	bitrate: 1000;
+	height: 1080;
+	width: 1920;
 	buffers: 2;
 	fps: 24;
 	gop: 30;
@@ -25,12 +30,12 @@ stream0: {
 };
 
 osd: {
-	enabled: 1;
+	enabled: true;
 	font_path: "/usr/share/fonts/UbuntuMono-Regular2.ttf";
 	font_size: 64;
 	font_color: 0xFFFFFFFF;
-	font_stroke_enabled: 0;
+	font_stroke_enabled: true;
 	font_stroke_size: 64;
 	font_stroke_color: 0xFF000000;
-	format: "%I:%M:%S %p %m/%d/%Y";
+	format: "%I:%M:%S%p %m/%d/%Y";
 };

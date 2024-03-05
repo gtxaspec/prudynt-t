@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cstring>
-#include <unistd.h>
 #include <imp/imp_log.h>
 #include <imp/imp_common.h>
 #include <imp/imp_encoder.h>

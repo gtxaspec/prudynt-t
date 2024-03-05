@@ -28,7 +28,7 @@ void RTSP::run() {
         LOG_ERROR("Failed to create RTSP server: " << env->getResultMsg() << "\n");
         return;
     }
-    OutPacketBuffer::maxSize = 500000;
+    OutPacketBuffer::maxSize = Config::singleton()->rtspOutBufferSize;
 
     int sink_id = Encoder::connect_sink(this, "SPSPPS");
     H264NALUnit sps, pps; // Declare outside the loop!
