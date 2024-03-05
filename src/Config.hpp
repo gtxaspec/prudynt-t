@@ -25,6 +25,8 @@ public:
     int stream0bitrate;
     int stream0osdPosWidth;
     int stream0osdPosHeight;
+    int stream0osdUserTextPosWidth;
+    int stream0osdUserTextPosHeight;
 
     std::string rtspUsername;
     std::string rtspPassword;
@@ -43,7 +45,8 @@ public:
     unsigned int OSDFontColor;
     unsigned int OSDFontStrokeColor;
     bool OSDFontStrokeEnable;
-
+    bool OSDUserTextEnable;
+    std::string OSDUserTextString;
 private:
     // Holds the singleton instance
     static Config* instance;

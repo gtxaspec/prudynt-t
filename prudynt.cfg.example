@@ -27,6 +27,8 @@ stream0: {
 	gop: 30;
 	osd_pos_width: 5;
 	osd_pos_height: 5;
+	osd_user_text_pos_width: 900;
+	osd_user_text_pos_height: 5;
 };
 
 osd: {
@@ -38,4 +40,6 @@ osd: {
 	font_stroke_size: 64;
 	font_stroke_color: 0xFF000000;
 	format: "%I:%M:%S%p %m/%d/%Y";
+	user_text_enabled: enabled;
+	user_text_string: "thingino";
 };

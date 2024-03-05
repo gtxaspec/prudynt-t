@@ -37,6 +37,7 @@ private:
     FT_Stroker stroker;
 
     OSDTextItem timestamp;
+    OSDTextItem userText;
     time_t last_ts_time;
 
     std::map<char,FT_BitmapGlyph> bitmaps;

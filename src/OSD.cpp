@@ -42,7 +42,14 @@ int OSD::freetype_init() {
     FT_Set_Char_Size(fontface, 0, 32*64, Config::singleton()->OSDFontSize, Config::singleton()->OSDFontSize);
 
     //Prerender glyphs needed for displaying date & time.
-    std::string prerender_list = "0123456789 /APM:";
+    std::string prerender_list;
+
+    if (Config::singleton()->OSDUserTextEnable) {
+        prerender_list = "0123456789 /:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|;:'\",.<>?`~";
+    } else {
+        prerender_list = "0123456789 /APM:";
+    }
+
     for (unsigned int i = 0; i < prerender_list.length(); ++i) {
         FT_UInt gindex = FT_Get_Char_Index(fontface, prerender_list[i]);
         FT_Load_Glyph(fontface, gindex, FT_LOAD_DEFAULT);
@@ -217,6 +224,30 @@ bool OSD::init() {
     timestamp.imp_grp_attr.scalex = 1;
     timestamp.imp_grp_attr.scaley = 1;
     IMP_OSD_SetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
+
+    if (Config::singleton()->OSDUserTextEnable) {
+        userText.stroke = 3;
+        userText.point_size = 32;
+        userText.color = 0xFFFFFFFF;
+        userText.stroke_color = 0x000000FF;
+        userText.imp_rgn = IMP_OSD_CreateRgn(NULL); // Create a region for the new text
+        userText.imp_attr.type = OSD_REG_PIC;
+        userText.imp_attr.rect.p0.x = Config::singleton()->stream0osdUserTextPosWidth;
+        userText.imp_attr.rect.p0.y = Config::singleton()->stream0osdUserTextPosHeight;
+        userText.imp_attr.fmt = PIX_FMT_BGRA;
+        userText.data = NULL;
+        userText.imp_attr.data.picData.pData = userText.data;
+        set_text(&userText, Config::singleton()->OSDUserTextString);
+        IMP_OSD_RegisterRgn(userText.imp_rgn, 0, NULL);
+        IMP_OSD_SetRgnAttr(userText.imp_rgn, &userText.imp_attr);
+
+        IMP_OSD_GetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
+        userText.imp_grp_attr.show = 1;
+        userText.imp_grp_attr.layer = 1; // Same layer from timestamp is needed
+        userText.imp_grp_attr.scalex = 1;
+        userText.imp_grp_attr.scaley = 1;
+        IMP_OSD_SetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
+    }
 
     ret = IMP_OSD_Start(0);
     if (ret < 0) {

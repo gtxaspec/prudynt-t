@@ -67,7 +67,9 @@ Config::Config() {
     std::vector<ConfigItem<bool>> boolItems = {
         {"rtsp.auth_required", rtspAuthRequired, false, [](const bool &v) { return true; }, "rtsp.auth_required must be true or false"},
         {"osd.enabled", OSDEnabled, true, [](const bool &v) { return true; }, "osd.enabled must be true or false"},
+        {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "osd.enabled must be true or false"},
         {"osd.font_stroke_enabled", OSDFontStrokeEnable, true, [](const bool &v) { return true; }, "osd.font_stroke_enabled must be true or false"},
+        {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "osd.user_text_enabled must be true or false"},
     };
 
     std::vector<ConfigItem<std::string>> stringItems = {
@@ -78,6 +80,7 @@ Config::Config() {
         {"stream0.format", stream0format, "H264", [](const std::string &v) { return !v.empty(); }, "Stream format must be H264 or H265"},
         {"osd.font_path", OSDFontPath, "/usr/share/fonts/UbuntuMono-Regular2.ttf", [](const std::string &v) { return !v.empty(); }, "Must specify valid font path"},
         {"osd.format", OSDFormat, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, "OSD format string must not be empty"},
+        {"osd.user_text_string", OSDUserTextString, "thingino", [](const std::string &v) { return true; }, ""},
     };
 
     std::vector<ConfigItem<int>> intItems = {
@@ -94,6 +97,8 @@ Config::Config() {
         {"stream0.bitrate", stream0bitrate, 1000, [](const int &v) { return true; }, ""},
         {"stream0.osd_pos_width", stream0osdPosWidth, 5, [](const int &v) { return true; }, ""},
         {"stream0.osd_pos_height", stream0osdPosHeight, 5, [](const int &v) { return true; }, ""},
+        {"stream0.osd_user_text_pos_width", stream0osdUserTextPosWidth, 5, [](const int &v) { return true; }, ""},
+        {"stream0.osd_user_text_pos_height", stream0osdUserTextPosHeight, 5, [](const int &v) { return true; }, ""},
         {"osd.font_size", OSDFontStrokeSize, 64, [](const int &v) { return true; }, ""},
         {"osd.font_stroke_size", OSDFontSize, 64, [](const int &v) { return true; }, ""},
     };
