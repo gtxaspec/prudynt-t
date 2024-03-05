@@ -94,7 +94,7 @@ Config::Config() {
         {"stream0.bitrate", stream0bitrate, 1000, [](const int &v) { return true; }, ""},
         {"stream0.osd_pos_width", stream0osdPosWidth, 5, [](const int &v) { return true; }, ""},
         {"stream0.osd_pos_height", stream0osdPosHeight, 5, [](const int &v) { return true; }, ""},
-        {"osd.font_size", rtspSendBufferSize, 64, [](const int &v) { return true; }, ""},
+        {"osd.font_size", OSDFontStrokeSize, 64, [](const int &v) { return true; }, ""},
         {"osd.font_stroke_size", OSDFontSize, 64, [](const int &v) { return true; }, ""},
     };
 
