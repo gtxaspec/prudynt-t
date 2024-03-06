@@ -4,10 +4,19 @@
 #include <memory>
 #include <ctime>
 #include <map>
-#include <imp/imp_framesource.h>
-#include <imp/imp_system.h>
-#include <imp/imp_encoder.h>
-#include <imp/imp_isp.h>
+
+#ifdef PLATFORM_T31
+    #include <imp/imp_log.h>
+    #include <imp/imp_common.h>
+    #include <imp/imp_encoder.h>
+    #include <imp/imp_osd.h>
+#elif PLATFORM_T20
+    #include <imp_t20/imp_log.h>
+    #include <imp_t20/imp_common.h>
+    #include <imp_t20/imp_encoder.h>
+    #include <imp_t20/imp_osd.h>
+#endif
+
 
 #include "MsgChannel.hpp"
 #include "Logger.hpp"
