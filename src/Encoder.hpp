@@ -6,17 +6,20 @@
 #include <map>
 
 #ifdef PLATFORM_T31
-    #include <imp/imp_log.h>
-    #include <imp/imp_common.h>
-    #include <imp/imp_encoder.h>
-    #include <imp/imp_osd.h>
+    #include <imp_t31/imp_framesource.h>
+    #include <imp_t31/imp_system.h>
+    #include <imp_t31/imp_common.h>
+    #include <imp_t31/imp_encoder.h>
+    #include <imp_t31/imp_isp.h>
+    #include <imp_t31/imp_osd.h>
 #elif PLATFORM_T20
-    #include <imp_t20/imp_log.h>
+    #include <imp_t20/imp_framesource.h>
+    #include <imp_t20/imp_system.h>
     #include <imp_t20/imp_common.h>
     #include <imp_t20/imp_encoder.h>
+    #include <imp_t20/imp_isp.h>
     #include <imp_t20/imp_osd.h>
 #endif
-
 
 #include "MsgChannel.hpp"
 #include "Logger.hpp"

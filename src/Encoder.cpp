@@ -8,6 +8,11 @@
 #include "Encoder.hpp"
 #include "Config.hpp"
 
+#ifdef PLATFORM_T31
+	#define IMPEncoderCHNAttr IMPEncoderChnAttr
+	#define IMPEncoderCHNStat IMPEncoderChnStat
+#endif
+
 std::mutex Encoder::sinks_lock;
 std::map<uint32_t,EncoderSink> Encoder::sinks;
 uint32_t Encoder::sink_id = 0;
@@ -34,6 +39,7 @@ bool Encoder::init() {
     }
 
     if (Config::singleton()->OSDEnabled == 0) {
+        LOG_ERROR("OSD enabled");
         // If OSD is not enabled, initialize without OSD and bind FrameSource directly to Encoder
         IMPCell fs = { DEV_ID_FS, 0, 0 };
         IMPCell enc = { DEV_ID_ENC, 0, 0 };
@@ -45,9 +51,9 @@ bool Encoder::init() {
         }
 
     } else {
-                    LOG_ERROR("OSD enabled");
-
         // If OSD is enabled, initialize OSD and bind FrameSource to OSD, then OSD to Encoder
+        LOG_ERROR("OSD enabled");
+
         ret = osd.init();
         if (ret) {
             LOG_ERROR("OSD Init Failed");
@@ -96,7 +102,38 @@ int Encoder::encoder_init() {
     IMPEncoderCHNAttr channel_attr;
     memset(&channel_attr, 0, sizeof(IMPEncoderCHNAttr));
     rc_attr = &channel_attr.rcAttr;
+#ifdef PLATFORM_T31
+    IMPEncoderProfile encoderProfile;
 
+    // Allow user to specify the profile directly in the future with fallback defaults
+    if (Config::singleton()->stream0format == "H265") {
+        encoderProfile = IMP_ENC_PROFILE_HEVC_MAIN;
+    } else {
+        encoderProfile = IMP_ENC_PROFILE_AVC_HIGH;
+    }
+
+    IMP_Encoder_SetDefaultParam(
+        &channel_attr, encoderProfile, IMP_ENC_RC_MODE_CAPPED_QUALITY, Config::singleton()->stream0width, Config::singleton()->stream0height,
+        Config::singleton()->stream0fps, 1, Config::singleton()->stream0gop, 2,
+        -1, Config::singleton()->stream0bitrate
+    );
+
+    switch (rc_attr->attrRcMode.rcMode) {
+        case IMP_ENC_RC_MODE_CAPPED_QUALITY:
+        rc_attr->attrRcMode.attrVbr.uTargetBitRate = Config::singleton()->stream0bitrate;
+        rc_attr->attrRcMode.attrVbr.uMaxBitRate = Config::singleton()->stream0bitrate * 1.333;
+        rc_attr->attrRcMode.attrVbr.iInitialQP = -1;
+        rc_attr->attrRcMode.attrVbr.iMinQP = 20;
+        rc_attr->attrRcMode.attrVbr.iMaxQP = 45;
+        rc_attr->attrRcMode.attrVbr.iIPDelta = 3;
+        rc_attr->attrRcMode.attrVbr.iPBDelta = 3;
+        //rc_attr->attrRcMode.attrVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
+        rc_attr->attrRcMode.attrVbr.uMaxPictureSize = Config::singleton()->stream0width;
+        rc_attr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
+        break;
+    }
+
+#elif PLATFORM_T20
     channel_attr.encAttr.enType = PT_H264;
     channel_attr.encAttr.bufSize = 0;
     //0 = Baseline
@@ -109,14 +146,14 @@ int Encoder::encoder_init() {
     channel_attr.encAttr.picWidth = 1920;
     channel_attr.encAttr.picHeight = 1080;
 
-    channel_attr.rcAttr.outFrmRate.frmRateNum = 24;
+    channel_attr.rcAttr.outFrmRate.frmRateNum = Config::singleton()->stream0fps;
     channel_attr.rcAttr.outFrmRate.frmRateDen = 1;
 
     //Setting maxGop to a low value causes the encoder to emit frames at a much
     //slower rate. A sufficiently low value can cause the frame emission rate to
     //drop below the frame rate.
     //I find that 2x the frame rate is a good setting.
-    rc_attr->maxGop = 24 * 2;
+    rc_attr->maxGop = Config::singleton()->stream0fps * 2;
     {
         rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
         rc_attr->attrRcMode.attrH264Smart.maxQp = 45;
@@ -138,6 +175,7 @@ int Encoder::encoder_init() {
     rc_attr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
     rc_attr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
     rc_attr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N4X;
+#endif
 
     ret = IMP_Encoder_CreateChn(0, &channel_attr);
     if (ret < 0) {
@@ -150,6 +188,8 @@ int Encoder::encoder_init() {
         LOG_ERROR("IMP_Encoder_RegisterChn() == " << ret);
         return ret;
     }
+
+#if PLATFORM_T20
 /*
     //The SuperFrame configuration basically puts
     //a hard upper limit on NAL sizes. The defaults are
@@ -161,7 +201,7 @@ int Encoder::encoder_init() {
     sfcfg.rcPriority = IMP_RC_PRIORITY_FRAMEBITS_FIRST;
     sfcfg.superFrmMode = IMP_RC_SUPERFRM_REENCODE;
     ret = IMP_Encoder_SetSuperFrameCfg(0, &sfcfg);*/
-
+#endif
     return ret;
 }
 
@@ -196,7 +236,7 @@ void Encoder::run() {
         //really matter which NAL we select here as they
         //all have identical timestamps.
         int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
-        if (nal_ts - last_nal_ts > 1.5*(1000000/24)) {
+        if (nal_ts - last_nal_ts > 1.5*(1000000/Config::singleton()->stream0fps)) {
             // Silence for now until further tests / THINGINO
             //LOG_WARN("The encoder dropped a frame.");
         }
@@ -205,17 +245,31 @@ void Encoder::run() {
         encode_time.tv_usec = nal_ts % 1000000;
 
         for (unsigned int i = 0; i < stream.packCount; ++i) {
+#ifdef PLATFORM_T31
+            uint8_t* start = (uint8_t*)stream.virAddr + stream.pack[i].offset;
+            uint8_t* end = start + stream.pack[i].length;
+#elif PLATFORM_T20
             uint8_t* start = (uint8_t*)stream.pack[i].virAddr;
             uint8_t* end = (uint8_t*)stream.pack[i].virAddr + stream.pack[i].length;
-
+#endif
 
             H264NALUnit nalu;
             nalu.imp_ts = stream.pack[i].timestamp;
             timeradd(&imp_time_base, &encode_time, &nalu.time);
             nalu.duration = 0;
+#ifdef PLATFORM_T31
+            if (stream.pack[i].nalType.h264NalType == 5 || stream.pack[i].nalType.h264NalType == 1) {
+                nalu.duration = last_nal_ts - nal_ts;
+            } else if (stream.pack[i].nalType.h265NalType == 19 ||
+                    stream.pack[i].nalType.h265NalType == 20 ||
+                    stream.pack[i].nalType.h265NalType == 1) {
+                nalu.duration = last_nal_ts - nal_ts;
+            }
+#elif PLATFORM_T20
             if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             }
+#endif
             //We use start+4 because the encoder inserts 4-byte MPEG
             //'startcodes' at the beginning of each NAL. Live555 complains
             //if those are present.
@@ -224,11 +278,21 @@ void Encoder::run() {
             std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
             for (std::map<uint32_t,EncoderSink>::iterator it=Encoder::sinks.begin();
                  it != Encoder::sinks.end(); ++it) {
+#ifdef PLATFORM_T31
+                if (stream.pack[i].nalType.h264NalType == 7 ||
+                    stream.pack[i].nalType.h264NalType == 8 ||
+                    stream.pack[i].nalType.h264NalType == 5) {
+                    it->second.IDR = true;
+                } else if (stream.pack[i].nalType.h265NalType == 32) {
+                    it->second.IDR = true;
+                }
+#elif PLATFORM_T20
                 if (stream.pack[i].dataType.h264Type == 7 ||
                     stream.pack[i].dataType.h264Type == 8 ||
                     stream.pack[i].dataType.h264Type == 5) {
                     it->second.IDR = true;
                 }
+#endif
                 if (it->second.IDR) {
                     if (!it->second.chn->write(nalu)) {
                         //Discard old NALUs if our sinks aren't keeping up.
