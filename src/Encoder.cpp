@@ -102,7 +102,7 @@ int Encoder::encoder_init() {
     IMPEncoderCHNAttr channel_attr;
     memset(&channel_attr, 0, sizeof(IMPEncoderCHNAttr));
     rc_attr = &channel_attr.rcAttr;
-#ifdef PLATFORM_T31
+#if defined(PLATFORM_T31)
     IMPEncoderProfile encoderProfile;
 
     // Allow user to specify the profile directly in the future with fallback defaults
@@ -133,7 +133,7 @@ int Encoder::encoder_init() {
         break;
     }
 
-#elif PLATFORM_T20
+#elif defined(PLATFORM_T20) || defined(PLATFORM_T21)
     channel_attr.encAttr.enType = PT_H264;
     channel_attr.encAttr.bufSize = 0;
     //0 = Baseline
@@ -189,7 +189,7 @@ int Encoder::encoder_init() {
         return ret;
     }
 
-#if PLATFORM_T20
+#if defined(PLATFORM_T20) || defined(PLATFORM_T21)
 /*
     //The SuperFrame configuration basically puts
     //a hard upper limit on NAL sizes. The defaults are
@@ -245,10 +245,10 @@ void Encoder::run() {
         encode_time.tv_usec = nal_ts % 1000000;
 
         for (unsigned int i = 0; i < stream.packCount; ++i) {
-#ifdef PLATFORM_T31
+#if defined(PLATFORM_T31)
             uint8_t* start = (uint8_t*)stream.virAddr + stream.pack[i].offset;
             uint8_t* end = start + stream.pack[i].length;
-#elif PLATFORM_T20
+#elif defined(PLATFORM_T20) || defined(PLATFORM_T21)
             uint8_t* start = (uint8_t*)stream.pack[i].virAddr;
             uint8_t* end = (uint8_t*)stream.pack[i].virAddr + stream.pack[i].length;
 #endif
@@ -257,7 +257,7 @@ void Encoder::run() {
             nalu.imp_ts = stream.pack[i].timestamp;
             timeradd(&imp_time_base, &encode_time, &nalu.time);
             nalu.duration = 0;
-#ifdef PLATFORM_T31
+#if defined(PLATFORM_T31)
             if (stream.pack[i].nalType.h264NalType == 5 || stream.pack[i].nalType.h264NalType == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             } else if (stream.pack[i].nalType.h265NalType == 19 ||
@@ -265,7 +265,7 @@ void Encoder::run() {
                     stream.pack[i].nalType.h265NalType == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             }
-#elif PLATFORM_T20
+#elif defined(PLATFORM_T20) || defined(PLATFORM_T21)
             if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             }
@@ -278,7 +278,7 @@ void Encoder::run() {
             std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
             for (std::map<uint32_t,EncoderSink>::iterator it=Encoder::sinks.begin();
                  it != Encoder::sinks.end(); ++it) {
-#ifdef PLATFORM_T31
+#if defined(PLATFORM_T31)
                 if (stream.pack[i].nalType.h264NalType == 7 ||
                     stream.pack[i].nalType.h264NalType == 8 ||
                     stream.pack[i].nalType.h264NalType == 5) {
@@ -286,7 +286,7 @@ void Encoder::run() {
                 } else if (stream.pack[i].nalType.h265NalType == 32) {
                     it->second.IDR = true;
                 }
-#elif PLATFORM_T20
+#elif defined(PLATFORM_T20) || defined(PLATFORM_T21)
                 if (stream.pack[i].dataType.h264Type == 7 ||
                     stream.pack[i].dataType.h264Type == 8 ||
                     stream.pack[i].dataType.h264Type == 5) {

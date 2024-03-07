@@ -26,7 +26,7 @@ bool IMP::init() {
 IMPSensorInfo IMP::create_sensor_info(std::string sensor) {
     IMPSensorInfo out;
     memset(&out, 0, sizeof(IMPSensorInfo));
-    LOG_DEBUG("LIBIMP Version " << Config::singleton()->sensorModel.c_str());
+    LOG_DEBUG("Sensor: " << Config::singleton()->sensorModel.c_str());
         std::strcpy(out.name, Config::singleton()->sensorModel.c_str());
         out.cbus_type = TX_SENSOR_CONTROL_INTERFACE_I2C;
         std::strcpy(out.i2c.type, Config::singleton()->sensorModel.c_str());

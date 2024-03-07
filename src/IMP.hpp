@@ -11,6 +11,11 @@
     #include <imp_t20/imp_system.h>
     #include <imp_t20/imp_isp.h>
     #include <imp_t20/imp_system.h>
+#elif PLATFORM_T21
+    #include <imp_t21/imp_framesource.h>
+    #include <imp_t21/imp_system.h>
+    #include <imp_t21/imp_isp.h>
+    #include <imp_t21/imp_system.h>
 #endif
 
 #include <sysutils/su_base.h>
