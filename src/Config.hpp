@@ -27,6 +27,10 @@ public:
     int stream0osdPosHeight;
     int stream0osdUserTextPosWidth;
     int stream0osdUserTextPosHeight;
+    std::string stream0jpegPath;
+    bool stream0jpegEnable;
+    int stream0jpegQuality;
+    int stream0jpegRefresh;
 
     std::string rtspUsername;
     std::string rtspPassword;
@@ -48,7 +52,7 @@ public:
     bool OSDUserTextEnable;
     std::string OSDUserTextString;
 
-    std::string LogLevel;
+    std::string logLevel;
 private:
     // Holds the singleton instance
     static Config* instance;

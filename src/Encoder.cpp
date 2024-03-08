@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include <ctime>
+#include <fstream>
 
 #define MODULE "ENCODER"
 
@@ -100,6 +101,8 @@ int Encoder::encoder_init() {
 
     IMPEncoderRcAttr *rc_attr;
     IMPEncoderCHNAttr channel_attr;
+    IMPEncoderCHNAttr channel_attr_jpg;
+
     memset(&channel_attr, 0, sizeof(IMPEncoderCHNAttr));
     rc_attr = &channel_attr.rcAttr;
 #if defined(PLATFORM_T31)
@@ -118,6 +121,11 @@ int Encoder::encoder_init() {
         -1, Config::singleton()->stream0bitrate
     );
 
+	IMP_Encoder_SetDefaultParam(&channel_attr_jpg, IMP_ENC_PROFILE_JPEG, IMP_ENC_RC_MODE_FIXQP,
+					Config::singleton()->stream0width, Config::singleton()->stream0height,
+					Config::singleton()->stream0fps, 1, 0, 0, Config::singleton()->stream0jpegQuality, 0);
+
+
     switch (rc_attr->attrRcMode.rcMode) {
         case IMP_ENC_RC_MODE_CAPPED_QUALITY:
         rc_attr->attrRcMode.attrVbr.uTargetBitRate = Config::singleton()->stream0bitrate;
@@ -134,6 +142,7 @@ int Encoder::encoder_init() {
     }
 
 #elif defined(PLATFORM_T20) || defined(PLATFORM_T21)
+    //channel_attr.encAttr.enType = PT_JPEG;
     channel_attr.encAttr.enType = PT_H264;
     channel_attr.encAttr.bufSize = 0;
     //0 = Baseline
@@ -148,6 +157,12 @@ int Encoder::encoder_init() {
 
     channel_attr.rcAttr.outFrmRate.frmRateNum = Config::singleton()->stream0fps;
     channel_attr.rcAttr.outFrmRate.frmRateDen = 1;
+
+    channel_attr_jpg.encAttr.enType = PT_JPEG;
+    channel_attr_jpg.encAttr.bufSize = 0;
+    channel_attr_jpg.encAttr.profile = 2;
+    channel_attr_jpg.encAttr.picWidth = Config::singleton()->stream0width;
+    channel_attr_jpg.encAttr.picHeight = Config::singleton()->stream0height;
 
     //Setting maxGop to a low value causes the encoder to emit frames at a much
     //slower rate. A sufficiently low value can cause the frame emission rate to
@@ -175,6 +190,7 @@ int Encoder::encoder_init() {
     rc_attr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
     rc_attr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
     rc_attr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N4X;
+
 #endif
 
     ret = IMP_Encoder_CreateChn(0, &channel_attr);
@@ -184,6 +200,18 @@ int Encoder::encoder_init() {
     }
 
     ret = IMP_Encoder_RegisterChn(0, 0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_Encoder_RegisterChn() == " << ret);
+        return ret;
+    }
+
+    ret = IMP_Encoder_CreateChn(1, &channel_attr_jpg);
+    if (ret < 0) {
+        LOG_ERROR("IMP_Encoder_CreateChn() == " << ret);
+        return ret;
+    }
+
+    ret = IMP_Encoder_RegisterChn(0, 1);
     if (ret < 0) {
         LOG_ERROR("IMP_Encoder_RegisterChn() == " << ret);
         return ret;
@@ -203,6 +231,93 @@ int Encoder::encoder_init() {
     ret = IMP_Encoder_SetSuperFrameCfg(0, &sfcfg);*/
 #endif
     return ret;
+}
+
+static int save_jpeg_stream(int fd, IMPEncoderStream *stream) {
+    int ret, i, nr_pack = stream->packCount;
+
+    for (i = 0; i < nr_pack; i++) {
+        void* data_ptr;
+        size_t data_len;
+
+        #if defined(PLATFORM_T31)
+        IMPEncoderPack *pack = &stream->pack[i];
+        uint32_t remSize = 0; // Declare remSize here
+        if (pack->length) {
+            remSize = stream->streamSize - pack->offset;
+            data_ptr = (void*)((char*)stream->virAddr + ((remSize < pack->length) ? 0 : pack->offset));
+            data_len = (remSize < pack->length) ? remSize : pack->length;
+        } else {
+            continue; // Skip empty packs
+        }
+        #elif defined(PLATFORM_T20)
+        data_ptr = reinterpret_cast<void*>(stream->pack[i].virAddr);
+        data_len = stream->pack[i].length;
+        #endif
+
+        // Write data to file
+        ret = write(fd, data_ptr, data_len);
+        if (ret != static_cast<int>(data_len)) {
+            printf("Stream write error: %s\n", strerror(errno));
+            return -1; // Return error on write failure
+        }
+
+        #if defined(PLATFORM_T31)
+        // Check the condition only under T31 platform, as remSize is used here
+        if (remSize && pack->length > remSize) {
+            ret = write(fd, (void*)((char*)stream->virAddr), pack->length - remSize);
+            if (ret != static_cast<int>(pack->length - remSize)) {
+                printf("Stream write error (remaining part): %s\n", strerror(errno));
+                return -1;
+            }
+        }
+        #endif
+    }
+
+    return 0;
+}
+
+void Encoder::jpeg_snap() {
+    nice(-18);
+    IMP_Encoder_StartRecvPic(1); // Start receiving pictures once
+
+    while (Config::singleton()->stream0jpegEnable == 1) { // Check condition to exit loop
+
+        IMP_Encoder_PollingStream(1, 10000); // Wait for frame
+
+        IMPEncoderStream stream_jpeg;
+        if (IMP_Encoder_GetStream(1, &stream_jpeg, 1) == 0) { // Check for success
+
+            std::string tempPath = "/tmp/snapshot.tmp"; // Temporary path
+            int snap_fd = open(tempPath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+            if (snap_fd >= 0) {
+                save_jpeg_stream(snap_fd, &stream_jpeg);
+                close(snap_fd);
+
+                // Copy file instead of renaming
+                std::ifstream src(tempPath, std::ios::binary);
+                std::ofstream dst(Config::singleton()->stream0jpegPath, std::ios::binary);
+
+                if (src && dst) {
+                    dst << src.rdbuf(); // Copy the file
+                    src.close();
+                    dst.close();
+                    std::remove(tempPath.c_str()); // Remove the temp file after successful copy
+                } else {
+                    LOG_ERROR("Failed to copy JPEG snapshot from " + tempPath + " to " + Config::singleton()->stream0jpegPath);
+                }
+            } else {
+                LOG_ERROR("Failed to open JPEG snapshot for writing: " + tempPath);
+            }
+
+            IMP_Encoder_ReleaseStream(1, &stream_jpeg); // Release stream after saving
+        }
+
+        LOG_DEBUG("JPEG snapshot saved");
+        std::this_thread::sleep_for(std::chrono::milliseconds(Config::singleton()->stream0jpegRefresh)); // Control the rate
+    }
+
+    IMP_Encoder_StopRecvPic(1); // Stop receiving pictures once
 }
 
 

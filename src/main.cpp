@@ -13,6 +13,7 @@ template <class T> void start_component(T c) {
 }
 
 Encoder enc;
+Encoder jpg;
 RTSP rtsp;
 
 bool timesync_wait() {
@@ -55,7 +56,13 @@ int main(int argc, const char *argv[]) {
     enc_thread = std::thread(start_component<Encoder>, enc);
     rtsp_thread = std::thread(start_component<RTSP>, rtsp);
 
+    if (Config::singleton()->stream0jpegEnable == 1) {
+        std::thread jpegThread(&Encoder::jpeg_snap, &jpg);
+        jpegThread.detach();
+    }
+
     enc_thread.join();
     rtsp_thread.join();
+
     return 0;
 }

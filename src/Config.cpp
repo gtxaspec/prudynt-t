@@ -70,6 +70,7 @@ Config::Config() {
         {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "osd.enabled must be true or false"},
         {"osd.font_stroke_enabled", OSDFontStrokeEnable, true, [](const bool &v) { return true; }, "osd.font_stroke_enabled must be true or false"},
         {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "osd.user_text_enabled must be true or false"},
+        {"stream0.jpeg_enabled", stream0jpegEnable, true, [](const bool &v) { return true; }, "osd.user_text_enabled must be true or false"},
     };
 
     std::vector<ConfigItem<std::string>> stringItems = {
@@ -81,7 +82,8 @@ Config::Config() {
         {"osd.font_path", OSDFontPath, "/usr/share/fonts/UbuntuMono-Regular2.ttf", [](const std::string &v) { return !v.empty(); }, "Must specify valid font path"},
         {"osd.format", OSDFormat, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, "OSD format string must not be empty"},
         {"osd.user_text_string", OSDUserTextString, "thingino", [](const std::string &v) { return true; }, ""},
-        {"general.loglevel", LogLevel, "INFO", [](const std::string &v) { return true; }, ""},
+        {"general.loglevel", logLevel, "INFO", [](const std::string &v) { return true; }, ""},
+        {"stream0.jpeg_path", stream0jpegPath, "/mnt/nfs/snapshot.jpg", [](const std::string &v) { return true; }, "JPEG snapshot path string must not be empty"},
     };
 
     std::vector<ConfigItem<int>> intItems = {
@@ -102,6 +104,8 @@ Config::Config() {
         {"stream0.osd_user_text_pos_height", stream0osdUserTextPosHeight, 5, [](const int &v) { return true; }, ""},
         {"osd.font_size", OSDFontStrokeSize, 64, [](const int &v) { return true; }, ""},
         {"osd.font_stroke_size", OSDFontSize, 64, [](const int &v) { return true; }, ""},
+        {"stream0.jpeg_quality", stream0jpegQuality, 75, [](const int &v) { return v > 0 && v <= 100; }, "Stream 0 jpeg quality must be between 1 and 100"},
+        {"stream0.jpeg_refresh", stream0jpegRefresh, 1000, [](const int &v) { return true; }, ""},
     };
 
     std::vector<ConfigItem<unsigned int>> uintItems = {

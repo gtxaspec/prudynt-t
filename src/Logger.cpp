@@ -37,7 +37,7 @@ Logger::Level stringToLogLevel(const std::string& levelStr) {
     return Logger::INFO; // or any default level you prefer
 }
 
-Logger::Level Logger::level = stringToLogLevel(Config::singleton()->LogLevel);
+Logger::Level Logger::level = stringToLogLevel(Config::singleton()->logLevel);
 
 std::mutex Logger::log_mtx;
 

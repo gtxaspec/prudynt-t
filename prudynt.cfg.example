@@ -33,6 +33,10 @@ stream0: {
 	osd_pos_height: 5;
 	osd_user_text_pos_width: 900;
 	osd_user_text_pos_height: 5;
+	jpeg_enabled: true;
+	jpeg_path: "/tmp/snapshot.jpg";
+	jpeg_quality: 75;
+	jpeg_refresh: 1000;
 };
 
 osd: {

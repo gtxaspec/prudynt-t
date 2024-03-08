@@ -50,6 +50,7 @@ public:
     Encoder();
     bool init();
     void run();
+    void jpeg_snap();
 
     static void flush() {
         IMP_Encoder_RequestIDR(0);
