@@ -47,6 +47,8 @@ public:
     bool OSDFontStrokeEnable;
     bool OSDUserTextEnable;
     std::string OSDUserTextString;
+
+    std::string LogLevel;
 private:
     // Holds the singleton instance
     static Config* instance;

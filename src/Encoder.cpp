@@ -39,7 +39,7 @@ bool Encoder::init() {
     }
 
     if (Config::singleton()->OSDEnabled == 0) {
-        LOG_ERROR("OSD enabled");
+        LOG_DEBUG("OSD disabled");
         // If OSD is not enabled, initialize without OSD and bind FrameSource directly to Encoder
         IMPCell fs = { DEV_ID_FS, 0, 0 };
         IMPCell enc = { DEV_ID_ENC, 0, 0 };
@@ -52,7 +52,7 @@ bool Encoder::init() {
 
     } else {
         // If OSD is enabled, initialize OSD and bind FrameSource to OSD, then OSD to Encoder
-        LOG_ERROR("OSD enabled");
+        LOG_DEBUG("OSD enabled");
 
         ret = osd.init();
         if (ret) {
@@ -207,7 +207,7 @@ int Encoder::encoder_init() {
 
 
 void Encoder::run() {
-    LOG_INFO("Encoder Start.");
+    LOG_DEBUG("Encoder Start.");
 
     //The encoder thread is very important, but we
     //want sink threads to have higher priority.

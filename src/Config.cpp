@@ -81,6 +81,7 @@ Config::Config() {
         {"osd.font_path", OSDFontPath, "/usr/share/fonts/UbuntuMono-Regular2.ttf", [](const std::string &v) { return !v.empty(); }, "Must specify valid font path"},
         {"osd.format", OSDFormat, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, "OSD format string must not be empty"},
         {"osd.user_text_string", OSDUserTextString, "thingino", [](const std::string &v) { return true; }, ""},
+        {"general.loglevel", LogLevel, "INFO", [](const std::string &v) { return true; }, ""},
     };
 
     std::vector<ConfigItem<int>> intItems = {

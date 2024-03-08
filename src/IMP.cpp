@@ -9,13 +9,13 @@ bool IMP::init() {
 
     ret = system_init();
     if (ret < 0) {
-        LOG_DEBUG("System Init Failed");
+        LOG_ERROR("System Init Failed");
         return true;
     }
 
     ret = framesource_init();
     if (ret < 0) {
-        LOG_DEBUG("Framesource Init Failed");
+        LOG_ERROR("Framesource Init Failed");
         return true;
     }
 
@@ -26,7 +26,7 @@ bool IMP::init() {
 IMPSensorInfo IMP::create_sensor_info(std::string sensor) {
     IMPSensorInfo out;
     memset(&out, 0, sizeof(IMPSensorInfo));
-    LOG_DEBUG("Sensor: " << Config::singleton()->sensorModel.c_str());
+    LOG_INFO("Sensor: " << Config::singleton()->sensorModel.c_str());
         std::strcpy(out.name, Config::singleton()->sensorModel.c_str());
         out.cbus_type = TX_SENSOR_CONTROL_INTERFACE_I2C;
         std::strcpy(out.i2c.type, Config::singleton()->sensorModel.c_str());
@@ -97,21 +97,21 @@ int IMP::system_init() {
  
     IMPVersion impVersion;
     ret = IMP_System_GetVersion(&impVersion);
-    LOG_DEBUG("LIBIMP Version " << impVersion.aVersion);
+    LOG_INFO("LIBIMP Version " << impVersion.aVersion);
 
     SUVersion suVersion;
     ret = SU_Base_GetVersion(&suVersion);
-    LOG_DEBUG("SYSUTILS Version: " << suVersion.chr);
+    LOG_INFO("SYSUTILS Version: " << suVersion.chr);
 
     const char* cpuInfo = IMP_System_GetCPUInfo();
-    LOG_DEBUG("CPU Information: " << cpuInfo);
+    LOG_INFO("CPU Information: " << cpuInfo);
 
     ret = IMP_ISP_Open();
     if (ret < 0) {
         LOG_DEBUG("Error: IMP_ISP_Open() == " + std::to_string(ret));
         return ret;
     }
-    LOG_DEBUG("ISP Opened");
+    LOG_DEBUG("ISP Opened!");
 
     IMPSensorInfo sinfo = create_sensor_info(Config::singleton()->sensorModel.c_str());
     ret = IMP_ISP_AddSensor(&sinfo);

@@ -1,5 +1,9 @@
 # Prudynt Settings
 
+general: {
+	loglevel: "INFO";
+};
+
 rtsp: {
 	port: 554;
 	name: "thingino prudynt";

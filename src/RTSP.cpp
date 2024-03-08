@@ -8,7 +8,6 @@
 #define MODULE "RTSP"
 
 void RTSP::run() {
-    LOG_INFO("RUN");
     nice(-20);
     TaskScheduler *scheduler = BasicTaskScheduler::createNew();
     UsageEnvironment *env = BasicUsageEnvironment::createNew(*scheduler);
@@ -40,26 +39,26 @@ void RTSP::run() {
         if (Config::singleton()->stream0format == "H265") {
             uint8_t nalType = (unit.data[0] & 0x7E) >> 1; // H265 NAL unit type extraction
             if (nalType == 33) { // SPS for H265
-                LOG_INFO("Got SPS (H265)");
+                LOG_DEBUG("Got SPS (H265)");
                 sps = unit;
                 have_sps = true;
             } else if (nalType == 34) { // PPS for H265
-                LOG_INFO("Got PPS (H265)");
+                LOG_DEBUG("Got PPS (H265)");
                 pps = unit;
                 have_pps = true;
             } else if (nalType == 32) { // VPS, only for H265
-                LOG_INFO("Got VPS");
+                LOG_DEBUG("Got VPS");
                 if (!vps) vps = new H264NALUnit(unit); // Allocate and store VPS
                 have_vps = true;
             }
         } else { // Assuming H264 if not H265
             uint8_t nalType = (unit.data[0] & 0x1F); // H264 NAL unit type extraction
             if (nalType == 7) { // SPS for H264
-                LOG_INFO("Got SPS (H264)");
+                LOG_DEBUG("Got SPS (H264)");
                 sps = unit;
                 have_sps = true;
             } else if (nalType == 8) { // PPS for H264
-                LOG_INFO("Got PPS (H264)");
+                LOG_DEBUG("Got PPS (H264)");
                 pps = unit;
                 have_pps = true;
             }
@@ -67,7 +66,7 @@ void RTSP::run() {
         }
     }
     Encoder::remove_sink(sink_id);
-    LOG_INFO("Got necessary NAL Units.");
+    LOG_DEBUG("Got necessary NAL Units.");
 
     ServerMediaSession *sms = ServerMediaSession::createNew(
         *env, "unicast", "Main", Config::singleton()->rtspName.c_str()

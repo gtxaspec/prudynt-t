@@ -6,10 +6,14 @@
 #include <mutex>
 
 #define __FILENAME__ (strrchr("/" __FILE__, '/') + 1)
-#define LOG_ERROR(str) Logger::log(Logger::ERROR, __FILENAME__, LogMsg() << str)
-#define LOG_WARN(str) Logger::log(Logger::WARN, __FILENAME__, LogMsg() << str)
-#define LOG_INFO(str) Logger::log(Logger::INFO, __FILENAME__, LogMsg() << str)
-#define LOG_DEBUG(str) Logger::log(Logger::DEBUG, __FILENAME__, LogMsg() << str)
+#define LOG_EMER(str) Logger::log(Logger::EMERGENCY, __FILENAME__, LogMsg() << str)
+#define LOG_ALER(str)     Logger::log(Logger::ALERT, __FILENAME__, LogMsg() << str)
+#define LOG_CRIT(str)  Logger::log(Logger::CRITICAL, __FILENAME__, LogMsg() << str)
+#define LOG_ERROR(str)     Logger::log(Logger::ERROR, __FILENAME__, LogMsg() << str)
+#define LOG_WARN(str)      Logger::log(Logger::WARN, __FILENAME__, LogMsg() << str)
+#define LOG_NOTICE(str)    Logger::log(Logger::NOTICE, __FILENAME__, LogMsg() << str)
+#define LOG_INFO(str)      Logger::log(Logger::INFO, __FILENAME__, LogMsg() << str)
+#define LOG_DEBUG(str)     Logger::log(Logger::DEBUG, __FILENAME__, LogMsg() << str)
 
 struct LogMsg {
     LogMsg() {};
@@ -30,8 +34,12 @@ struct LogMsg {
 class Logger {
 public:
     enum Level {
+        EMERGENCY,
+        ALERT,
+        CRIT,
         ERROR,
         WARN,
+        NOTICE,
         INFO,
         DEBUG
     };

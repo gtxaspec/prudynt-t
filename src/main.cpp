@@ -34,21 +34,21 @@ int main(int argc, const char *argv[]) {
     std::thread rtsp_thread;
 
     if (Logger::init()) {
-        LOG_DEBUG("Logger initialization failed.");
+        LOG_ERROR("Logger initialization failed.");
         return 1;
     }
     LOG_INFO("Starting Prudynt Video Server.");
 
     if (!timesync_wait()) {
-        LOG_DEBUG("Time is not synchronized.");
+        LOG_ERROR("Time is not synchronized.");
         return 1;
     }
     if (IMP::init()) {
-        LOG_DEBUG("IMP initialization failed.");
+        LOG_ERROR("IMP initialization failed.");
         return 1;
     }
     if (enc.init()) {
-        LOG_DEBUG("Encoder initialization failed.");
+        LOG_ERROR("Encoder initialization failed.");
         return 1;
     }
 
