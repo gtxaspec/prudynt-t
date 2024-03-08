@@ -205,16 +205,18 @@ int Encoder::encoder_init() {
         return ret;
     }
 
-    ret = IMP_Encoder_CreateChn(1, &channel_attr_jpg);
-    if (ret < 0) {
-        LOG_ERROR("IMP_Encoder_CreateChn() == " << ret);
-        return ret;
-    }
+    if (Config::singleton()->stream0jpegEnable) {
+        ret = IMP_Encoder_CreateChn(1, &channel_attr_jpg);
+        if (ret < 0) {
+            LOG_ERROR("IMP_Encoder_CreateChn() == " << ret);
+            return ret;
+        }
 
-    ret = IMP_Encoder_RegisterChn(0, 1);
-    if (ret < 0) {
-        LOG_ERROR("IMP_Encoder_RegisterChn() == " << ret);
-        return ret;
+        ret = IMP_Encoder_RegisterChn(0, 1);
+        if (ret < 0) {
+            LOG_ERROR("IMP_Encoder_RegisterChn() == " << ret);
+            return ret;
+        }
     }
 
 #if defined(PLATFORM_T20) || defined(PLATFORM_T21)
@@ -420,7 +422,7 @@ void Encoder::run() {
                 }
             }
         }
-        if (Config::singleton()->OSDEnabled == 1) {
+        if (Config::singleton()->OSDEnabled) {
             osd.update();
         }
         IMP_Encoder_ReleaseStream(0, &stream);

@@ -56,7 +56,8 @@ int main(int argc, const char *argv[]) {
     enc_thread = std::thread(start_component<Encoder>, enc);
     rtsp_thread = std::thread(start_component<RTSP>, rtsp);
 
-    if (Config::singleton()->stream0jpegEnable == 1) {
+    if (Config::singleton()->stream0jpegEnable) {
+        LOG_DEBUG("JPEG Channel enabled");
         std::thread jpegThread(&Encoder::jpeg_snap, &jpg);
         jpegThread.detach();
     }
