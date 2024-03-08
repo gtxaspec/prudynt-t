@@ -1,6 +1,7 @@
 #!/bin/bash
 
 HOME_DIR=$HOME
+DEST_DIR=${DEST_DIR}
 
 # set profile name in ENV
 #PROFILE_NAME=${PROFILE_NAME}
@@ -26,4 +27,8 @@ LDFLAGS=" -L$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt_t/host/mipsel-bui
 -L$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt_t/target/usr/lib" \
 -C $PWD all
 
-cp bin/prudynt /mnt/backup/software/development_root/nfs_root/
+if [[ $DEST_DIR == "" ]]; then
+	echo "DEST_DIR not set"
+else
+	cp bin/prudynt $DEST_DIR
+fi

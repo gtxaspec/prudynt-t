@@ -83,7 +83,7 @@ Config::Config() {
         {"osd.format", OSDFormat, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, "OSD format string must not be empty"},
         {"osd.user_text_string", OSDUserTextString, "thingino", [](const std::string &v) { return true; }, ""},
         {"general.loglevel", logLevel, "INFO", [](const std::string &v) { return true; }, ""},
-        {"stream0.jpeg_path", stream0jpegPath, "/mnt/nfs/snapshot.jpg", [](const std::string &v) { return true; }, "JPEG snapshot path string must not be empty"},
+        {"stream0.jpeg_path", stream0jpegPath, "/tmp/snapshot.jpg", [](const std::string &v) { return true; }, "JPEG snapshot path string must not be empty"},
     };
 
     std::vector<ConfigItem<int>> intItems = {
