@@ -8,6 +8,8 @@
 #include "IMP.hpp"
 #include "Config.hpp"
 
+#include "version.hpp"
+
 template <class T> void start_component(T c) {
     c.run();
 }
@@ -31,6 +33,9 @@ bool timesync_wait() {
 }
 
 int main(int argc, const char *argv[]) {
+
+    LOG_INFO("PRUDYNT Video Daemon: " << VERSION);
+
     std::thread enc_thread;
     std::thread rtsp_thread;
 

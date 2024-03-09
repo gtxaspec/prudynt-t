@@ -21,6 +21,18 @@ $(info $(OBJECTS))
 
 TARGET = $(BIN_DIR)/prudynt
 
+ifndef commit_tag
+commit_tag=$(shell git rev-parse --short HEAD)
+endif
+
+VERSION_FILE = $(LIBIMP_INC_DIR)/version.hpp
+
+$(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
+	@if  ! grep "$(commit_tag)" version.h >/dev/null 2>&1 ; then \
+	echo "update version.h" ; \
+	sed 's/COMMIT_TAG/"$(commit_tag)"/g' src/version.tpl.hpp > include/version.hpp ; \
+	fi
+
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(@D)
 	$(CCACHE) $(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -c $< -o $@
@@ -29,7 +41,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(@D)
 	$(CCACHE) $(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -c $< -o $@
 
-$(TARGET): $(OBJECTS)
+$(TARGET): $(OBJECTS) $(VERSION_FILE)
 	@mkdir -p $(@D)
 	$(CCACHE) $(CXX) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS)
 
@@ -38,4 +50,8 @@ $(TARGET): $(OBJECTS)
 all: $(TARGET)
 
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
+	rm -rf $(OBJ_DIR)
+	rm -f $(LIBIMP_INC_DIR)/version.hpp
+
+distclean: clean
+	rm -rf $(BIN_DIR)
