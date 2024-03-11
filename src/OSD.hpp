@@ -25,6 +25,7 @@ class OSD {
 public:
     bool init();
     void update();
+    void updateDisplayEverySecond();
 private:
     int freetype_init();
     void draw_glyph(OSDTextItem *ti, FT_BitmapGlyph bmg,
@@ -40,7 +41,6 @@ private:
     OSDTextItem timestamp;
     OSDTextItem userText;
     OSDTextItem uptimeStamp;
-    time_t last_ts_time;
 
     std::map<char,FT_BitmapGlyph> bitmaps;
     std::map<char,FT_BitmapGlyph> stroke_bitmaps;

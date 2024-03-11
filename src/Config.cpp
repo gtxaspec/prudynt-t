@@ -68,6 +68,7 @@ Config::Config() {
         {"rtsp.auth_required", rtspAuthRequired, false, [](const bool &v) { return true; }, "rtsp.auth_required must be true or false"},
         {"osd.enabled", OSDEnable, true, [](const bool &v) { return true; }, "osd.enabled must be true or false"},
         {"osd.logo_enabled", OSDLogoEnable, true, [](const bool &v) { return true; }, "osd.logo_enabled must be true or false"},
+        {"osd.time_enabled", OSDTimeEnable, true, [](const bool &v) { return true; }, "osd.time_enabled must be true or false"},
         {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "osd.enabled must be true or false"},
         {"osd.font_stroke_enabled", OSDFontStrokeEnable, true, [](const bool &v) { return true; }, "osd.font_stroke_enabled must be true or false"},
         {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "osd.user_text_enabled must be true or false"},

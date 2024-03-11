@@ -51,7 +51,8 @@ osd: {
 	font_stroke_enabled: true;
 	font_stroke_size: 64;
 	font_stroke_color: 0xFF000000;
-	format: "%I:%M:%S%p %m/%d/%Y";
+	time_enabled: true;
+	time_format: "%I:%M:%S%p %m/%d/%Y";
 	user_text_enabled: true;
 	user_text_string: "thingino";
 	uptime_display_enabled: true;

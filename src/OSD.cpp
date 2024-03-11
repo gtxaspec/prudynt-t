@@ -352,38 +352,41 @@ unsigned long getSystemUptime() {
     return 0; // Default to 0 if unable to read uptime
 }
 
-void OSD::update() {
-    //Called every frame by the encoder.
+// Var to keep track of the last second updated
+static int last_updated_second = -1;
 
-    //Update timestamp time
+void OSD::updateDisplayEverySecond() {
     time_t current = time(NULL);
-    if (last_ts_time != current) {
-        last_ts_time = current;
-        struct tm *ltime = localtime(&current);
-        char formatted[256];
-        strftime(formatted, 256, Config::singleton()->OSDFormat.c_str(), ltime);
-        formatted[255] = '\0';
-        set_text(&timestamp, std::string(formatted));
-        IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
-    }
+    struct tm *ltime = localtime(&current);
 
-    //Update uptime stamp
-    if (Config::singleton()->OSDUptimeEnable) {
-        unsigned long currentUptime = getSystemUptime();
-        if (last_ts_time != currentUptime) {
-        last_ts_time = currentUptime;
+    // Check if we have moved to a new second
+    if (ltime->tm_sec != last_updated_second) {
+        last_updated_second = ltime->tm_sec;  // Update the last second tracker
 
-        // Calculate hours, minutes, and seconds from uptime
-        unsigned long hours = currentUptime / 3600;
-        unsigned long minutes = (currentUptime % 3600) / 60;
-        unsigned long seconds = currentUptime % 60;
+        // Now we ensure both updates are performed as close together as possible
+        // Format and update system time
+        if (Config::singleton()->OSDTimeEnable) {
+            char timeFormatted[256];
+            strftime(timeFormatted, sizeof(timeFormatted), Config::singleton()->OSDFormat.c_str(), ltime);
+            set_text(&timestamp, std::string(timeFormatted));
+            IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
+        }
 
-        char formatted[256];
-        snprintf(formatted, sizeof(formatted),  Config::singleton()->OSDUptimeFormat.c_str(),
-                    hours, minutes, seconds);
-        formatted[255] = '\0'; // Ensure null-termination
-        set_text(&uptimeStamp, std::string(formatted));
-        IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
+        // Calculate and update system uptime
+        if (Config::singleton()->OSDUptimeEnable) {
+            unsigned long currentUptime = getSystemUptime();
+            unsigned long hours = currentUptime / 3600;
+            unsigned long minutes = (currentUptime % 3600) / 60;
+            unsigned long seconds = currentUptime % 60;
+            char uptimeFormatted[256];
+            snprintf(uptimeFormatted, sizeof(uptimeFormatted), Config::singleton()->OSDUptimeFormat.c_str(), hours, minutes, seconds);
+            set_text(&uptimeStamp, std::string(uptimeFormatted));
+            IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
         }
     }
+}
+
+void OSD::update() {
+    //Called every frame by the encoder.
+    updateDisplayEverySecond();
 }

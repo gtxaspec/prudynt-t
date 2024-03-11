@@ -62,6 +62,7 @@ public:
     bool OSDUptimeEnable;
     std::string logLevel;
     bool OSDLogoEnable;
+    bool OSDTimeEnable;
 private:
     // Holds the singleton instance
     static Config* instance;
