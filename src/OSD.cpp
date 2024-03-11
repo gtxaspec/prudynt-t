@@ -5,8 +5,7 @@
 #include "Logger.hpp"
 
 #include <fstream>
-
-#include "../thingino_logo.h"
+#include <memory>
 
 int OSD::freetype_init() {
     int error;
@@ -192,6 +191,28 @@ void OSD::set_text(OSDTextItem *ti, std::string text) {
     }
 }
 
+std::unique_ptr<unsigned char[]> loadBGRAImage(const std::string& filepath, size_t& length) {
+    std::ifstream file(filepath, std::ios::binary | std::ios::ate); // Open file at the end to get the size
+    if (!file.is_open()) {
+        LOG_ERROR("Failed to open the OSD logo file.");
+        return nullptr;
+    }
+
+    length = file.tellg(); // Get file size
+    file.seekg(0, std::ios::beg); // Seek back to start of file
+
+    // Allocate memory for the image
+    auto data = std::make_unique<unsigned char[]>(length);
+
+    // Read the image data
+    if (!file.read(reinterpret_cast<char*>(data.get()), length)) {
+        LOG_ERROR("Failed to read OSD logo data.");
+        return nullptr; // Memory is automatically freed if allocation was successful
+    }
+
+    return data;
+}
+
 bool OSD::init() {
     int ret;
     LOG_DEBUG("OSD init begin");
@@ -278,17 +299,20 @@ bool OSD::init() {
     }
 
     if (Config::singleton()->OSDLogoEnable) {
+        size_t imageSize;
+        auto imageData = loadBGRAImage( Config::singleton()->OSDLogoPath.c_str(), imageSize);
+
         IMPOSDRgnAttr OSDLogo;
         memset(&OSDLogo, 0, sizeof(OSDLogo));
         OSDLogo.type = OSD_REG_PIC;
-        int picw = 100;
-        int pich = 100;
+        int picw = Config::singleton()->OSDLogoWidth;
+        int pich = Config::singleton()->OSDLogoHeight;
         OSDLogo.rect.p0.x = Config::singleton()->stream0osdLogoPosWidth;
         OSDLogo.rect.p0.y = Config::singleton()->stream0osdLogoPosHeight;
         OSDLogo.rect.p1.x = OSDLogo.rect.p0.x+picw-1;
         OSDLogo.rect.p1.y = OSDLogo.rect.p0.y+pich-1;
         OSDLogo.fmt = PIX_FMT_BGRA;
-        OSDLogo.data.picData.pData = thingino_logo_bgra;
+        OSDLogo.data.picData.pData = imageData.get();
 
         IMPRgnHandle handle = IMP_OSD_CreateRgn(NULL);
         IMP_OSD_SetRgnAttr(handle, &OSDLogo);
@@ -296,8 +320,8 @@ bool OSD::init() {
         memset(&OSDLogoGroup, 0, sizeof(OSDLogoGroup));
         OSDLogoGroup.show = 1;
         OSDLogoGroup.layer = 4;
-        OSDLogoGroup.scalex = 5;
-        OSDLogoGroup.scaley = 5;
+        OSDLogoGroup.scalex = 1;
+        OSDLogoGroup.scaley = 1;
         OSDLogoGroup.gAlphaEn = 1;
         OSDLogoGroup.fgAlhpa = 255;
 

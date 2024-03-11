@@ -87,6 +87,7 @@ Config::Config() {
         {"osd.user_text_string", OSDUserTextString, "thingino", [](const std::string &v) { return true; }, ""},
         {"general.loglevel", logLevel, "INFO", [](const std::string &v) { return true; }, ""},
         {"stream0.jpeg_path", stream0jpegPath, "/tmp/snapshot.jpg", [](const std::string &v) { return true; }, "JPEG snapshot path string must not be empty"},
+        {"osd.logo_path", OSDLogoPath, "/usr/share/thingino_logo_1.bgra", [](const std::string &v) { return true; }, "OSD Logo path string must not be empty"},
     };
 
     std::vector<ConfigItem<int>> intItems = {
@@ -113,6 +114,9 @@ Config::Config() {
         {"osd.font_stroke_size", OSDFontSize, 64, [](const int &v) { return true; }, ""},
         {"stream0.jpeg_quality", stream0jpegQuality, 75, [](const int &v) { return v > 0 && v <= 100; }, "Stream 0 jpeg quality must be between 1 and 100"},
         {"stream0.jpeg_refresh", stream0jpegRefresh, 1000, [](const int &v) { return true; }, ""},
+        {"osd.logo_height", OSDLogoHeight, 30, [](const int &v) { return true; }, ""},
+        {"osd.logo_width", OSDLogoWidth, 100, [](const int &v) { return true; }, ""},
+
     };
 
     std::vector<ConfigItem<unsigned int>> uintItems = {

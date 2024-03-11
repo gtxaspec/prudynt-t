@@ -48,8 +48,11 @@ public:
     std::string OSDFontPath;
     std::string OSDFormat;
     std::string OSDUptimeFormat;
+    std::string OSDLogoPath;
     int OSDFontSize;
     int OSDFontStrokeSize;
+    int OSDLogoWidth;
+    int OSDLogoHeight;
     bool OSDEnable;
     unsigned int OSDFontColor;
     unsigned int OSDFontStrokeColor;

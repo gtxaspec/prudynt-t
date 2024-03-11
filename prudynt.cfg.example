@@ -57,4 +57,7 @@ osd: {
 	uptime_display_enabled: true;
 	uptime_display_format: "Uptime: %02lu:%02lu:%02lu";
 	logo_enabled: true;
+	logo_path: "/usr/share/thingino_logo_1.bgra";
+	logo_width: 100;
+	logo_height: 30;
 };
