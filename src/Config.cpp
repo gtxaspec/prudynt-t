@@ -66,10 +66,12 @@ Config::Config() {
     // Configuration items
     std::vector<ConfigItem<bool>> boolItems = {
         {"rtsp.auth_required", rtspAuthRequired, false, [](const bool &v) { return true; }, "rtsp.auth_required must be true or false"},
-        {"osd.enabled", OSDEnabled, true, [](const bool &v) { return true; }, "osd.enabled must be true or false"},
+        {"osd.enabled", OSDEnable, true, [](const bool &v) { return true; }, "osd.enabled must be true or false"},
+        {"osd.logo_enabled", OSDLogoEnable, true, [](const bool &v) { return true; }, "osd.logo_enabled must be true or false"},
         {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "osd.enabled must be true or false"},
         {"osd.font_stroke_enabled", OSDFontStrokeEnable, true, [](const bool &v) { return true; }, "osd.font_stroke_enabled must be true or false"},
         {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "osd.user_text_enabled must be true or false"},
+        {"osd.uptime_display_enabled", OSDUptimeEnable, true, [](const bool &v) { return true; }, "osd.uptime_display_enabled must be true or false"},
         {"stream0.jpeg_enabled", stream0jpegEnable, true, [](const bool &v) { return true; }, "osd.user_text_enabled must be true or false"},
     };
 
@@ -81,6 +83,7 @@ Config::Config() {
         {"stream0.format", stream0format, "H264", [](const std::string &v) { return !v.empty(); }, "Stream format must be H264 or H265"},
         {"osd.font_path", OSDFontPath, "/usr/share/fonts/UbuntuMono-Regular2.ttf", [](const std::string &v) { return !v.empty(); }, "Must specify valid font path"},
         {"osd.format", OSDFormat, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, "OSD format string must not be empty"},
+        {"osd.uptime_display_format", OSDUptimeFormat, "Uptime: %02lu:%02lu:%02lu", [](const std::string &v) { return !v.empty(); }, "OSD format string must not be empty"},
         {"osd.user_text_string", OSDUserTextString, "thingino", [](const std::string &v) { return true; }, ""},
         {"general.loglevel", logLevel, "INFO", [](const std::string &v) { return true; }, ""},
         {"stream0.jpeg_path", stream0jpegPath, "/tmp/snapshot.jpg", [](const std::string &v) { return true; }, "JPEG snapshot path string must not be empty"},
@@ -100,8 +103,12 @@ Config::Config() {
         {"stream0.bitrate", stream0bitrate, 1000, [](const int &v) { return true; }, ""},
         {"stream0.osd_pos_width", stream0osdPosWidth, 5, [](const int &v) { return true; }, ""},
         {"stream0.osd_pos_height", stream0osdPosHeight, 5, [](const int &v) { return true; }, ""},
-        {"stream0.osd_user_text_pos_width", stream0osdUserTextPosWidth, 5, [](const int &v) { return true; }, ""},
+        {"stream0.osd_user_text_pos_width", stream0osdUserTextPosWidth, 900, [](const int &v) { return true; }, ""},
         {"stream0.osd_user_text_pos_height", stream0osdUserTextPosHeight, 5, [](const int &v) { return true; }, ""},
+        {"stream0.osd_uptime_stamp_pos_width", stream0osdUptimeStampPosWidth, 1600, [](const int &v) { return true; }, ""},
+        {"stream0.osd_uptime_stamp_pos_height", stream0osdUptimeStampPosHeight, 5, [](const int &v) { return true; }, ""},
+        {"stream0.osd_logo_pos_width", stream0osdLogoPosWidth, 1800, [](const int &v) { return true; }, ""},
+        {"stream0.osd_logo_pos_height", stream0osdLogoPosHeight, 1030, [](const int &v) { return true; }, ""},
         {"osd.font_size", OSDFontStrokeSize, 64, [](const int &v) { return true; }, ""},
         {"osd.font_stroke_size", OSDFontSize, 64, [](const int &v) { return true; }, ""},
         {"stream0.jpeg_quality", stream0jpegQuality, 75, [](const int &v) { return v > 0 && v <= 100; }, "Stream 0 jpeg quality must be between 1 and 100"},

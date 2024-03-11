@@ -4,6 +4,10 @@
 #include "Config.hpp"
 #include "Logger.hpp"
 
+#include <fstream>
+
+#include "../thingino_logo.h"
+
 int OSD::freetype_init() {
     int error;
 
@@ -230,7 +234,7 @@ bool OSD::init() {
         userText.point_size = 32;
         userText.color = 0xFFFFFFFF;
         userText.stroke_color = 0x000000FF;
-        userText.imp_rgn = IMP_OSD_CreateRgn(NULL); // Create a region for the new text
+        userText.imp_rgn = IMP_OSD_CreateRgn(NULL);
         userText.imp_attr.type = OSD_REG_PIC;
         userText.imp_attr.rect.p0.x = Config::singleton()->stream0osdUserTextPosWidth;
         userText.imp_attr.rect.p0.y = Config::singleton()->stream0osdUserTextPosHeight;
@@ -243,10 +247,61 @@ bool OSD::init() {
 
         IMP_OSD_GetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
         userText.imp_grp_attr.show = 1;
-        userText.imp_grp_attr.layer = 1; // Same layer from timestamp is needed
+        userText.imp_grp_attr.layer = 2;
         userText.imp_grp_attr.scalex = 1;
         userText.imp_grp_attr.scaley = 1;
         IMP_OSD_SetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
+    }
+
+    if (Config::singleton()->OSDUptimeEnable) {
+        uptimeStamp.stroke = 3;
+        uptimeStamp.point_size = 32;
+        uptimeStamp.color = 0xFFFFFFFF;
+        uptimeStamp.stroke_color = 0x000000FF;
+        uptimeStamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
+        uptimeStamp.imp_attr.type = OSD_REG_PIC;
+        uptimeStamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdUptimeStampPosWidth;
+        uptimeStamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdUptimeStampPosHeight;
+        uptimeStamp.imp_attr.fmt = PIX_FMT_BGRA;
+        uptimeStamp.data = NULL;
+        uptimeStamp.imp_attr.data.picData.pData = uptimeStamp.data;
+        set_text(&uptimeStamp, " ");
+        IMP_OSD_RegisterRgn(uptimeStamp.imp_rgn, 0, NULL);
+        IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
+
+        IMP_OSD_GetGrpRgnAttr(uptimeStamp.imp_rgn, 0, &uptimeStamp.imp_grp_attr);
+        uptimeStamp.imp_grp_attr.show = 1;
+        uptimeStamp.imp_grp_attr.layer = 3;
+        uptimeStamp.imp_grp_attr.scalex = 1;
+        uptimeStamp.imp_grp_attr.scaley = 1;
+        IMP_OSD_SetGrpRgnAttr(uptimeStamp.imp_rgn, 0, &uptimeStamp.imp_grp_attr);
+    }
+
+    if (Config::singleton()->OSDLogoEnable) {
+        IMPOSDRgnAttr OSDLogo;
+        memset(&OSDLogo, 0, sizeof(OSDLogo));
+        OSDLogo.type = OSD_REG_PIC;
+        int picw = 100;
+        int pich = 100;
+        OSDLogo.rect.p0.x = Config::singleton()->stream0osdLogoPosWidth;
+        OSDLogo.rect.p0.y = Config::singleton()->stream0osdLogoPosHeight;
+        OSDLogo.rect.p1.x = OSDLogo.rect.p0.x+picw-1;
+        OSDLogo.rect.p1.y = OSDLogo.rect.p0.y+pich-1;
+        OSDLogo.fmt = PIX_FMT_BGRA;
+        OSDLogo.data.picData.pData = thingino_logo_bgra;
+
+        IMPRgnHandle handle = IMP_OSD_CreateRgn(NULL);
+        IMP_OSD_SetRgnAttr(handle, &OSDLogo);
+        IMPOSDGrpRgnAttr OSDLogoGroup;
+        memset(&OSDLogoGroup, 0, sizeof(OSDLogoGroup));
+        OSDLogoGroup.show = 1;
+        OSDLogoGroup.layer = 4;
+        OSDLogoGroup.scalex = 5;
+        OSDLogoGroup.scaley = 5;
+        OSDLogoGroup.gAlphaEn = 1;
+        OSDLogoGroup.fgAlhpa = 255;
+
+        IMP_OSD_RegisterRgn(handle, 0, &OSDLogoGroup);
     }
 
     ret = IMP_OSD_Start(0);
@@ -257,6 +312,20 @@ bool OSD::init() {
 
     LOG_DEBUG("OSD init done");
     return false;
+}
+
+unsigned long getSystemUptime() {
+    std::ifstream uptimeFile("/proc/uptime");
+    std::string line;
+    if (std::getline(uptimeFile, line)) {
+        std::istringstream iss(line);
+        double uptimeSeconds;
+        if (iss >> uptimeSeconds) {
+            // Uptime in seconds
+            return static_cast<unsigned long>(uptimeSeconds);
+        }
+    }
+    return 0; // Default to 0 if unable to read uptime
 }
 
 void OSD::update() {
@@ -272,5 +341,25 @@ void OSD::update() {
         formatted[255] = '\0';
         set_text(&timestamp, std::string(formatted));
         IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
+    }
+
+    //Update uptime stamp
+    if (Config::singleton()->OSDUptimeEnable) {
+        unsigned long currentUptime = getSystemUptime();
+        if (last_ts_time != currentUptime) {
+        last_ts_time = currentUptime;
+
+        // Calculate hours, minutes, and seconds from uptime
+        unsigned long hours = currentUptime / 3600;
+        unsigned long minutes = (currentUptime % 3600) / 60;
+        unsigned long seconds = currentUptime % 60;
+
+        char formatted[256];
+        snprintf(formatted, sizeof(formatted),  Config::singleton()->OSDUptimeFormat.c_str(),
+                    hours, minutes, seconds);
+        formatted[255] = '\0'; // Ensure null-termination
+        set_text(&uptimeStamp, std::string(formatted));
+        IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
+        }
     }
 }

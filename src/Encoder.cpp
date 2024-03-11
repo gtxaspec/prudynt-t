@@ -39,7 +39,7 @@ bool Encoder::init() {
         return true;
     }
 
-    if (Config::singleton()->OSDEnabled == 0) {
+    if (Config::singleton()->OSDEnable == 0) {
         LOG_DEBUG("OSD disabled");
         // If OSD is not enabled, initialize without OSD and bind FrameSource directly to Encoder
         IMPCell fs = { DEV_ID_FS, 0, 0 };
@@ -424,7 +424,7 @@ void Encoder::run() {
                 }
             }
         }
-        if (Config::singleton()->OSDEnabled) {
+        if (Config::singleton()->OSDEnable) {
             osd.update();
         }
         IMP_Encoder_ReleaseStream(0, &stream);

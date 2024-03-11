@@ -33,6 +33,10 @@ stream0: {
 	osd_pos_height: 5;
 	osd_user_text_pos_width: 900;
 	osd_user_text_pos_height: 5;
+	osd_uptime_stamp_pos_width: 1600;
+	osd_uptime_stamp_pos_height: 5;
+	osd_logo_pos_width: 1800;
+	osd_logo_pos_height: 1030;
 	jpeg_enabled: true;
 	jpeg_path: "/tmp/snapshot.jpg";
 	jpeg_quality: 75;
@@ -50,4 +54,7 @@ osd: {
 	format: "%I:%M:%S%p %m/%d/%Y";
 	user_text_enabled: true;
 	user_text_string: "thingino";
+	uptime_display_enabled: true;
+	uptime_display_format: "Uptime: %02lu:%02lu:%02lu";
+	logo_enabled: true;
 };

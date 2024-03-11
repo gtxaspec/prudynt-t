@@ -27,6 +27,10 @@ public:
     int stream0osdPosHeight;
     int stream0osdUserTextPosWidth;
     int stream0osdUserTextPosHeight;
+    int stream0osdUptimeStampPosWidth;
+    int stream0osdUptimeStampPosHeight;
+    int stream0osdLogoPosWidth;
+    int stream0osdLogoPosHeight;
     std::string stream0jpegPath;
     bool stream0jpegEnable;
     int stream0jpegQuality;
@@ -43,16 +47,18 @@ public:
 
     std::string OSDFontPath;
     std::string OSDFormat;
+    std::string OSDUptimeFormat;
     int OSDFontSize;
     int OSDFontStrokeSize;
-    bool OSDEnabled;
+    bool OSDEnable;
     unsigned int OSDFontColor;
     unsigned int OSDFontStrokeColor;
     bool OSDFontStrokeEnable;
     bool OSDUserTextEnable;
     std::string OSDUserTextString;
-
+    bool OSDUptimeEnable;
     std::string logLevel;
+    bool OSDLogoEnable;
 private:
     // Holds the singleton instance
     static Config* instance;

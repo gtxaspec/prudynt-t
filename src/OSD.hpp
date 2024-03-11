@@ -39,6 +39,7 @@ private:
 
     OSDTextItem timestamp;
     OSDTextItem userText;
+    OSDTextItem uptimeStamp;
     time_t last_ts_time;
 
     std::map<char,FT_BitmapGlyph> bitmaps;
