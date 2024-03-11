@@ -3,15 +3,7 @@
 
 #include <map>
 
-#ifdef PLATFORM_T31
-    #include <imp_t31/imp_osd.h>
-#elif PLATFORM_T20
-    #include <imp_t20/imp_osd.h>
-#elif PLATFORM_T21
-    #include <imp_t21/imp_osd.h>
-#elif PLATFORM_T30
-    #include <imp_t30/imp_osd.h>
-#endif
+#include <imp/imp_osd.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H

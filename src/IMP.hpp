@@ -1,29 +1,12 @@
 #ifndef IMP_hpp
 #define IMP_hpp
 
-#ifdef PLATFORM_T31
-    #include <imp_t31/imp_framesource.h>
-    #include <imp_t31/imp_system.h>
-    #include <imp_t31/imp_isp.h>
-    #include <imp_t31/imp_system.h>
-#elif PLATFORM_T20
-    #include <imp_t20/imp_framesource.h>
-    #include <imp_t20/imp_system.h>
-    #include <imp_t20/imp_isp.h>
-    #include <imp_t20/imp_system.h>
-#elif PLATFORM_T21
-    #include <imp_t21/imp_framesource.h>
-    #include <imp_t21/imp_system.h>
-    #include <imp_t21/imp_isp.h>
-    #include <imp_t21/imp_system.h>
-#elif PLATFORM_T30
-    #include <imp_t30/imp_framesource.h>
-    #include <imp_t30/imp_system.h>
-    #include <imp_t30/imp_isp.h>
-    #include <imp_t30/imp_system.h>
-#endif
+#include <imp/imp_framesource.h>
+#include <imp/imp_system.h>
+#include <imp/imp_isp.h>
+#include <imp/imp_system.h>
 
-#include <sysutils/su_base.h>
+#include <../sysutils/su_base.h>
 
 class IMP {
 public:

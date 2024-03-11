@@ -7,7 +7,19 @@ CXXFLAGS = $(CFLAGS) -std=c++20
 LDFLAGS = -lrt
 LIBS = -limp -lalog -lsysutils -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lfreetype -lz
 
-LIBIMP_INC_DIR = ./include
+ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))
+    LIBIMP_INC_DIR = ./include/T31
+else ifneq (,$(findstring -DPLATFORM_T20,$(CFLAGS)))
+    LIBIMP_INC_DIR = ./include/T20
+else ifneq (,$(findstring -DPLATFORM_T21,$(CFLAGS)))
+    LIBIMP_INC_DIR = ./include/T21
+else ifneq (,$(findstring -DPLATFORM_T23,$(CFLAGS)))
+    LIBIMP_INC_DIR = ./include/T23
+else ifneq (,$(findstring -DPLATFORM_T30,$(CFLAGS)))
+    LIBIMP_INC_DIR = ./include/T30
+else
+    LIBIMP_INC_DIR = ./include/T31
+endif
 
 SRC_DIR = ./src
 OBJ_DIR = ./obj

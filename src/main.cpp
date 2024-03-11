@@ -8,7 +8,7 @@
 #include "IMP.hpp"
 #include "Config.hpp"
 
-#include "version.hpp"
+#include "../version.hpp"
 
 template <class T> void start_component(T c) {
     c.run();

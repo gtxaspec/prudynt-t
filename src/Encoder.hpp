@@ -5,35 +5,12 @@
 #include <ctime>
 #include <map>
 
-#ifdef PLATFORM_T31
-    #include <imp_t31/imp_framesource.h>
-    #include <imp_t31/imp_system.h>
-    #include <imp_t31/imp_common.h>
-    #include <imp_t31/imp_encoder.h>
-    #include <imp_t31/imp_isp.h>
-    #include <imp_t31/imp_osd.h>
-#elif PLATFORM_T20
-    #include <imp_t20/imp_framesource.h>
-    #include <imp_t20/imp_system.h>
-    #include <imp_t20/imp_common.h>
-    #include <imp_t20/imp_encoder.h>
-    #include <imp_t20/imp_isp.h>
-    #include <imp_t20/imp_osd.h>
-#elif PLATFORM_T21
-    #include <imp_t21/imp_framesource.h>
-    #include <imp_t21/imp_system.h>
-    #include <imp_t21/imp_common.h>
-    #include <imp_t21/imp_encoder.h>
-    #include <imp_t21/imp_isp.h>
-    #include <imp_t21/imp_osd.h>
-#elif PLATFORM_T30
-    #include <imp_t30/imp_framesource.h>
-    #include <imp_t30/imp_system.h>
-    #include <imp_t30/imp_common.h>
-    #include <imp_t30/imp_encoder.h>
-    #include <imp_t30/imp_isp.h>
-    #include <imp_t30/imp_osd.h>
-#endif
+#include <imp/imp_framesource.h>
+#include <imp/imp_system.h>
+#include <imp/imp_common.h>
+#include <imp/imp_encoder.h>
+#include <imp/imp_isp.h>
+#include <imp/imp_osd.h>
 
 #include "MsgChannel.hpp"
 #include "Logger.hpp"
