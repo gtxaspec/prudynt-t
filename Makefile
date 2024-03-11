@@ -9,7 +9,7 @@ LIBS = -limp -lalog -lsysutils -lliveMedia -lgroupsock -lBasicUsageEnvironment -
 
 ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))
     LIBIMP_INC_DIR = ./include/T31
-else ifneq (,$(findstring -DPLATFORM_T20,$(CFLAGS)))
+else ifneq (,$(or $(findstring -DPLATFORM_T20,$(CFLAGS)), $(findstring -DPLATFORM_T10,$(CFLAGS))))
     LIBIMP_INC_DIR = ./include/T20
 else ifneq (,$(findstring -DPLATFORM_T21,$(CFLAGS)))
     LIBIMP_INC_DIR = ./include/T21

@@ -135,7 +135,7 @@ int Encoder::encoder_init() {
         break;
     }
 
-#elif defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
     //channel_attr.encAttr.enType = PT_JPEG;
     channel_attr.encAttr.enType = PT_H264;
     channel_attr.encAttr.bufSize = 0;
@@ -193,7 +193,7 @@ int Encoder::encoder_init() {
         return ret;
     }
 
-#if defined(PLATFORM_T20) || defined(PLATFORM_T21)
+#if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
 /*
     //The SuperFrame configuration basically puts
     //a hard upper limit on NAL sizes. The defaults are
@@ -226,7 +226,7 @@ static int save_jpeg_stream(int fd, IMPEncoderStream *stream) {
         } else {
             continue; // Skip empty packs
         }
-        #elif defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+        #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
         data_ptr = reinterpret_cast<void*>(stream->pack[i].virAddr);
         data_len = stream->pack[i].length;
         #endif
@@ -265,7 +265,7 @@ void Encoder::jpeg_snap() {
     IMP_Encoder_SetDefaultParam(&channel_attr_jpg, IMP_ENC_PROFILE_JPEG, IMP_ENC_RC_MODE_FIXQP,
         1920, 1080, 24, 1, 0, 0, 50, 0);
 
-#elif defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
     channel_attr_jpg.encAttr.enType = PT_JPEG;
     channel_attr_jpg.encAttr.bufSize = 0;
     channel_attr_jpg.encAttr.profile = 2;
@@ -367,7 +367,7 @@ void Encoder::run() {
 #if defined(PLATFORM_T31) || defined(PLATFORM_T23)
             uint8_t* start = (uint8_t*)stream.virAddr + stream.pack[i].offset;
             uint8_t* end = start + stream.pack[i].length;
-#elif defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
             uint8_t* start = (uint8_t*)stream.pack[i].virAddr;
             uint8_t* end = (uint8_t*)stream.pack[i].virAddr + stream.pack[i].length;
 #endif
@@ -384,7 +384,7 @@ void Encoder::run() {
                     stream.pack[i].nalType.h265NalType == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             }
-#elif defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
             if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             }
@@ -405,7 +405,7 @@ void Encoder::run() {
                 } else if (stream.pack[i].nalType.h265NalType == 32) {
                     it->second.IDR = true;
                 }
-#elif defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
                 if (stream.pack[i].dataType.h264Type == 7 ||
                     stream.pack[i].dataType.h264Type == 8 ||
                     stream.pack[i].dataType.h264Type == 5) {
