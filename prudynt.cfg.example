@@ -24,8 +24,8 @@ sensor: {
 stream0: {
 	format: "H264";
 	bitrate: 1000;
-	height: 1080;
 	width: 1920;
+	height: 1080;
 	buffers: 2;
 	fps: 24;
 	gop: 30;

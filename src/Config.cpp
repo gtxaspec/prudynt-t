@@ -83,7 +83,7 @@ Config::Config() {
         {"sensor.model", sensorModel, "gc2053", [](const std::string &v) { return !v.empty(); }, "Sensor model cannot be empty"},
         {"stream0.format", stream0format, "H264", [](const std::string &v) { return !v.empty(); }, "Stream format must be H264 or H265"},
         {"osd.font_path", OSDFontPath, "/usr/share/fonts/UbuntuMono-Regular2.ttf", [](const std::string &v) { return !v.empty(); }, "Must specify valid font path"},
-        {"osd.format", OSDFormat, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, "OSD format string must not be empty"},
+        {"osd.time_format", OSDFormat, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, "OSD format string must not be empty"},
         {"osd.uptime_display_format", OSDUptimeFormat, "Uptime: %02lu:%02lu:%02lu", [](const std::string &v) { return !v.empty(); }, "OSD format string must not be empty"},
         {"osd.user_text_string", OSDUserTextString, "thingino", [](const std::string &v) { return true; }, ""},
         {"general.loglevel", logLevel, "INFO", [](const std::string &v) { return true; }, ""},
