@@ -9,7 +9,7 @@
 #include "Encoder.hpp"
 #include "Config.hpp"
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T23)
+#if defined(PLATFORM_T31)
 	#define IMPEncoderCHNAttr IMPEncoderChnAttr
 	#define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
@@ -104,7 +104,7 @@ int Encoder::encoder_init() {
 
     memset(&channel_attr, 0, sizeof(IMPEncoderCHNAttr));
     rc_attr = &channel_attr.rcAttr;
-#if defined(PLATFORM_T31) || defined(PLATFORM_T23)
+#if defined(PLATFORM_T31)
     IMPEncoderProfile encoderProfile;
 
     // Allow user to specify the profile directly in the future with fallback defaults
@@ -135,7 +135,7 @@ int Encoder::encoder_init() {
         break;
     }
 
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
     //channel_attr.encAttr.enType = PT_JPEG;
     channel_attr.encAttr.enType = PT_H264;
     channel_attr.encAttr.bufSize = 0;
@@ -193,7 +193,7 @@ int Encoder::encoder_init() {
         return ret;
     }
 
-#if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
 /*
     //The SuperFrame configuration basically puts
     //a hard upper limit on NAL sizes. The defaults are
@@ -216,7 +216,7 @@ static int save_jpeg_stream(int fd, IMPEncoderStream *stream) {
         void* data_ptr;
         size_t data_len;
 
-        #if defined(PLATFORM_T31) || defined(PLATFORM_T23)
+        #if defined(PLATFORM_T31)
         IMPEncoderPack *pack = &stream->pack[i];
         uint32_t remSize = 0; // Declare remSize here
         if (pack->length) {
@@ -226,7 +226,7 @@ static int save_jpeg_stream(int fd, IMPEncoderStream *stream) {
         } else {
             continue; // Skip empty packs
         }
-        #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+        #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
         data_ptr = reinterpret_cast<void*>(stream->pack[i].virAddr);
         data_len = stream->pack[i].length;
         #endif
@@ -238,7 +238,7 @@ static int save_jpeg_stream(int fd, IMPEncoderStream *stream) {
             return -1; // Return error on write failure
         }
 
-        #if defined(PLATFORM_T31) || defined(PLATFORM_T23)
+        #if defined(PLATFORM_T31)
         // Check the condition only under T31 platform, as remSize is used here
         if (remSize && pack->length > remSize) {
             ret = write(fd, (void*)((char*)stream->virAddr), pack->length - remSize);
@@ -261,11 +261,11 @@ void Encoder::jpeg_snap() {
     IMPEncoderRcAttr *rc_attr;
     IMPEncoderCHNAttr channel_attr_jpg;
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T23)
+#if defined(PLATFORM_T31)
     IMP_Encoder_SetDefaultParam(&channel_attr_jpg, IMP_ENC_PROFILE_JPEG, IMP_ENC_RC_MODE_FIXQP,
         1920, 1080, 24, 1, 0, 0, 50, 0);
 
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
     channel_attr_jpg.encAttr.enType = PT_JPEG;
     channel_attr_jpg.encAttr.bufSize = 0;
     channel_attr_jpg.encAttr.profile = 2;
@@ -364,10 +364,10 @@ void Encoder::run() {
         encode_time.tv_usec = nal_ts % 1000000;
 
         for (unsigned int i = 0; i < stream.packCount; ++i) {
-#if defined(PLATFORM_T31) || defined(PLATFORM_T23)
+#if defined(PLATFORM_T31)
             uint8_t* start = (uint8_t*)stream.virAddr + stream.pack[i].offset;
             uint8_t* end = start + stream.pack[i].length;
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
             uint8_t* start = (uint8_t*)stream.pack[i].virAddr;
             uint8_t* end = (uint8_t*)stream.pack[i].virAddr + stream.pack[i].length;
 #endif
@@ -376,7 +376,7 @@ void Encoder::run() {
             nalu.imp_ts = stream.pack[i].timestamp;
             timeradd(&imp_time_base, &encode_time, &nalu.time);
             nalu.duration = 0;
-#if defined(PLATFORM_T31) || defined(PLATFORM_T23)
+#if defined(PLATFORM_T31)
             if (stream.pack[i].nalType.h264NalType == 5 || stream.pack[i].nalType.h264NalType == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             } else if (stream.pack[i].nalType.h265NalType == 19 ||
@@ -384,7 +384,7 @@ void Encoder::run() {
                     stream.pack[i].nalType.h265NalType == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             }
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
             if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             }
@@ -397,7 +397,7 @@ void Encoder::run() {
             std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
             for (std::map<uint32_t,EncoderSink>::iterator it=Encoder::sinks.begin();
                  it != Encoder::sinks.end(); ++it) {
-#if defined(PLATFORM_T31) || defined(PLATFORM_T23)
+#if defined(PLATFORM_T31)
                 if (stream.pack[i].nalType.h264NalType == 7 ||
                     stream.pack[i].nalType.h264NalType == 8 ||
                     stream.pack[i].nalType.h264NalType == 5) {
@@ -405,7 +405,7 @@ void Encoder::run() {
                 } else if (stream.pack[i].nalType.h265NalType == 32) {
                     it->second.IDR = true;
                 }
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
                 if (stream.pack[i].dataType.h264Type == 7 ||
                     stream.pack[i].dataType.h264Type == 8 ||
                     stream.pack[i].dataType.h264Type == 5) {
