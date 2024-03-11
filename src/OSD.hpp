@@ -9,6 +9,8 @@
     #include <imp_t20/imp_osd.h>
 #elif PLATFORM_T21
     #include <imp_t21/imp_osd.h>
+#elif PLATFORM_T30
+    #include <imp_t30/imp_osd.h>
 #endif
 
 #include <ft2build.h>
