@@ -171,7 +171,7 @@ int Encoder::encoder_init() {
         rc_attr->attrRcMode.attrH264Smart.maxQp = 45;
         rc_attr->attrRcMode.attrH264Smart.minQp = 24;
         rc_attr->attrRcMode.attrH264Smart.staticTime = 2;
-        rc_attr->attrRcMode.attrH264Smart.maxBitRate = 5000;
+        rc_attr->attrRcMode.attrH264Smart.maxBitRate = Config::singleton()->stream0bitrate * 1.333;
         rc_attr->attrRcMode.attrH264Smart.iBiasLvl = 0;
         rc_attr->attrRcMode.attrH264Smart.changePos = 80;
         rc_attr->attrRcMode.attrH264Smart.qualityLvl = 0;
@@ -184,7 +184,7 @@ int Encoder::encoder_init() {
         rc_attr->attrRcMode.attrH265Smart.maxQp = 45;
         rc_attr->attrRcMode.attrH265Smart.minQp = 15;
         rc_attr->attrRcMode.attrH265Smart.staticTime = 2;
-        rc_attr->attrRcMode.attrH265Smart.maxBitRate = 5000;
+        rc_attr->attrRcMode.attrH265Smart.maxBitRate = Config::singleton()->stream0bitrate * 1.333;
         rc_attr->attrRcMode.attrH265Smart.iBiasLvl = 0;
         rc_attr->attrRcMode.attrH265Smart.changePos = 80;
         rc_attr->attrRcMode.attrH265Smart.qualityLvl = 2;
@@ -456,9 +456,9 @@ void Encoder::run() {
                         //Discard old NALUs if our sinks aren't keeping up.
                         //This prevents the MsgChannels from clogging up with
                         //old data.
-                        LOG_WARN("Sink " << it->second.name << " clogged! Discarding NAL.");
-                        H264NALUnit old_nal;
-                        it->second.chn->read(&old_nal);
+                        LOG_ERROR("Sink " << it->second.name << " clogged! Discarding NAL.  Please alert the developers =D");
+                        //H264NALUnit old_nal;
+                        //it->second.chn->read(&old_nal);
                     }
                 }
             }
