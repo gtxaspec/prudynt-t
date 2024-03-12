@@ -40,16 +40,16 @@ endif
 VERSION_FILE = $(LIBIMP_INC_DIR)/version.hpp
 
 $(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
-	@if  ! grep "$(commit_tag)" version.h >/dev/null 2>&1 ; then \
-	echo "update version.h" ; \
-	sed 's/COMMIT_TAG/"$(commit_tag)"/g' src/version.tpl.hpp > include/version.hpp ; \
+	@if ! grep -q "$(commit_tag)" version.h > /dev/null 2>&1; then \
+		echo "Updating version.h to $(commit_tag)"; \
+		sed 's/COMMIT_TAG/"$(commit_tag)"/g' $(SRC_DIR)/version.tpl.hpp > $(VERSION_FILE); \
 	fi
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(VERSION_FILE)
 	@mkdir -p $(@D)
 	$(CCACHE) $(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -c $< -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(VERSION_FILE)
 	@mkdir -p $(@D)
 	$(CCACHE) $(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -c $< -o $@
 

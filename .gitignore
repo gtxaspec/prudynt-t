@@ -1,4 +1,4 @@
 bin/
 obj/
 .vscode/
-include/version.hpp
+include/*/version.hpp
