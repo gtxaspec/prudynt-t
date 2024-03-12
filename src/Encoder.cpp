@@ -108,11 +108,8 @@ int Encoder::encoder_init() {
     IMPEncoderProfile encoderProfile;
 
     // Allow user to specify the profile directly in the future with fallback defaults
-    if (Config::singleton()->stream0format == "H265") {
-        encoderProfile = IMP_ENC_PROFILE_HEVC_MAIN;
-    } else {
-        encoderProfile = IMP_ENC_PROFILE_AVC_HIGH;
-    }
+    const std::string& format = Config::singleton()->stream0format;
+    encoderProfile = (format == "H265") ? IMP_ENC_PROFILE_HEVC_MAIN : IMP_ENC_PROFILE_AVC_HIGH;
 
     IMP_Encoder_SetDefaultParam(
         &channel_attr, encoderProfile, IMP_ENC_RC_MODE_CAPPED_QUALITY, Config::singleton()->stream0width, Config::singleton()->stream0height,
@@ -137,8 +134,19 @@ int Encoder::encoder_init() {
 
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
     //channel_attr.encAttr.enType = PT_JPEG;
-    channel_attr.encAttr.enType = PT_H264;
+    const std::string& format = Config::singleton()->stream0format;
+
+#if defined(PLATFORM_T30)
+    channel_attr.encAttr.enType = (format == "H264") ? PT_H264 :
+                                (format == "H265") ? PT_H265 :
+                                PT_H264;
+#else
+    channel_attr.encAttr.enType = (format == "H264") ? PT_H264 :
+                                PT_H264;
+#endif
+
     channel_attr.encAttr.bufSize = 0;
+
     //0 = Baseline
     //1 = Main
     //2 = High
@@ -146,8 +154,8 @@ int Encoder::encoder_init() {
     //requested framerate when the profile is set to Baseline.
     //For this reason, Main or High are recommended.
     channel_attr.encAttr.profile = 2;
-    channel_attr.encAttr.picWidth = 1920;
-    channel_attr.encAttr.picHeight = 1080;
+    channel_attr.encAttr.picWidth = Config::singleton()->stream0width;
+    channel_attr.encAttr.picHeight = Config::singleton()->stream0height;
 
     channel_attr.rcAttr.outFrmRate.frmRateNum = Config::singleton()->stream0fps;
     channel_attr.rcAttr.outFrmRate.frmRateDen = 1;
@@ -156,8 +164,9 @@ int Encoder::encoder_init() {
     //slower rate. A sufficiently low value can cause the frame emission rate to
     //drop below the frame rate.
     //I find that 2x the frame rate is a good setting.
-    rc_attr->maxGop = Config::singleton()->stream0fps * 2;
-    {
+    rc_attr->maxGop = Config::singleton()->stream0maxGop;
+
+    if (Config::singleton()->stream0format == "H264") {
         rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
         rc_attr->attrRcMode.attrH264Smart.maxQp = 45;
         rc_attr->attrRcMode.attrH264Smart.minQp = 24;
@@ -169,15 +178,29 @@ int Encoder::encoder_init() {
         rc_attr->attrRcMode.attrH264Smart.frmQPStep = 3;
         rc_attr->attrRcMode.attrH264Smart.gopQPStep = 15;
         rc_attr->attrRcMode.attrH264Smart.gopRelation = false;
+#if defined(PLATFORM_T30)
+    } else if (Config::singleton()->stream0format == "H265") {
+        rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
+        rc_attr->attrRcMode.attrH265Smart.maxQp = 45;
+        rc_attr->attrRcMode.attrH265Smart.minQp = 15;
+        rc_attr->attrRcMode.attrH265Smart.staticTime = 2;
+        rc_attr->attrRcMode.attrH265Smart.maxBitRate = 5000;
+        rc_attr->attrRcMode.attrH265Smart.iBiasLvl = 0;
+        rc_attr->attrRcMode.attrH265Smart.changePos = 80;
+        rc_attr->attrRcMode.attrH265Smart.qualityLvl = 2;
+        rc_attr->attrRcMode.attrH265Smart.frmQPStep = 3;
+        rc_attr->attrRcMode.attrH265Smart.gopQPStep = 15;
+        rc_attr->attrRcMode.attrH265Smart.flucLvl = 2;
+#endif
     }
 
-    rc_attr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_HN1_TRUE;
+    rc_attr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X; // IMP_Encoder_STYPE_HN1_TRUE
     rc_attr->attrHSkip.hSkipAttr.m = rc_attr->maxGop - 1;
     rc_attr->attrHSkip.hSkipAttr.n = 1;
     rc_attr->attrHSkip.hSkipAttr.maxSameSceneCnt = 6;
     rc_attr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
     rc_attr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
-    rc_attr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N4X;
+    rc_attr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X; // IMP_Encoder_STYPE_N4X
 
 #endif
 
@@ -263,7 +286,7 @@ void Encoder::jpeg_snap() {
 
 #if defined(PLATFORM_T31)
     IMP_Encoder_SetDefaultParam(&channel_attr_jpg, IMP_ENC_PROFILE_JPEG, IMP_ENC_RC_MODE_FIXQP,
-        1920, 1080, 24, 1, 0, 0, 50, 0);
+        Config::singleton()->stream0width, Config::singleton()->stream0height, 24, 1, 0, 0, 50, 0);
 
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
     channel_attr_jpg.encAttr.enType = PT_JPEG;
@@ -384,8 +407,16 @@ void Encoder::run() {
                     stream.pack[i].nalType.h265NalType == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             }
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
             if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1) {
+                nalu.duration = last_nal_ts - nal_ts;
+            }
+#elif defined(PLATFORM_T30)
+            if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1) {
+                nalu.duration = last_nal_ts - nal_ts;
+            } else if (stream.pack[i].dataType.h265Type == 19 ||
+                    stream.pack[i].dataType.h265Type == 20 ||
+                    stream.pack[i].dataType.h265Type == 1) {
                 nalu.duration = last_nal_ts - nal_ts;
             }
 #endif
@@ -405,10 +436,18 @@ void Encoder::run() {
                 } else if (stream.pack[i].nalType.h265NalType == 32) {
                     it->second.IDR = true;
                 }
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
                 if (stream.pack[i].dataType.h264Type == 7 ||
                     stream.pack[i].dataType.h264Type == 8 ||
                     stream.pack[i].dataType.h264Type == 5) {
+                    it->second.IDR = true;
+                }
+#elif defined(PLATFORM_T30)
+                if (stream.pack[i].dataType.h264Type == 7 ||
+                    stream.pack[i].dataType.h264Type == 8 ||
+                    stream.pack[i].dataType.h264Type == 5) {
+                    it->second.IDR = true;
+                } else if (stream.pack[i].dataType.h265Type == 32) {
                     it->second.IDR = true;
                 }
 #endif

@@ -56,8 +56,8 @@ IMPFSChnAttr IMP::create_fs_attr() {
     out.scaler.enable = 0;
     out.scaler.outwidth = Config::singleton()->stream0width;
     out.scaler.outheight = Config::singleton()->stream0height;
-    out.picWidth = Config::singleton()->stream0width;
-    out.picHeight = Config::singleton()->stream0height;
+    out.picWidth = Config::singleton()->sensorWidth; // has to be sensor size
+    out.picHeight = Config::singleton()->sensorHeight;
     return out;
 }
 
@@ -143,6 +143,12 @@ int IMP::system_init() {
         LOG_DEBUG("ERROR: IMP_ISP_EnableTuning() == " + std::to_string(ret));
         return ret;
     }
+
+    /* Set tuning defaults; on some SoC platforms, if we don't do this, the stream will be dark until manually set */
+    IMP_ISP_Tuning_SetContrast(128);
+    IMP_ISP_Tuning_SetSharpness(128);
+    IMP_ISP_Tuning_SetSaturation(128);
+    IMP_ISP_Tuning_SetBrightness(128);
 
     ret = IMP_ISP_Tuning_SetSensorFPS(Config::singleton()->sensorFps, 1);
     if (ret < 0) {

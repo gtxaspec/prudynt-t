@@ -15,10 +15,13 @@ public:
     std::string sensorModel;
     unsigned int sensorI2Caddress;
     int sensorFps;
+    int sensorHeight;
+    int sensorWidth;
 
     std::string stream0format;
     int stream0fps;
     int stream0gop;
+    int stream0maxGop;
     int stream0buffers;
     int stream0height;
     int stream0width;

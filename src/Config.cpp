@@ -73,7 +73,7 @@ Config::Config() {
         {"osd.font_stroke_enabled", OSDFontStrokeEnable, true, [](const bool &v) { return true; }, "osd.font_stroke_enabled must be true or false"},
         {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "osd.user_text_enabled must be true or false"},
         {"osd.uptime_display_enabled", OSDUptimeEnable, true, [](const bool &v) { return true; }, "osd.uptime_display_enabled must be true or false"},
-        {"stream0.jpeg_enabled", stream0jpegEnable, true, [](const bool &v) { return true; }, "osd.user_text_enabled must be true or false"},
+        {"stream1.jpeg_enabled", stream0jpegEnable, true, [](const bool &v) { return true; }, "osd.user_text_enabled must be true or false"},
     };
 
     std::vector<ConfigItem<std::string>> stringItems = {
@@ -87,7 +87,7 @@ Config::Config() {
         {"osd.uptime_display_format", OSDUptimeFormat, "Uptime: %02lu:%02lu:%02lu", [](const std::string &v) { return !v.empty(); }, "OSD format string must not be empty"},
         {"osd.user_text_string", OSDUserTextString, "thingino", [](const std::string &v) { return true; }, ""},
         {"general.loglevel", logLevel, "INFO", [](const std::string &v) { return true; }, ""},
-        {"stream0.jpeg_path", stream0jpegPath, "/tmp/snapshot.jpg", [](const std::string &v) { return true; }, "JPEG snapshot path string must not be empty"},
+        {"stream1.jpeg_path", stream0jpegPath, "/tmp/snapshot.jpg", [](const std::string &v) { return true; }, "JPEG snapshot path string must not be empty"},
         {"osd.logo_path", OSDLogoPath, "/usr/share/thingino_logo_1.bgra", [](const std::string &v) { return true; }, "OSD Logo path string must not be empty"},
     };
 
@@ -97,7 +97,10 @@ Config::Config() {
         {"rtsp.out_buffer_size", rtspOutBufferSize, 500000, [](const int &v) { return true; }, ""},
         {"rtsp.send_buffer_size", rtspSendBufferSize, 307200, [](const int &v) { return true; }, ""},
         {"sensor.fps", sensorFps, 24, [](const int &v) { return v > 0 && v <= 60; }, "Sensor FPS must be between 1 and 240"},
+        {"sensor.width", sensorWidth, 1920, [](const int &v) { return true; }, ""},
+        {"sensor.height", sensorHeight, 1080, [](const int &v) { return true; }, ""},
         {"stream0.gop", stream0gop, 30, [](const int &v) { return true; }, ""},
+        {"stream0.max_gop", stream0maxGop, 60, [](const int &v) { return true; }, ""},
         {"stream0.fps", stream0fps, 24, [](const int &v) { return v > 0 && v <= 60; }, "Stream 0 FPS must be between 1 and 240"},
         {"stream0.buffers", stream0buffers, 2, [](const int &v) { return v > 0 && v <= 32; }, "Stream 0 buffers must be between 1 and 32"},
         {"stream0.height", stream0height, 1080, [](const int &v) { return true; }, ""},
@@ -113,8 +116,8 @@ Config::Config() {
         {"stream0.osd_logo_pos_height", stream0osdLogoPosHeight, 1030, [](const int &v) { return true; }, ""},
         {"osd.font_size", OSDFontStrokeSize, 64, [](const int &v) { return true; }, ""},
         {"osd.font_stroke_size", OSDFontSize, 64, [](const int &v) { return true; }, ""},
-        {"stream0.jpeg_quality", stream0jpegQuality, 75, [](const int &v) { return v > 0 && v <= 100; }, "Stream 0 jpeg quality must be between 1 and 100"},
-        {"stream0.jpeg_refresh", stream0jpegRefresh, 1000, [](const int &v) { return true; }, ""},
+        {"stream1.jpeg_quality", stream0jpegQuality, 75, [](const int &v) { return v > 0 && v <= 100; }, "Stream 0 jpeg quality must be between 1 and 100"},
+        {"stream1.jpeg_refresh", stream0jpegRefresh, 1000, [](const int &v) { return true; }, ""},
         {"osd.logo_height", OSDLogoHeight, 30, [](const int &v) { return true; }, ""},
         {"osd.logo_width", OSDLogoWidth, 100, [](const int &v) { return true; }, ""},
 
