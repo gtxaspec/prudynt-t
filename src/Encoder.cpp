@@ -276,24 +276,50 @@ static int save_jpeg_stream(int fd, IMPEncoderStream *stream) {
     return 0;
 }
 
+void MakeTables(int q, uint8_t* lqt, uint8_t* cqt) {
+    // Ensure q is within the expected range
+    q = std::max(1, std::min(q, 99));
+
+    // Adjust q based on factor
+    if (q < 50) {
+        q = 5000 / q;
+    } else {
+        q = 200 - 2 * q;
+    }
+
+    // Fill the quantization tables
+    for (int i = 0; i < 64; ++i) {
+        int lq = (jpeg_luma_quantizer[i] * q + 50) / 100;
+        int cq = (jpeg_chroma_quantizer[i] * q + 50) / 100;
+
+        // Ensure the quantization values are within [1, 255]
+        lqt[i] = static_cast<uint8_t>(std::max(1, std::min(lq, 255)));
+        cqt[i] = static_cast<uint8_t>(std::max(1, std::min(cq, 255)));
+    }
+}
+
 void Encoder::jpeg_snap() {
     nice(-18);
 
     int ret;
-
     IMPEncoderRcAttr *rc_attr;
     IMPEncoderCHNAttr channel_attr_jpg;
 
+   // memset(&channel_attr_jpg, 0, sizeof(IMPEncoderCHNAttr));
+    //rc_attr = &channel_attr_jpg.rcAttr;
+
 #if defined(PLATFORM_T31)
     IMP_Encoder_SetDefaultParam(&channel_attr_jpg, IMP_ENC_PROFILE_JPEG, IMP_ENC_RC_MODE_FIXQP,
-        Config::singleton()->stream0width, Config::singleton()->stream0height, 24, 1, 0, 0, 50, 0);
+        Config::singleton()->stream0width, Config::singleton()->stream0height, 24, 1, 0, 0, Config::singleton()->stream0jpegQuality, 0);
 
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
-    channel_attr_jpg.encAttr.enType = PT_JPEG;
-    channel_attr_jpg.encAttr.bufSize = 0;
-    channel_attr_jpg.encAttr.profile = 2;
-    channel_attr_jpg.encAttr.picWidth = Config::singleton()->stream0width;
-    channel_attr_jpg.encAttr.picHeight = Config::singleton()->stream0height;
+    IMPEncoderAttr *enc_attr;
+    enc_attr = &channel_attr_jpg.encAttr;
+    enc_attr->enType = PT_JPEG;
+    enc_attr->bufSize = 0;
+    enc_attr->profile = 2;
+    enc_attr->picWidth = Config::singleton()->stream0width;
+    enc_attr->picHeight = Config::singleton()->stream0height;
 #endif
 
     ret = IMP_Encoder_CreateChn(1, &channel_attr_jpg);
@@ -306,9 +332,18 @@ void Encoder::jpeg_snap() {
         LOG_ERROR("IMP_Encoder_RegisterChn() == " << ret);
     }
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Wait for ISP to init before saving initial image
+
     IMP_Encoder_StartRecvPic(1); // Start receiving pictures once
 
     while (Config::singleton()->stream0jpegEnable == 1) { // Check condition to exit loop
+
+#if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
+        IMPEncoderJpegeQl pstJpegeQl;
+        MakeTables(Config::singleton()->stream0jpegQuality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
+        pstJpegeQl.user_ql_en = 1;
+        IMP_Encoder_SetJpegeQl(1, &pstJpegeQl);
+#endif
 
         IMP_Encoder_PollingStream(1, 10000); // Wait for frame
 
@@ -337,12 +372,12 @@ void Encoder::jpeg_snap() {
                 LOG_ERROR("Failed to open JPEG snapshot for writing: " + tempPath);
             }
 
+            // Delay before we release, otherwise an overflow may occur
+            std::this_thread::sleep_for(std::chrono::milliseconds(Config::singleton()->stream0jpegRefresh)); // Control the rate
             IMP_Encoder_ReleaseStream(1, &stream_jpeg); // Release stream after saving
+            //LOG_DEBUG("JPEG snapshot saved");
         }
-
-        //LOG_DEBUG("JPEG snapshot saved");
-        std::this_thread::sleep_for(std::chrono::milliseconds(Config::singleton()->stream0jpegRefresh)); // Control the rate
-    }
+   }
 
     IMP_Encoder_StopRecvPic(1); // Stop receiving pictures once
 }
