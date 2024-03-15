@@ -16,7 +16,7 @@ extern "C"
 
 #define IMP_IVS_MOVE_MAX_ROI_CNT		52
 
-#include <imp_ivs.h>
+#include "imp_ivs.h"
 
 /**
  * @file
