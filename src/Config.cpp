@@ -71,9 +71,9 @@ Config::Config() {
         {"osd.time_enabled", OSDTimeEnable, true, [](const bool &v) { return true; }, "osd.time_enabled must be true or false"},
         {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "osd.enabled must be true or false"},
         {"osd.font_stroke_enabled", OSDFontStrokeEnable, true, [](const bool &v) { return true; }, "osd.font_stroke_enabled must be true or false"},
-        {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "osd.user_text_enabled must be true or false"},
         {"osd.uptime_display_enabled", OSDUptimeEnable, true, [](const bool &v) { return true; }, "osd.uptime_display_enabled must be true or false"},
-        {"stream1.jpeg_enabled", stream0jpegEnable, true, [](const bool &v) { return true; }, "osd.user_text_enabled must be true or false"},
+        {"stream1.jpeg_enabled", stream0jpegEnable, true, [](const bool &v) { return true; }, "stream1.jpeg_enabled must be true or false"},
+        {"motion.enabled", motionEnable, false, [](const bool &v) { return true; }, "motion.enabled must be true or false"},
     };
 
     std::vector<ConfigItem<std::string>> stringItems = {
@@ -89,6 +89,7 @@ Config::Config() {
         {"general.loglevel", logLevel, "INFO", [](const std::string &v) { return true; }, ""},
         {"stream1.jpeg_path", stream0jpegPath, "/tmp/snapshot.jpg", [](const std::string &v) { return true; }, "JPEG snapshot path string must not be empty"},
         {"osd.logo_path", OSDLogoPath, "/usr/share/thingino_logo_1.bgra", [](const std::string &v) { return true; }, "OSD Logo path string must not be empty"},
+        {"motion.script_path", motionScriptPath, "/usr/sbin/motion", [](const std::string &v) { return true; }, "OSD Logo path string must not be empty"},
     };
 
     std::vector<ConfigItem<int>> intItems = {
@@ -120,7 +121,19 @@ Config::Config() {
         {"stream1.jpeg_refresh", stream0jpegRefresh, 1000, [](const int &v) { return true; }, ""},
         {"osd.logo_height", OSDLogoHeight, 30, [](const int &v) { return true; }, ""},
         {"osd.logo_width", OSDLogoWidth, 100, [](const int &v) { return true; }, ""},
-
+        {"motion.debounce_time", motionDebounce, 0, [](const int &v) { return true; }, ""},
+        {"motion.post_time", motionPostTime, 0, [](const int &v) { return true; }, ""},
+        {"motion.cooldown", motionCooldownTime, 5, [](const int &v) { return true; }, ""},
+        {"motion.init_time", motionInitTime, 5, [](const int &v) { return true; }, ""},
+        {"motion.sensitivity", motionSensitivity, 1, [](const int &v) { return true; }, ""},
+        {"motion.frame_count", motionSkipFrameCnt, 5, [](const int &v) { return true; }, ""},
+        {"motion.frame_width", motionFrameWidth, 1920, [](const int &v) { return true; }, ""},
+        {"motion.frame_height", motionFrameHeight, 1080, [](const int &v) { return true; }, ""},
+        {"motion.roi_0_x", motionRoi0X, 0, [](const int &v) { return true; }, ""},
+        {"motion.roi_0_y", motionRoi0Y, 0, [](const int &v) { return true; }, ""},
+        {"motion.roi_1_x", motionRoi1X, 1920, [](const int &v) { return true; }, ""},
+        {"motion.roi_1_y", motionRoi1Y, 1080, [](const int &v) { return true; }, ""},
+        {"motion.roi_count", roiCnt, 1, [](const int &v) { return true; }, ""},
     };
 
     std::vector<ConfigItem<unsigned int>> uintItems = {

@@ -38,6 +38,21 @@ public:
     bool stream0jpegEnable;
     int stream0jpegQuality;
     int stream0jpegRefresh;
+    int motionDebounce;
+    int motionPostTime;
+    int motionCooldownTime;
+    std::string motionScriptPath;
+    int motionInitTime;
+    int motionSensitivity;
+    int motionSkipFrameCnt;
+    int motionFrameWidth;
+    int motionFrameHeight;
+    int motionRoi0X;
+    int motionRoi0Y;
+    int motionRoi1X;
+    int motionRoi1Y;
+    int roiCnt;
+    bool motionEnable;
 
     std::string rtspUsername;
     std::string rtspPassword;

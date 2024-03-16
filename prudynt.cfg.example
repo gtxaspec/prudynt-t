@@ -68,3 +68,21 @@ osd: {
 	logo_width: 100;
 	logo_height: 30;
 };
+
+motion: {
+	enabled: false;
+	script_path: "/usr/sbin/motion.sh";
+	debounce_time: 0;
+	post_time: 0;
+	cooldown: 5;
+	init_time: 5;
+	sensitivity: ;
+	frame_count: 5;
+	frame_width: 1920;
+	frame_height: 1080;
+	roi_0_x: 0;
+	roi_0_y: 0;
+	roi_1_x: 1920;
+	roi_1_y: 1080;
+	roi_count: 1;
+};

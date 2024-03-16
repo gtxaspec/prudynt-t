@@ -7,6 +7,7 @@
 #include "Logger.hpp"
 #include "IMP.hpp"
 #include "Config.hpp"
+#include "Motion.hpp"
 
 #include "version.hpp"
 
@@ -16,6 +17,7 @@ template <class T> void start_component(T c) {
 
 Encoder enc;
 Encoder jpg;
+Motion motion;
 RTSP rtsp;
 
 bool timesync_wait() {
@@ -38,6 +40,7 @@ int main(int argc, const char *argv[]) {
 
     std::thread enc_thread;
     std::thread rtsp_thread;
+    std::thread motion_thread;
 
     if (Logger::init()) {
         LOG_ERROR("Logger initialization failed.");
@@ -53,13 +56,24 @@ int main(int argc, const char *argv[]) {
         LOG_ERROR("IMP initialization failed.");
         return 1;
     }
+    if (Config::singleton()->motionEnable) {
+        if (motion.init()) {
+        std::cout << "Motion initialization failed." << std::endl;
+        return 1;
+        }
+    }
     if (enc.init()) {
         LOG_ERROR("Encoder initialization failed.");
         return 1;
     }
 
+
     enc_thread = std::thread(start_component<Encoder>, enc);
     rtsp_thread = std::thread(start_component<RTSP>, rtsp);
+    if (Config::singleton()->motionEnable) {
+        LOG_DEBUG("Motion detection enabled");
+        motion_thread = std::thread(start_component<Motion>, motion);
+    }
 
     if (Config::singleton()->stream0jpegEnable) {
         LOG_DEBUG("JPEG Channel enabled");
@@ -69,6 +83,7 @@ int main(int argc, const char *argv[]) {
 
     enc_thread.join();
     rtsp_thread.join();
+    motion_thread.join();
 
     return 0;
 }
