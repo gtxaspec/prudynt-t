@@ -6,6 +6,8 @@
 #include <ctime>
 #include <map>
 
+#include <sys/file.h>
+
 #include <imp/imp_framesource.h>
 #include <imp/imp_system.h>
 #include <imp/imp_common.h>

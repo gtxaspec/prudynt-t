@@ -353,10 +353,20 @@ void Encoder::jpeg_snap() {
             std::string tempPath = "/tmp/snapshot.tmp"; // Temporary path
             int snap_fd = open(tempPath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
             if (snap_fd >= 0) {
-                save_jpeg_stream(snap_fd, &stream_jpeg);
-                close(snap_fd);
+                // Attempt to lock the temporary file for exclusive access
+                if (flock(snap_fd, LOCK_EX) == -1) {
+                    LOG_ERROR("Failed to lock JPEG snapshot for writing: " + tempPath);
+                    close(snap_fd);
+                    return; // Exit the function
+                }
 
-                // Copy file instead of renaming
+                save_jpeg_stream(snap_fd, &stream_jpeg);
+
+                // Unlock the file after writing is done
+                flock(snap_fd, LOCK_UN);
+                close(snap_fd); // Close the file descriptor
+
+                // Now, safely copy the file
                 std::ifstream src(tempPath, std::ios::binary);
                 std::ofstream dst(Config::singleton()->stream0jpegPath, std::ios::binary);
 
