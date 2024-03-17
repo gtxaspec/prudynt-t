@@ -239,7 +239,6 @@ bool OSD::init() {
     timestamp.imp_attr.fmt = PIX_FMT_BGRA;
     timestamp.data = NULL;
     timestamp.imp_attr.data.picData.pData = timestamp.data;
-    set_text(&timestamp, " ");
     IMP_OSD_RegisterRgn(timestamp.imp_rgn, 0, NULL);
     IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
 
@@ -286,7 +285,6 @@ bool OSD::init() {
         uptimeStamp.imp_attr.fmt = PIX_FMT_BGRA;
         uptimeStamp.data = NULL;
         uptimeStamp.imp_attr.data.picData.pData = uptimeStamp.data;
-        set_text(&uptimeStamp, " ");
         IMP_OSD_RegisterRgn(uptimeStamp.imp_rgn, 0, NULL);
         IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
 
