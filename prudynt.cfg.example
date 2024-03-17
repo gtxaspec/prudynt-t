@@ -76,7 +76,7 @@ motion: {
 	post_time: 0;
 	cooldown: 5;
 	init_time: 5;
-	sensitivity: ;
+	sensitivity: 1;
 	frame_count: 5;
 	frame_width: 1920;
 	frame_height: 1080;
