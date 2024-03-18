@@ -32,14 +32,14 @@ stream0: {
 	fps: 24;
 	gop: 30;
 	max_gop: 60;
-	osd_pos_width: 5;
-	osd_pos_height: 5;
-	osd_user_text_pos_width: 900;
-	osd_user_text_pos_height: 5;
-	osd_uptime_stamp_pos_width: 1600;
-	osd_uptime_stamp_pos_height: 5;
-	osd_logo_pos_width: 1800;
-	osd_logo_pos_height: 1030;
+	osd_pos_x: 5;
+	osd_pos_y: 5;
+	osd_user_text_pos_x: 900;
+	osd_user_text_pos_y: 5;
+	osd_uptime_stamp_pos_x: 1600;
+	osd_uptime_stamp_pos_y: 5;
+	osd_logo_pos_x: 1800;
+	osd_logo_pos_y: 1030;
 };
 
 stream1: {

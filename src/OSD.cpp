@@ -234,8 +234,8 @@ bool OSD::init() {
     timestamp.stroke_color = 0x000000FF;
     timestamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
     timestamp.imp_attr.type = OSD_REG_PIC;
-    timestamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdPosWidth;
-    timestamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdPosHeight;
+    timestamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdPosX;
+    timestamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdPosY;
     timestamp.imp_attr.fmt = PIX_FMT_BGRA;
     timestamp.data = NULL;
     timestamp.imp_attr.data.picData.pData = timestamp.data;
@@ -256,8 +256,8 @@ bool OSD::init() {
         userText.stroke_color = 0x000000FF;
         userText.imp_rgn = IMP_OSD_CreateRgn(NULL);
         userText.imp_attr.type = OSD_REG_PIC;
-        userText.imp_attr.rect.p0.x = Config::singleton()->stream0osdUserTextPosWidth;
-        userText.imp_attr.rect.p0.y = Config::singleton()->stream0osdUserTextPosHeight;
+        userText.imp_attr.rect.p0.x = Config::singleton()->stream0osdUserTextPosX;
+        userText.imp_attr.rect.p0.y = Config::singleton()->stream0osdUserTextPosY;
         userText.imp_attr.fmt = PIX_FMT_BGRA;
         userText.data = NULL;
         userText.imp_attr.data.picData.pData = userText.data;
@@ -280,8 +280,8 @@ bool OSD::init() {
         uptimeStamp.stroke_color = 0x000000FF;
         uptimeStamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
         uptimeStamp.imp_attr.type = OSD_REG_PIC;
-        uptimeStamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdUptimeStampPosWidth;
-        uptimeStamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdUptimeStampPosHeight;
+        uptimeStamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdUptimeStampPosX;
+        uptimeStamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdUptimeStampPosY;
         uptimeStamp.imp_attr.fmt = PIX_FMT_BGRA;
         uptimeStamp.data = NULL;
         uptimeStamp.imp_attr.data.picData.pData = uptimeStamp.data;
@@ -305,8 +305,8 @@ bool OSD::init() {
         OSDLogo.type = OSD_REG_PIC;
         int picw = Config::singleton()->OSDLogoWidth;
         int pich = Config::singleton()->OSDLogoHeight;
-        OSDLogo.rect.p0.x = Config::singleton()->stream0osdLogoPosWidth;
-        OSDLogo.rect.p0.y = Config::singleton()->stream0osdLogoPosHeight;
+        OSDLogo.rect.p0.x = Config::singleton()->stream0osdLogoPosX;
+        OSDLogo.rect.p0.y = Config::singleton()->stream0osdLogoPosY;
         OSDLogo.rect.p1.x = OSDLogo.rect.p0.x+picw-1;
         OSDLogo.rect.p1.y = OSDLogo.rect.p0.y+pich-1;
         OSDLogo.fmt = PIX_FMT_BGRA;
