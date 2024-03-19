@@ -1,9 +1,11 @@
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <functional>
 #include <libconfig.h++>
+
 #include "Config.hpp"
 #include "Logger.hpp"
 
@@ -20,13 +22,48 @@ struct ConfigItem {
     T defaultValue;
     std::function<bool(const T&)> validate;
     std::string errorMessage;
+    std::string procPath;
 };
 
 // Utility function to handle configuration lookup, default assignment, and validation
 template<typename T>
 void handleConfigItem(libconfig::Config &lc, ConfigItem<T> &item, std::vector<std::string> &missingConfigs) {
-    if (!lc.lookupValue(item.path, item.value)) {
-        item.value = item.defaultValue; // Assign default value if not found
+    bool readFromConfig = lc.lookupValue(item.path, item.value);
+    bool readFromProc = false;
+
+    if (!readFromConfig && !item.procPath.empty()) { // If not read from config and procPath is set
+        // Attempt to read from the proc filesystem
+        std::ifstream procFile(item.procPath);
+        if (procFile) {
+            T value;
+            std::string line;
+            if (std::getline(procFile, line)) {
+                if constexpr (std::is_same_v<T, std::string>) { // Check if T is std::string
+                    value = line;
+                    readFromProc = true;
+                } else if constexpr (std::is_same_v<T, unsigned int>) { // Check if T is unsigned int
+                    std::istringstream iss(line);
+                    if (line.find("0x") == 0) { // Check if the line starts with "0x"
+                        iss >> std::hex >> value; // Read as hexadecimal
+                    } else {
+                        iss >> value; // Read as decimal
+                    }
+                    readFromProc = true;
+                } else { // For other types, just read directly if possible
+                    std::istringstream iss(line);
+                    if (iss >> value) {
+                        readFromProc = true;
+                    }
+                }
+            }
+            if (readFromProc) {
+                item.value = value; // Assign the value read from proc
+            }
+        }
+    }
+
+    if (!readFromConfig && !readFromProc) {
+        item.value = item.defaultValue; // Assign default value if not found anywhere
         missingConfigs.push_back(item.path); // Record missing config
         LOG_WARN("Missing configuration for " + item.path + ", using default.");
     } else if (!item.validate(item.value)) {
@@ -80,7 +117,7 @@ Config::Config() {
         {"rtsp.username", rtspUsername, "thingino", [](const std::string &v) { return !v.empty(); }, "RTSP username cannot be empty"},
         {"rtsp.password", rtspPassword, "thingino", [](const std::string &v) { return !v.empty(); }, "RTSP password cannot be empty"},
         {"rtsp.name", rtspName, "thingino prudynt", [](const std::string &v) { return !v.empty(); }, "RTSP realm name cannot be empty"},
-        {"sensor.model", sensorModel, "gc2053", [](const std::string &v) { return !v.empty(); }, "Sensor model cannot be empty"},
+        {"sensor.model", sensorModel, "gc2053", [](const std::string &v) { return !v.empty(); }, "Sensor model cannot be empty", "/proc/jz/sensor/name"},
         {"stream0.format", stream0format, "H264", [](const std::string &v) { return !v.empty(); }, "Stream format must be H264 or H265"},
         {"osd.font_path", OSDFontPath, "/usr/share/fonts/UbuntuMono-Regular2.ttf", [](const std::string &v) { return !v.empty(); }, "Must specify valid font path"},
         {"osd.time_format", OSDFormat, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, "OSD format string must not be empty"},
@@ -98,8 +135,8 @@ Config::Config() {
         {"rtsp.out_buffer_size", rtspOutBufferSize, 500000, [](const int &v) { return true; }, ""},
         {"rtsp.send_buffer_size", rtspSendBufferSize, 307200, [](const int &v) { return true; }, ""},
         {"sensor.fps", sensorFps, 24, [](const int &v) { return v > 0 && v <= 60; }, "Sensor FPS must be between 1 and 240"},
-        {"sensor.width", sensorWidth, 1920, [](const int &v) { return true; }, ""},
-        {"sensor.height", sensorHeight, 1080, [](const int &v) { return true; }, ""},
+        {"sensor.width", sensorWidth, 1920, [](const int &v) { return true; }, "", "/proc/jz/sensor/width"},
+        {"sensor.height", sensorHeight, 1080, [](const int &v) { return true; }, "", "/proc/jz/sensor/height"},
         {"stream0.gop", stream0gop, 30, [](const int &v) { return true; }, ""},
         {"stream0.max_gop", stream0maxGop, 60, [](const int &v) { return true; }, ""},
         {"stream0.fps", stream0fps, 24, [](const int &v) { return v > 0 && v <= 60; }, "Stream 0 FPS must be between 1 and 240"},
@@ -139,7 +176,7 @@ Config::Config() {
     std::vector<ConfigItem<unsigned int>> uintItems = {
         {"osd.font_color", OSDFontColor, 0xFFFFFFFF, [](const unsigned int &v) { return true; }, ""},
         {"osd.font_stroke_color:", OSDFontStrokeColor, 0xFF000000, [](const unsigned int &v) { return true; }, ""},
-        {"sensor.i2c_address", sensorI2Caddress, 0x37, [](const unsigned int &v) { return true; }, ""},
+        {"sensor.i2c_address", sensorI2Caddress, 0x37, [](const unsigned int &v) { return true; }, "", "/proc/jz/sensor/i2c_addr"},
     };
 
     // Process all configuration items
