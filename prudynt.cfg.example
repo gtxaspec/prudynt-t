@@ -16,11 +16,12 @@ rtsp: {
 };
 
 sensor: {
-	model: "gc2053";
-	i2c_address: 0x37;
-	fps: 24;
-	width: 1920;
-	height: 1080;
+## These are read directly from /proc/jz/isp/sensor.  Specify overrides, here. ##
+#	model: "gc2053";
+#	i2c_address: 0x37;
+#	fps: 24;
+#	width: 1920;
+#	height: 1080;
 };
 
 stream0: {
@@ -32,8 +33,8 @@ stream0: {
 	fps: 24;
 	gop: 30;
 	max_gop: 60;
-	osd_pos_x: 5;
-	osd_pos_y: 5;
+	osd_pos_x: 10;
+	osd_pos_y: 10;
 	osd_user_text_pos_x: 900;
 	osd_user_text_pos_y: 5;
 	osd_uptime_stamp_pos_x: 1600;
