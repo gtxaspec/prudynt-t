@@ -69,7 +69,7 @@ void RTSP::run() {
     LOG_DEBUG("Got necessary NAL Units.");
 
     ServerMediaSession *sms = ServerMediaSession::createNew(
-        *env, "unicast", "Main", Config::singleton()->rtspName.c_str()
+        *env, "ch0", "Main", Config::singleton()->rtspName.c_str()
     );
     IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
         *env, (Config::singleton()->stream0format == "H265" ? vps : nullptr), sps, pps // Conditional VPS
@@ -78,7 +78,7 @@ void RTSP::run() {
     rtspServer->addServerMediaSession(sms);
 
     char* url = rtspServer->rtspURL(sms);
-    LOG_INFO("Play this stream from: " << url);
+    LOG_INFO("stream 0 available at: " << url);
 
     env->taskScheduler().doEventLoop();
 
