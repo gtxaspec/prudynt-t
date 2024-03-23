@@ -1,22 +1,26 @@
-# Prudynt Settings
+# Prudynt Configuration
+
+# The settings below can be used to override the default program configurations.
+# Uncomment any lines where you wish to apply a custom setting different from the program's defaults.
+
+version = "0.5";
 
 general: {
 	loglevel: "INFO";
 };
 
 rtsp: {
-	port: 554;
-	name: "thingino prudynt";
-	est_bitrate: 5000;
-	out_buffer_size: 500000;
-	send_buffer_size: 307200;
-	auth_required: true;
-	username: "thingino";
-	password: "thingino";
+#	port: 554;
+#	name: "thingino prudynt";
+#	est_bitrate: 5000;
+#	out_buffer_size: 500000;
+#	send_buffer_size: 307200;
+#	auth_required: true;
+#	username: "thingino";
+#	password: "thingino";
 };
 
 sensor: {
-## These are read directly from /proc/jz/isp/sensor.  Specify overrides, here. ##
 #	model: "gc2053";
 #	i2c_address: 0x37;
 #	fps: 24;
@@ -25,65 +29,70 @@ sensor: {
 };
 
 stream0: {
-	format: "H264";
-	bitrate: 1000;
-	width: 1920;
-	height: 1080;
-	buffers: 2;
-	fps: 24;
-	gop: 30;
-	max_gop: 60;
-	osd_pos_x: 10;
-	osd_pos_y: 10;
-	osd_user_text_pos_x: 900;
-	osd_user_text_pos_y: 5;
-	osd_uptime_stamp_pos_x: 1600;
-	osd_uptime_stamp_pos_y: 5;
-	osd_logo_pos_x: 1800;
-	osd_logo_pos_y: 1030;
+#	rtsp_endpoint: "ch0";
+#	format: "H264";
+#	bitrate: 1000;
+#	width: 1920;
+#	height: 1080;
+#	buffers: 2;
+#	fps: 24;
+#	gop: 30;
+#	max_gop: 60;
+#	osd_pos_x: 10;
+#	osd_pos_y: 10;
+#	osd_pos_user_text_x: 900;
+#	osd_pos_user_text_y: 5;
+#	osd_pos_uptime_x: 1600;
+#	osd_pos_uptime_y: 5;
+#	osd_pos_logo_x: 1800;
+#	osd_pos_logo_y: 1030;
+#	rotation: 0;
+#	scale_enabled: false;
+#	scale_width: 640;
+#	scale_height: 360;
 };
 
 stream1: {
-	jpeg_enabled: true;
-	jpeg_path: "/tmp/snapshot.jpg";
-	jpeg_quality: 75;
-	jpeg_refresh: 1000;
+#	jpeg_enabled: true;
+#	jpeg_path: "/tmp/snapshot.jpg";
+#	jpeg_quality: 75;
+#	jpeg_refresh: 1000;
 };
 
 osd: {
-	enabled: true;
-	font_path: "/usr/share/fonts/UbuntuMono-Regular2.ttf";
-	font_size: 64;
-	font_color: 0xFFFFFFFF;
-	font_stroke_enabled: true;
-	font_stroke_size: 64;
-	font_stroke_color: 0xFF000000;
-	time_enabled: true;
-	time_format: "%I:%M:%S%p %m/%d/%Y";
-	user_text_enabled: true;
-	user_text_string: "thingino";
-	uptime_display_enabled: true;
-	uptime_display_format: "Uptime: %02lu:%02lu:%02lu";
-	logo_enabled: true;
-	logo_path: "/usr/share/thingino_logo_1.bgra";
-	logo_width: 100;
-	logo_height: 30;
+#	enabled: true;
+#	font_path: "/usr/share/fonts/UbuntuMono-Regular2.ttf";
+#	font_size: 64;
+#	font_color: 0xFFFFFFFF;
+#	font_stroke_enabled: true;
+#	font_stroke_size: 64;
+#	font_stroke_color: 0xFF000000;
+#	time_enabled: true;
+#	time_format: "%I:%M:%S%p %m/%d/%Y";
+#	user_text_enabled: true;
+#	user_text_string: "thingino";
+#	uptime_display_enabled: true;
+#	uptime_display_format: "Uptime: %02lu:%02lu:%02lu";
+#	logo_enabled: true;
+#	logo_path: "/usr/share/thingino_logo_1.bgra";
+#	logo_width: 100;
+#	logo_height: 30;
 };
 
 motion: {
-	enabled: false;
-	script_path: "/usr/sbin/motion.sh";
-	debounce_time: 0;
-	post_time: 0;
-	cooldown: 5;
-	init_time: 5;
-	sensitivity: 1;
-	frame_count: 5;
-	frame_width: 1920;
-	frame_height: 1080;
-	roi_0_x: 0;
-	roi_0_y: 0;
-	roi_1_x: 1920;
-	roi_1_y: 1080;
-	roi_count: 1;
+#	enabled: false;
+#	script_path: "/usr/sbin/motion.sh";
+#	debounce_time: 0;
+#	post_time: 0;
+#	cooldown: 5;
+#	init_time: 5;
+#	sensitivity: 1;
+#	frame_count: 5;
+#	frame_width: 1920;
+#	frame_height: 1080;
+#	roi_0_x: 0;
+#	roi_0_y: 0;
+#	roi_1_x: 1920;
+#	roi_1_y: 1080;
+#	roi_count: 1;
 };

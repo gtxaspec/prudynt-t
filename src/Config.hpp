@@ -36,8 +36,13 @@ public:
     int stream0osdLogoPosY;
     std::string stream0jpegPath;
     bool stream0jpegEnable;
+    bool stream0scaleEnable;
+    std::string stream0endpoint;
     int stream0jpegQuality;
     int stream0jpegRefresh;
+    int stream0rotation;
+    int stream0scaleWidth;
+    int stream0scaleHeight;
     int motionDebounce;
     int motionPostTime;
     int motionCooldownTime;
