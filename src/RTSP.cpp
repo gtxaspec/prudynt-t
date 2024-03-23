@@ -69,7 +69,7 @@ void RTSP::run() {
     LOG_DEBUG("Got necessary NAL Units.");
 
     ServerMediaSession *sms = ServerMediaSession::createNew(
-        *env, "ch0", "Main", Config::singleton()->rtspName.c_str()
+        *env, Config::singleton()->stream0endpoint.c_str(), "Main", Config::singleton()->rtspName.c_str()
     );
     IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
         *env, (Config::singleton()->stream0format == "H265" ? vps : nullptr), sps, pps // Conditional VPS
