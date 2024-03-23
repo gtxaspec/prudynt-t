@@ -1,98 +1,108 @@
 # Prudynt Configuration
+# ---------------------
+# This configuration file allows customization of Prudynt's behavior.
+# Uncomment the desired lines to override the default settings.
 
-# The settings below can be used to override the default program configurations.
-# Uncomment any lines where you wish to apply a custom setting different from the program's defaults.
+version = "0.5";  # Configuration file version
 
-version = "0.5";
-
+# General Settings
+# ----------------
 general: {
-	loglevel: "INFO";
+	loglevel: "INFO";  # Logging level. Options: DEBUG, INFO, WARNING, ERROR.
 };
 
+# RTSP (Real-Time Streaming Protocol) Settings
+# -------------------------------------------
 rtsp: {
-#	port: 554;
-#	name: "thingino prudynt";
-#	est_bitrate: 5000;
-#	out_buffer_size: 500000;
-#	send_buffer_size: 307200;
-#	auth_required: true;
-#	username: "thingino";
-#	password: "thingino";
+	# port: 554;  # Port number for RTSP service.
+	# name: "thingino prudynt";  # Descriptive name for the RTSP service.
+	# est_bitrate: 5000;  # Estimated bitrate for RTSP streaming (in kbps).
+	# out_buffer_size: 500000;  # Output buffer size for RTSP streaming (in bytes).
+	# send_buffer_size: 307200;  # Send buffer size for RTSP streaming (in bytes).
+	# auth_required: true;  # Enable RTSP authentication (true/false).
+	# username: "thingino";  # Username for RTSP authentication.
+	# password: "thingino";  # Password for RTSP authentication.
 };
 
+# Sensor Settings
+# ---------------
 sensor: {
-#	model: "gc2053";
-#	i2c_address: 0x37;
-#	fps: 24;
-#	width: 1920;
-#	height: 1080;
+	# model: "gc2053";  # Sensor model.
+	# i2c_address: 0x37;  # I2C address of the sensor.
+	# fps: 24;  # Frames per second captured by the sensor.
+	# width: 1920;  # Width of the sensor's image (in pixels).
+	# height: 1080;  # Height of the sensor's image (in pixels).
 };
 
+# Stream0 Settings
+# ----------------
 stream0: {
-#	rtsp_endpoint: "ch0";
-#	format: "H264";
-#	bitrate: 1000;
-#	width: 1920;
-#	height: 1080;
-#	buffers: 2;
-#	fps: 24;
-#	gop: 30;
-#	max_gop: 60;
-#	osd_pos_x: 10;
-#	osd_pos_y: 10;
-#	osd_pos_user_text_x: 900;
-#	osd_pos_user_text_y: 5;
-#	osd_pos_uptime_x: 1600;
-#	osd_pos_uptime_y: 5;
-#	osd_pos_logo_x: 1800;
-#	osd_pos_logo_y: 1030;
-#	rotation: 0;
-#	scale_enabled: false;
-#	scale_width: 640;
-#	scale_height: 360;
+	# rtsp_endpoint: "ch0";  # Endpoint name for the RTSP url stream.
+	# format: "H264";  # Video format for the stream (H264 or H265).
+	# bitrate: 1000;  # Bitrate for the stream (in kbps).
+	# width: 1920;  # Width of the video stream (in pixels).
+	# height: 1080;  # Height of the video stream (in pixels).
+	# buffers: 2;  # Number of buffers for the stream.
+	# fps: 24;  # Frames per second for the stream.
+	# gop: 30;  # Group of Pictures size for the stream.
+	# max_gop: 60;  # Maximum GOP size for the stream.
+	# osd_pos_x: 10;  # X position for the On-Screen Display (OSD).
+	# osd_pos_y: 10;  # Y position for the OSD.
+	# osd_pos_user_text_x: 900;  # X position for the user-defined text in the OSD.
+	# osd_pos_user_text_y: 5;  # Y position for the user-defined text in the OSD.
+	# osd_pos_uptime_x: 1600;  # X position for the uptime display in the OSD.
+	# osd_pos_uptime_y: 5;  # Y position for the uptime display in the OSD.
+	# osd_pos_logo_x: 1800;  # X position for the logo in the OSD.
+	# osd_pos_logo_y: 1030;  # Y position for the logo in the OSD.
+	# rotation: 0;  # Rotation of the video stream. 0: no rotation, 1: 90 degrees, 2: 270 degrees.
+	# scale_enabled: false;  # Enable scaling of the stream (true/false).
+	# scale_width: 640;  # Width of the scaled video stream (in pixels).
+	# scale_height: 360;  # Height of the scaled video stream (in pixels).
 };
 
+# Stream1 Settings (JPEG snapshots)
+# ---------------------------------
 stream1: {
-#	jpeg_enabled: true;
-#	jpeg_path: "/tmp/snapshot.jpg";
-#	jpeg_quality: 75;
-#	jpeg_refresh: 1000;
+	# jpeg_enabled: true;  # Enable JPEG snapshots for Stream1.
+	# jpeg_path: "/tmp/snapshot.jpg";  # File path for JPEG snapshots.
+	# jpeg_quality: 75;  # Quality of JPEG snapshots (1-100).
+	# jpeg_refresh: 1000;  # Refresh rate for JPEG snapshots (in milliseconds).
 };
 
 osd: {
-#	enabled: true;
-#	font_path: "/usr/share/fonts/UbuntuMono-Regular2.ttf";
-#	font_size: 64;
-#	font_color: 0xFFFFFFFF;
-#	font_stroke_enabled: true;
-#	font_stroke_size: 64;
-#	font_stroke_color: 0xFF000000;
-#	time_enabled: true;
-#	time_format: "%I:%M:%S%p %m/%d/%Y";
-#	user_text_enabled: true;
-#	user_text_string: "thingino";
-#	uptime_display_enabled: true;
-#	uptime_display_format: "Uptime: %02lu:%02lu:%02lu";
-#	logo_enabled: true;
-#	logo_path: "/usr/share/thingino_logo_1.bgra";
-#	logo_width: 100;
-#	logo_height: 30;
+	# enabled: true;  # Enable or disable the OSD (On-Screen Display).
+	# font_path: "/usr/share/fonts/UbuntuMono-Regular2.ttf";  # Path to the font file for the OSD text.
+	# font_size: 64;  # Font size for OSD text.
+	# font_color: 0xFFFFFFFF;  # Font color for OSD text in ARGB format.
+	# font_stroke_enabled: true;  # Enable or disable a stroke (outline) for OSD text.
+	# font_stroke_size: 64;  # Size of the font stroke.
+	# font_stroke_color: 0xFF000000;  # Color of the font stroke in ARGB format.
+	# time_enabled: true;  # Enable or disable the time display in the OSD.
+	# time_format: "%I:%M:%S%p %m/%d/%Y";  # Format string for displaying time.
+	# user_text_enabled: true;  # Enable or disable the display of custom user text.
+	# user_text_string: "thingino";  # Custom text to display in the OSD.
+	# uptime_display_enabled: true;  # Enable or disable the display of system uptime.
+	# uptime_display_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
+	# logo_enabled: true;  # Enable or disable the display of a logo image.
+	# logo_path: "/usr/share/thingino_logo_1.bgra";  # Path to the logo image file.
+	# logo_width: 100;  # Width of the logo image.
+	# logo_height: 30;  # Height of the logo image.
 };
 
 motion: {
-#	enabled: false;
-#	script_path: "/usr/sbin/motion.sh";
-#	debounce_time: 0;
-#	post_time: 0;
-#	cooldown_time: 5;
-#	init_time: 5;
-#	sensitivity: 1;
-#	skip_frame_count: 5;
-#	frame_width: 1920;
-#	frame_height: 1080;
-#	roi_0_x: 0;
-#	roi_0_y: 0;
-#	roi_1_x: 1920;
-#	roi_1_y: 1080;
-#	roi_count: 1;
+	# enabled: false;  # Enable or disable motion detection.
+	# script_path: "/usr/sbin/motion.sh";  # Path to the script executed when motion is detected.
+	# debounce_time: 0;  # Time to wait before triggering motion detection again (debounce period).
+	# post_time: 0;  # Time after motion detection stops to continue recording.
+	# cooldown_time: 5;  # Time to wait after a motion event before detecting new motion.
+	# init_time: 5;  # Time for motion detection to initialize at startup.
+	# sensitivity: 1;  # Sensitivity level of motion detection.
+	# skip_frame_count: 5;  # Number of frames to skip for motion detection (to reduce CPU load).
+	# frame_width: 1920;  # Width of the frame used for motion detection.
+	# frame_height: 1080;  # Height of the frame used for motion detection.
+	# roi_0_x: 0;  # X coordinate of the top-left corner of the first Region Of Interest (ROI).
+	# roi_0_y: 0;  # Y coordinate of the top-left corner of the first ROI.
+	# roi_1_x: 1920;  # X coordinate of the bottom-right corner of the first ROI.
+	# roi_1_y: 1080;  # Y coordinate of the bottom-right corner of the first ROI.
+	# roi_count: 1;  # Number of active Regions Of Interest
 };
