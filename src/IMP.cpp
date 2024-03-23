@@ -53,18 +53,31 @@ IMPFSChnAttr IMP::create_fs_attr() {
     out.crop.left = 0;
     out.crop.width = Config::singleton()->stream0width;
     out.crop.height = Config::singleton()->stream0height;
-    out.scaler.enable = 0;
-    out.scaler.outwidth = Config::singleton()->stream0width;
-    out.scaler.outheight = Config::singleton()->stream0height;
-    out.picWidth = Config::singleton()->sensorWidth; // has to be sensor size
-    out.picHeight = Config::singleton()->sensorHeight;
+    out.scaler.enable = Config::singleton()->stream0scaleEnable;
+    out.scaler.outwidth = Config::singleton()->stream0scaleWidth;
+    out.scaler.outheight = Config::singleton()->stream0scaleHeight;
+    out.picWidth = Config::singleton()->stream0width; // has to be sensor size
+    out.picHeight = Config::singleton()->stream0height;
     return out;
 }
 
 int IMP::framesource_init() {
     int ret = 0;
+    int rotation = Config::singleton()->stream0rotation;
+    int rot_height = Config::singleton()->stream0height;
+    int rot_width = Config::singleton()->stream0width;
 
     IMPFSChnAttr fs_chn_attr = create_fs_attr();
+
+    // Set rotate before FS creation
+    // IMP_Encoder_SetFisheyeEnableStatus(0, 1);
+
+    ret = IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width);
+    if (ret < 0) {
+        LOG_DEBUG("IMP_FrameSource_SetChnRotate() == " + std::to_string(ret));
+        return ret;
+    }
+
     ret = IMP_FrameSource_CreateChn(0, &fs_chn_attr);
     if (ret < 0) {
         LOG_DEBUG("IMP_FrameSource_CreateChn() == " + std::to_string(ret));
@@ -88,13 +101,10 @@ int IMP::framesource_init() {
 int IMP::system_init() {
     int ret = 0;
 
-    //If you are having problems with video quality, please make
-    //sure you are linking against the new version of libimp.
-    //The version in /system/lib, IMP-3.11.0, is old.
-    //If you see IMP-3.11.0 or lower, expect bad video
-    //quality and other bugs.
-    //Version IMP-3.12.0 works well in my experience.
- 
+    // If you are having problems with video quality, please make
+    // sure you are linking against the latest version of libimp
+    // available for the target soc
+
     IMPVersion impVersion;
     ret = IMP_System_GetVersion(&impVersion);
     LOG_INFO("LIBIMP Version " << impVersion.aVersion);
