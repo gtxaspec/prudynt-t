@@ -56,7 +56,7 @@ IMPFSChnAttr IMP::create_fs_attr() {
     out.scaler.enable = Config::singleton()->stream0scaleEnable;
     out.scaler.outwidth = Config::singleton()->stream0scaleWidth;
     out.scaler.outheight = Config::singleton()->stream0scaleHeight;
-    out.picWidth = Config::singleton()->stream0width; // has to be sensor size
+    out.picWidth = Config::singleton()->stream0width;  // Testing stream size sync
     out.picHeight = Config::singleton()->stream0height;
     return out;
 }
