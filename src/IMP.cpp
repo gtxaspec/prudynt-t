@@ -69,6 +69,7 @@ int IMP::framesource_init() {
 
     IMPFSChnAttr fs_chn_attr = create_fs_attr();
 
+#if defined(PLATFORM_T31)
     // Set rotate before FS creation
     // IMP_Encoder_SetFisheyeEnableStatus(0, 1);
 
@@ -77,6 +78,7 @@ int IMP::framesource_init() {
         LOG_DEBUG("IMP_FrameSource_SetChnRotate() == " + std::to_string(ret));
         return ret;
     }
+#endif
 
     ret = IMP_FrameSource_CreateChn(0, &fs_chn_attr);
     if (ret < 0) {
