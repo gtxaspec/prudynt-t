@@ -7,6 +7,52 @@
 #include <fstream>
 #include <memory>
 
+void set_glyph_transform(FT_Face fontface, int angle) {
+    // Normalize the angle to [0, 360)
+    angle %= 360;
+    // Initialize transformation matrix
+    FT_Matrix matrix;
+
+    switch (angle) {
+        case 0:
+            // Identity transformation (no rotation)
+            matrix.xx = 1 * (1 << 16);  // Fixed-point 1.0
+            matrix.xy = 0;
+            matrix.yx = 0;
+            matrix.yy = 1 * (1 << 16);  // Fixed-point 1.0
+            break;
+        case 90:
+            // 90 degrees clockwise rotation
+            matrix.xx = 0;
+            matrix.xy = -1 * (1 << 16);  // Fixed-point -1.0
+            matrix.yx = 1 * (1 << 16);   // Fixed-point 1.0
+            matrix.yy = 0;
+            break;
+        case 180:
+            // 180 degrees rotation
+            // Segmentation Fault
+            matrix.xx = -1 * (1 << 16);  // Fixed-point -1.0
+            matrix.xy = 0;
+            matrix.yx = 0;
+            matrix.yy = -1 * (1 << 16);  // Fixed-point -1.0
+            break;
+        case 270:
+            // 270 degrees clockwise (or 90 degrees counter-clockwise) rotation
+            matrix.xx = 0;
+            matrix.xy = 1 * (1 << 16);   // Fixed-point 1.0
+            matrix.yx = -1 * (1 << 16);  // Fixed-point -1.0
+            matrix.yy = 0;
+            break;
+        default:
+            // For angles not at 0, 90, 180, or 270 degrees, no transformation is applied
+            std::cerr << "Angle must be 0, 90, 180, or 270 degrees." << std::endl;
+            return;  // Exit the function if an unsupported angle is provided
+    }
+
+    // Apply the transformation to the font face
+    FT_Set_Transform(fontface, &matrix, nullptr);
+}
+
 int OSD::freetype_init() {
     int error;
 
@@ -24,6 +70,15 @@ int OSD::freetype_init() {
     if (error) {
         return error;
     }
+
+   #if 0
+        FT_Matrix matrix;  // Transformation matrix
+        matrix.xx = 0;
+        matrix.xy = -1 * (1 << 16);  // Fixed-point -1.0
+        matrix.yx = 1 * (1 << 16);   // Fixed-point 1.0
+        matrix.yy = 0;
+        FT_Set_Transform(fontface, &matrix, nullptr);
+    #endif
 
     FT_Stroker_New(freetype, &stroker);
 
@@ -52,6 +107,8 @@ int OSD::freetype_init() {
     } else {
         prerender_list = "0123456789 /APM:";
     }
+
+    // set_glyph_transform(fontface, 90);  // Rotate text by 90 degrees
 
     for (unsigned int i = 0; i < prerender_list.length(); ++i) {
         FT_UInt gindex = FT_Get_Char_Index(fontface, prerender_list[i]);
@@ -228,43 +285,41 @@ bool OSD::init() {
         return true;
     }
 
-    timestamp.stroke = 3;
-    timestamp.point_size = 32;
-    timestamp.color = 0xFFFFFFFF;
-    timestamp.stroke_color = 0x000000FF;
+    memset(&timestamp.imp_rgn, 0, sizeof(timestamp.imp_rgn));
     timestamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
+    IMP_OSD_RegisterRgn(timestamp.imp_rgn, 0, NULL);
     timestamp.imp_attr.type = OSD_REG_PIC;
     timestamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdPosX;
     timestamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdPosY;
     timestamp.imp_attr.fmt = PIX_FMT_BGRA;
-    timestamp.data = NULL;
     timestamp.imp_attr.data.picData.pData = timestamp.data;
-    IMP_OSD_RegisterRgn(timestamp.imp_rgn, 0, NULL);
-    IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
 
+    memset(&timestamp.imp_grp_attr, 0, sizeof(timestamp.imp_grp_attr));
+    IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
     IMP_OSD_GetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
     timestamp.imp_grp_attr.show = 1;
     timestamp.imp_grp_attr.layer = 1;
-    timestamp.imp_grp_attr.scalex = 1;
-    timestamp.imp_grp_attr.scaley = 1;
+    timestamp.imp_grp_attr.scalex = 0;
+    timestamp.imp_grp_attr.scaley = 0;
     IMP_OSD_SetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
 
     if (Config::singleton()->OSDUserTextEnable) {
-        userText.stroke = 3;
-        userText.point_size = 32;
-        userText.color = 0xFFFFFFFF;
-        userText.stroke_color = 0x000000FF;
+        int userTextPosX = (Config::singleton()->stream0osdUserTextPosX == 0) ?
+                    Config::singleton()->stream0width / 2 :
+                    Config::singleton()->stream0osdUserTextPosX;
+        memset(&userText.imp_rgn, 0, sizeof(userText.imp_rgn));
         userText.imp_rgn = IMP_OSD_CreateRgn(NULL);
+        IMP_OSD_RegisterRgn(userText.imp_rgn, 0, NULL);
         userText.imp_attr.type = OSD_REG_PIC;
-        userText.imp_attr.rect.p0.x = Config::singleton()->stream0osdUserTextPosX;
+        userText.imp_attr.rect.p0.x = userTextPosX;
         userText.imp_attr.rect.p0.y = Config::singleton()->stream0osdUserTextPosY;
         userText.imp_attr.fmt = PIX_FMT_BGRA;
         userText.data = NULL;
         userText.imp_attr.data.picData.pData = userText.data;
         set_text(&userText, Config::singleton()->OSDUserTextString);
-        IMP_OSD_RegisterRgn(userText.imp_rgn, 0, NULL);
-        IMP_OSD_SetRgnAttr(userText.imp_rgn, &userText.imp_attr);
 
+        memset(&userText.imp_grp_attr, 0, sizeof(userText.imp_grp_attr));
+        IMP_OSD_SetRgnAttr(userText.imp_rgn, &userText.imp_attr);
         IMP_OSD_GetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
         userText.imp_grp_attr.show = 1;
         userText.imp_grp_attr.layer = 2;
@@ -274,20 +329,21 @@ bool OSD::init() {
     }
 
     if (Config::singleton()->OSDUptimeEnable) {
-        uptimeStamp.stroke = 3;
-        uptimeStamp.point_size = 32;
-        uptimeStamp.color = 0xFFFFFFFF;
-        uptimeStamp.stroke_color = 0x000000FF;
+        int uptimePosX = (Config::singleton()->stream0osdUptimeStampPosX == 0) ?
+                    Config::singleton()->stream0width - 250 :
+                    Config::singleton()->stream0osdUptimeStampPosX;
+        memset(&uptimeStamp.imp_rgn, 0, sizeof(uptimeStamp.imp_rgn));
         uptimeStamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
+        IMP_OSD_RegisterRgn(uptimeStamp.imp_rgn, 0, NULL);
         uptimeStamp.imp_attr.type = OSD_REG_PIC;
-        uptimeStamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdUptimeStampPosX;
+        uptimeStamp.imp_attr.rect.p0.x = uptimePosX;
         uptimeStamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdUptimeStampPosY;
         uptimeStamp.imp_attr.fmt = PIX_FMT_BGRA;
         uptimeStamp.data = NULL;
         uptimeStamp.imp_attr.data.picData.pData = uptimeStamp.data;
-        IMP_OSD_RegisterRgn(uptimeStamp.imp_rgn, 0, NULL);
-        IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
 
+        memset(&uptimeStamp.imp_grp_attr, 0, sizeof(uptimeStamp.imp_grp_attr));
+        IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
         IMP_OSD_GetGrpRgnAttr(uptimeStamp.imp_rgn, 0, &uptimeStamp.imp_grp_attr);
         uptimeStamp.imp_grp_attr.show = 1;
         uptimeStamp.imp_grp_attr.layer = 3;
@@ -298,15 +354,23 @@ bool OSD::init() {
 
     if (Config::singleton()->OSDLogoEnable) {
         size_t imageSize;
-        auto imageData = loadBGRAImage( Config::singleton()->OSDLogoPath.c_str(), imageSize);
+        auto imageData = loadBGRAImage(Config::singleton()->OSDLogoPath.c_str(), imageSize);
+
+        int OSDLogoX = (Config::singleton()->stream0osdLogoPosX == 0) ?
+                        Config::singleton()->stream0width - 120 :
+                        Config::singleton()->stream0osdLogoPosX;
+
+        int OSDLogoY = (Config::singleton()->stream0osdLogoPosY == 0) ?
+                        Config::singleton()->stream0height - 40 :
+                        Config::singleton()->stream0osdLogoPosY;
 
         IMPOSDRgnAttr OSDLogo;
         memset(&OSDLogo, 0, sizeof(OSDLogo));
         OSDLogo.type = OSD_REG_PIC;
         int picw = Config::singleton()->OSDLogoWidth;
         int pich = Config::singleton()->OSDLogoHeight;
-        OSDLogo.rect.p0.x = Config::singleton()->stream0osdLogoPosX;
-        OSDLogo.rect.p0.y = Config::singleton()->stream0osdLogoPosY;
+        OSDLogo.rect.p0.x = OSDLogoX;
+        OSDLogo.rect.p0.y = OSDLogoY;
         OSDLogo.rect.p1.x = OSDLogo.rect.p0.x+picw-1;
         OSDLogo.rect.p1.y = OSDLogo.rect.p0.y+pich-1;
         OSDLogo.fmt = PIX_FMT_BGRA;
