@@ -189,13 +189,6 @@ Config::Config() {
     for (auto &item : stringItems) handleConfigItem(lc, item, missingConfigs);
     for (auto &item : intItems) handleConfigItem(lc, item, missingConfigs);
     for (auto &item : uintItems) handleConfigItem(lc, item, missingConfigs);
-
-    // Log missing configurations if any
-    if (!missingConfigs.empty()) {
-        for (const auto &missing : missingConfigs) {
-            LOG_ERROR("Missing configuration: " + missing);
-        }
-    }
 }
 
 Config* Config::singleton() {
