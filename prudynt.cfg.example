@@ -84,10 +84,10 @@ motion: {
 #	script_path: "/usr/sbin/motion.sh";
 #	debounce_time: 0;
 #	post_time: 0;
-#	cooldown: 5;
+#	cooldown_time: 5;
 #	init_time: 5;
 #	sensitivity: 1;
-#	frame_count: 5;
+#	skip_frame_count: 5;
 #	frame_width: 1920;
 #	frame_height: 1080;
 #	roi_0_x: 0;
