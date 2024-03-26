@@ -3,6 +3,9 @@
 # This configuration file allows customization of Prudynt's behavior.
 # Uncomment the desired lines to override the default settings.
 
+# Some options are only supported on specific SOC versions.  See the wiki for details:
+# https://github.com/gtxaspec/prudynt-t/wiki/Configuration
+
 version = "0.5";  # Configuration file version
 
 # General Settings
