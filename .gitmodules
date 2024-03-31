@@ -1,0 +1,3 @@
+[submodule "ingenic_musl"]
+	path = ingenic_musl
+	url = https://github.com/gtxaspec/ingenic_musl
