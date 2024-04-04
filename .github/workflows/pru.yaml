@@ -1,0 +1,101 @@
+name: prudynt-t
+on:
+  workflow_dispatch:
+
+env:
+  TAG_NAME: release
+  TOOLCHAIN_MUSL: /home/runner/work/prudynt-t/prudynt-t/mipsel-thingino-linux-musl_sdk-buildroot/bin/mipsel-linux-
+
+jobs:
+  buildroot:
+    name: prudynt
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: T10
+            build_type: static
+          - target: T20
+            build_type: static
+          - target: T21
+            build_type: static
+          - target: T23
+            build_type: static
+          - target: T30
+            build_type: static
+          - target: T31
+            build_type: static
+          - target: T10
+            build_type: dynamic
+          - target: T20
+            build_type: dynamic
+          - target: T21
+            build_type: dynamic
+          - target: T23
+            build_type: dynamic
+          - target: T30
+            build_type: dynamic
+          - target: T31
+            build_type: dynamic
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+  
+      - name: Setup cache directories
+        run: |
+          mkdir -p /tmp/ccache
+          ln -s /tmp/ccache ${HOME}/.ccache
+
+      - name: Setup ccache
+        uses: actions/cache@v4
+        if: always()
+        with:
+          path: /tmp/ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Update system sources
+        run: sudo apt-get update
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get install -y --no-install-recommends --no-install-suggests build-essential bc bison cpio curl file flex git libncurses-dev make rsync unzip wget whiptail gcc lzop u-boot-tools ca-certificates ccache
+
+      - name: Download toolchain
+        run: |
+          wget https://github.com/themactep/thingino-firmware/releases/download/toolchain/thingino-toolchain_xburst1_musl_gcc13-linux-mipsel.tar.gz
+          tar -xf thingino-toolchain_xburst1_musl_gcc13-linux-mipsel.tar.gz
+          cd mipsel-thingino-linux-musl_sdk-buildroot; ./relocate-sdk.sh
+          cd ../
+
+      - name: Build deps for target
+        run: |
+          PRUDYNT_CROSS="ccache $TOOLCHAIN_MUSL" ./build.sh deps ${{ matrix.target }} ${{ matrix.build_type == 'static' && '-static' || '' }}
+
+      - name: Build prudynt for target
+        run: |
+          PRUDYNT_CROSS="$TOOLCHAIN_MUSL" ./build.sh prudynt ${{ matrix.target }} ${{ matrix.build_type == 'static' && '-static' || '' }}
+
+      - name: Rename prudynt for release
+        run: |
+          mv bin/prudynt bin/prudynt-${{ matrix.target }}-${{ matrix.build_type }}
+
+      - name: Upload binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prudynt-${{ matrix.target }}-${{ matrix.build_type }}
+          path: |
+            bin/prudynt-${{ matrix.target }}-${{ matrix.build_type }}
+
+      - name: Upload binary to release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@master
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            bin/prudynt-${{ matrix.target }}-${{ matrix.build_type }}
