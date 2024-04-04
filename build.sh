@@ -71,12 +71,12 @@ deps() {
 
 	if [[ "$2" == "-static" ]]; then
 		echo "STATIC LIVE555"
-		cp ../../res/config.wyze-static .
-		./genMakefiles wyze-static
+		cp ../../res/live555-config.prudynt-static ./config.prudynt-static
+		./genMakefiles prudynt-static
 	else
 		echo "SHARED LIVE555"
-		cp ../../res/config.wyze .
-		./genMakefiles wyze
+		cp ../../res/live555-config.prudynt ./config.prudynt
+		./genMakefiles prudynt
 	fi
 
 	PRUDYNT_ROOT="${TOP}" PRUDYNT_CROSS="${PRUDYNT_CROSS}" make -j$(nproc)
