@@ -26,14 +26,15 @@ public:
     int stream0height;
     int stream0width;
     int stream0bitrate;
-    int stream0osdPosX;
-    int stream0osdPosY;
+    int stream0osdPosTimeX;
+    int stream0osdPosTimeY;
     int stream0osdUserTextPosX;
     int stream0osdUserTextPosY;
     int stream0osdUptimeStampPosX;
     int stream0osdUptimeStampPosY;
     int stream0osdLogoPosX;
     int stream0osdLogoPosY;
+    int stream0osdLogoAlpha;
     std::string stream0jpegPath;
     bool stream0jpegEnable;
     bool stream0scaleEnable;

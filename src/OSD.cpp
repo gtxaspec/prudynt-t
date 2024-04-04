@@ -289,8 +289,8 @@ bool OSD::init() {
     timestamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
     IMP_OSD_RegisterRgn(timestamp.imp_rgn, 0, NULL);
     timestamp.imp_attr.type = OSD_REG_PIC;
-    timestamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdPosX;
-    timestamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdPosY;
+    timestamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdPosTimeX;
+    timestamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdPosTimeY;
     timestamp.imp_attr.fmt = PIX_FMT_BGRA;
     timestamp.imp_attr.data.picData.pData = timestamp.data;
 
@@ -330,7 +330,7 @@ bool OSD::init() {
 
     if (Config::singleton()->OSDUptimeEnable) {
         int uptimePosX = (Config::singleton()->stream0osdUptimeStampPosX == 0) ?
-                    Config::singleton()->stream0width - 250 :
+                    Config::singleton()->stream0width - 240 :
                     Config::singleton()->stream0osdUptimeStampPosX;
         memset(&uptimeStamp.imp_rgn, 0, sizeof(uptimeStamp.imp_rgn));
         uptimeStamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
@@ -357,11 +357,11 @@ bool OSD::init() {
         auto imageData = loadBGRAImage(Config::singleton()->OSDLogoPath.c_str(), imageSize);
 
         int OSDLogoX = (Config::singleton()->stream0osdLogoPosX == 0) ?
-                        Config::singleton()->stream0width - 120 :
+                        (Config::singleton()->stream0width - Config::singleton()->OSDLogoWidth - 20) :
                         Config::singleton()->stream0osdLogoPosX;
 
         int OSDLogoY = (Config::singleton()->stream0osdLogoPosY == 0) ?
-                        Config::singleton()->stream0height - 40 :
+                        (Config::singleton()->stream0height - Config::singleton()->OSDLogoHeight - 10):
                         Config::singleton()->stream0osdLogoPosY;
 
         IMPOSDRgnAttr OSDLogo;
@@ -385,7 +385,7 @@ bool OSD::init() {
         OSDLogoGroup.scalex = 1;
         OSDLogoGroup.scaley = 1;
         OSDLogoGroup.gAlphaEn = 1;
-        OSDLogoGroup.fgAlhpa = 255;
+        OSDLogoGroup.fgAlhpa = Config::singleton()->stream0osdLogoAlpha;
 
         IMP_OSD_RegisterRgn(handle, 0, &OSDLogoGroup);
     }
