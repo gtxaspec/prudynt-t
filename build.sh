@@ -62,6 +62,9 @@ deps() {
 	fi
 	tar xf live555-latest.tar.gz
 	cd live
+	wget https://raw.githubusercontent.com/themactep/thingino-firmware/master/package/thingino-live555/0002_live555_sprintf_format.patch
+	patch -p1 < 0002_live555_sprintf_format.patch
+
 	if [[ -f Makefile ]]; then
 		make distclean
 	fi
