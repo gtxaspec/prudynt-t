@@ -3,6 +3,9 @@ CXX = ${CROSS_COMPILE}g++
 
 CCACHE = ccache
 CFLAGS = -Wall -Wextra -Wno-unused-parameter -O2 -DNO_OPENSSL=1
+ifeq ($(KERNEL_VERSION_4),y)
+CFLAGS += -DKERNEL_VERSION_4
+endif
 CXXFLAGS = $(CFLAGS) -std=c++20
 LDFLAGS = -lrt
 LIBS = -limp -lalog -lsysutils -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lfreetype
