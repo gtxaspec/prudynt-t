@@ -90,9 +90,13 @@ deps() {
 	git clone https://github.com/gtxaspec/ingenic-lib
 
 	case "$1" in
-		T10|T20)
-			echo "use T10_T20 libs"
-			cp ingenic-lib/T10_T20/lib/3.12.0/uclibc/* $TOP/3rdparty/install/lib
+		T10)
+			echo "use T10 libs"
+			cp ingenic-lib/T10/lib/3.12.0/uclibc/4.7.2/* $TOP/3rdparty/install/lib
+			;;
+		T20)
+			echo "use T20 libs"
+			cp ingenic-lib/T20/lib/3.12.0/uclibc/4.7.2/* $TOP/3rdparty/install/lib
 			;;
 		T21)
 			echo "use $1 libs"
