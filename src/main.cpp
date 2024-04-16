@@ -75,7 +75,7 @@ int main(int argc, const char *argv[]) {
         motion_thread = std::thread(start_component<Motion>, motion);
     }
 
-    if (Config::singleton()->stream0jpegEnable) {
+    if (Config::singleton()->stream1jpegEnable) {
         LOG_DEBUG("JPEG Channel enabled");
         std::thread jpegThread(&Encoder::jpeg_snap, &jpg);
         jpegThread.detach();

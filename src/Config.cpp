@@ -109,7 +109,7 @@ Config::Config() {
         {"osd.user_text_enabled", OSDUserTextEnable, true, [](const bool &v) { return true; }, "OSD user text display enabled flag. Must be either true or false."},
         {"osd.font_stroke_enabled", OSDFontStrokeEnable, true, [](const bool &v) { return true; }, "OSD font stroke (outline) display enabled flag. Must be either true or false."},
         {"osd.uptime_display_enabled", OSDUptimeEnable, true, [](const bool &v) { return true; }, "OSD uptime display enabled flag. Must be either true or false."},
-        {"stream0.jpeg_enabled", stream0jpegEnable, true, [](const bool &v) { return true; }, "JPEG stream for Stream0 enabled flag. Must be either true or false."},
+        {"stream1.jpeg_enabled", stream1jpegEnable, true, [](const bool &v) { return true; }, "JPEG stream for Stream0 enabled flag. Must be either true or false."},
         {"motion.enabled", motionEnable, false, [](const bool &v) { return true; }, "Motion detection enabled flag. Must be either true or false."},
         {"stream0.scale_enabled", stream0scaleEnable, false, [](const bool &v) { return true; }, "Scaling for Stream0 enabled flag. Must be either true or false."},
     };
@@ -126,7 +126,7 @@ Config::Config() {
         {"osd.uptime_display_format", OSDUptimeFormat, "Uptime: %02lu:%02lu:%02lu", [](const std::string &v) { return !v.empty(); }, "OSD uptime format string cannot be empty."},
         {"osd.user_text_string", OSDUserTextString, "thingino", [](const std::string &v) { return true; }, "Custom user text for OSD; can be empty."},
         {"general.loglevel", logLevel, "INFO", [](const std::string &v) { return !v.empty(); }, "Log level must not be empty."},
-        {"stream0.jpeg_path", stream0jpegPath, "/tmp/snapshot.jpg", [](const std::string &v) { return !v.empty(); }, "Path for JPEG snapshots must not be empty."},
+        {"stream1.jpeg_path", stream1jpegPath, "/tmp/snapshot.jpg", [](const std::string &v) { return !v.empty(); }, "Path for JPEG snapshots must not be empty."},
         {"osd.logo_path", OSDLogoPath, "/usr/share/thingino_logo_1.bgra", [](const std::string &v) { return !v.empty(); }, "OSD Logo path cannot be empty."},
         {"motion.script_path", motionScriptPath, "/usr/sbin/motion", [](const std::string &v) { return !v.empty(); }, "Motion detection script path cannot be empty."},
     };
@@ -158,8 +158,8 @@ Config::Config() {
         {"stream0.rotation", stream0rotation, 0, [](const int &v) { return v >= 0 && v <= 2; }, "Stream 0 rotation must be 0, 1, or 2"},
         {"stream0.scale_width", stream0scaleWidth, 640, [](const int &v) { return v > 0; }, "Stream 0 scale width should be greater than 0"},
         {"stream0.scale_height", stream0scaleHeight, 360, [](const int &v) { return v > 0; }, "Stream 0 scale height should be greater than 0"},
-        {"stream1.jpeg_quality", stream0jpegQuality, 75, [](const int &v) { return v > 0 && v <= 100; }, "Stream 0 jpeg quality must be between 1 and 100"},
-        {"stream1.jpeg_refresh", stream0jpegRefresh, 1000, [](const int &v) { return v > 0; }, "Stream 0 jpeg refresh rate should be greater than 0"},
+        {"stream1.jpeg_quality", stream1jpegQuality, 75, [](const int &v) { return v > 0 && v <= 100; }, "Stream 0 jpeg quality must be between 1 and 100"},
+        {"stream1.jpeg_refresh", stream1jpegRefresh, 1000, [](const int &v) { return v > 0; }, "Stream 0 jpeg refresh rate should be greater than 0"},
         {"osd.font_size", OSDFontSize, 64, [](const int &v) { return v > 0; }, "OSD font size should be greater than 0"},
         {"osd.font_stroke_size", OSDFontStrokeSize, 64, [](const int &v) { return v >= 0; }, "OSD font stroke size should be non-negative"},
         {"osd.logo_height", OSDLogoHeight, 30, [](const int &v) { return v > 0; }, "OSD logo height should be greater than 0"},
