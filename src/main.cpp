@@ -70,6 +70,7 @@ int main(int argc, const char *argv[]) {
 
     enc_thread = std::thread(start_component<Encoder>, enc);
     rtsp_thread = std::thread(start_component<RTSP>, rtsp);
+
     if (Config::singleton()->motionEnable) {
         LOG_DEBUG("Motion detection enabled");
         motion_thread = std::thread(start_component<Motion>, motion);

@@ -204,6 +204,15 @@ int Encoder::encoder_init() {
 
 #endif
 
+#if defined(PLATFORM_T31)
+    if (Config::singleton()->stream1jpegEnable) {
+        ret = IMP_Encoder_SetbufshareChn(1, 0);
+        if (ret < 0) {
+            LOG_ERROR("IMP_Encoder_SetbufshareChn() == " << ret);
+        }
+    }
+#endif
+
     ret = IMP_Encoder_CreateChn(0, &channel_attr);
     if (ret < 0) {
         LOG_ERROR("IMP_Encoder_CreateChn() == " << ret);
@@ -310,7 +319,7 @@ void Encoder::jpeg_snap() {
 
 #if defined(PLATFORM_T31)
     IMP_Encoder_SetDefaultParam(&channel_attr_jpg, IMP_ENC_PROFILE_JPEG, IMP_ENC_RC_MODE_FIXQP,
-        Config::singleton()->stream0width, Config::singleton()->stream0height, 24, 1, 0, 0, Config::singleton()->stream0jpegQuality, 0);
+        Config::singleton()->stream0width, Config::singleton()->stream0height, 24, 1, 0, 0, Config::singleton()->stream1jpegQuality, 0);
 
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
     IMPEncoderAttr *enc_attr;
@@ -336,7 +345,7 @@ void Encoder::jpeg_snap() {
 
     IMP_Encoder_StartRecvPic(1); // Start receiving pictures once
 
-    while (Config::singleton()->stream0jpegEnable == 1) { // Check condition to exit loop
+    while (Config::singleton()->stream1jpegEnable == 1) { // Check condition to exit loop
 
 #if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
         IMPEncoderJpegeQl pstJpegeQl;
@@ -368,7 +377,7 @@ void Encoder::jpeg_snap() {
 
                 // Now, safely copy the file
                 std::ifstream src(tempPath, std::ios::binary);
-                std::ofstream dst(Config::singleton()->stream0jpegPath, std::ios::binary);
+                std::ofstream dst(Config::singleton()->stream1jpegPath, std::ios::binary);
 
                 if (src && dst) {
                     dst << src.rdbuf(); // Copy the file
@@ -376,14 +385,14 @@ void Encoder::jpeg_snap() {
                     dst.close();
                     std::remove(tempPath.c_str()); // Remove the temp file after successful copy
                 } else {
-                    LOG_ERROR("Failed to copy JPEG snapshot from " + tempPath + " to " + Config::singleton()->stream0jpegPath);
+                    LOG_ERROR("Failed to copy JPEG snapshot from " + tempPath + " to " + Config::singleton()->stream1jpegPath);
                 }
             } else {
                 LOG_ERROR("Failed to open JPEG snapshot for writing: " + tempPath);
             }
 
             // Delay before we release, otherwise an overflow may occur
-            std::this_thread::sleep_for(std::chrono::milliseconds(Config::singleton()->stream0jpegRefresh)); // Control the rate
+            std::this_thread::sleep_for(std::chrono::milliseconds(Config::singleton()->stream1jpegRefresh)); // Control the rate
             IMP_Encoder_ReleaseStream(1, &stream_jpeg); // Release stream after saving
             //LOG_DEBUG("JPEG snapshot saved");
         }
