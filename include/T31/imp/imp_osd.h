@@ -158,6 +158,21 @@ typedef struct {
 
 
 /**
+ * @fn int IMP_OSD_SetPoolSize(int size);
+ *
+ * Set OSD rmem pool size
+ *
+ *
+ * @retval 0 success
+ * @retval non-0 failure
+ *
+ * @remarks The corresponding OSD group should be already created and registered before calling this function.
+ *
+ * @attention no.
+ */
+int IMP_OSD_SetPoolSize(int size);
+
+/**
  * @fn int IMP_OSD_CreateGroup(int grpNum)
  *
  * create OSD group
