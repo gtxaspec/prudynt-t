@@ -349,7 +349,7 @@ void Encoder::jpeg_snap() {
 
 #if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
         IMPEncoderJpegeQl pstJpegeQl;
-        MakeTables(Config::singleton()->stream0jpegQuality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
+        MakeTables(Config::singleton()->stream1jpegQuality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
         pstJpegeQl.user_ql_en = 1;
         IMP_Encoder_SetJpegeQl(1, &pstJpegeQl);
 #endif
