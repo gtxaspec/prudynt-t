@@ -136,7 +136,7 @@ Config::Config() {
         {"rtsp.est_bitrate", rtspEstBitRate, 5000, [](const int &v) { return v > 0; }, "Estimated bitrate for RTSP streaming, should be greater than 0."},
         {"rtsp.out_buffer_size", rtspOutBufferSize, 500000, [](const int &v) { return v > 0; }, "Buffer size for outgoing RTSP data, should be greater than 0."},
         {"rtsp.send_buffer_size", rtspSendBufferSize, 307200, [](const int &v) { return v > 0; }, "Buffer size for sending RTSP data, should be greater than 0."},
-        {"sensor.fps", sensorFps, 24, [](const int &v) { return v > 0 && v <= 60; }, "Sensor FPS must be between 1 and 60", "/proc/jz/sensor/fps"},
+        {"sensor.fps", sensorFps, 24, [](const int &v) { return v > 0 && v <= 60; }, "Sensor FPS must be between 1 and 60", "/proc/jz/sensor/max_fps"},
         {"sensor.width", sensorWidth, 1920, [](const int &v) { return v > 0; }, "Width of the sensor's image in pixels", "/proc/jz/sensor/width"},
         {"sensor.height", sensorHeight, 1080, [](const int &v) { return v > 0; }, "Height of the sensor's image in pixels", "/proc/jz/sensor/height"},
         {"stream0.gop", stream0gop, 30, [](const int &v) { return v > 0; }, "Group of pictures (GOP) size for stream 0"},
