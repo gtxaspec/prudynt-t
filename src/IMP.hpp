@@ -5,6 +5,7 @@
 #include <imp/imp_system.h>
 #include <imp/imp_isp.h>
 #include <imp/imp_system.h>
+#include <imp/imp_osd.h>
 
 #include <../sysutils/su_base.h>
 

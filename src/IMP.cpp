@@ -120,6 +120,13 @@ int IMP::system_init() {
     const char* cpuInfo = IMP_System_GetCPUInfo();
     LOG_INFO("CPU Information: " << cpuInfo);
 
+    ret = IMP_OSD_SetPoolSize(131072);
+    if (ret < 0) {
+        LOG_DEBUG("Error: IMP_OSD_SetPoolSize() == " + std::to_string(ret));
+        return ret;
+    }
+    LOG_DEBUG("OSD Pool Size set");
+
     ret = IMP_ISP_Open();
     if (ret < 0) {
         LOG_DEBUG("Error: IMP_ISP_Open() == " + std::to_string(ret));
