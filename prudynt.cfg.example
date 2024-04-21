@@ -94,8 +94,8 @@ osd: {
 };
 
 motion: {
-	# enabled: false;  # Enable or disable motion detection.
-	# script_path: "/usr/sbin/motion.sh";  # Path to the script executed when motion is detected.
+	# enabled: true;  # Enable or disable motion detection.
+	# script_path: "/usr/sbin/motion";  # Path to the script executed when motion is detected.
 	# debounce_time: 0;  # Time to wait before triggering motion detection again (debounce period).
 	# post_time: 0;  # Time after motion detection stops to continue recording.
 	# cooldown_time: 5;  # Time to wait after a motion event before detecting new motion.
