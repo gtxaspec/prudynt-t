@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-#PRUDYNT_CROSS="ccache mipsel-linux-"
+PRUDYNT_CROSS="ccache mipsel-linux-"
 TOP=$(pwd)
 
 prudynt(){
@@ -118,6 +118,22 @@ deps() {
 			echo "Unsupported or unspecified SoC model."
 			;;
 	esac
+	fi
+
+	cd ../
+
+	echo "import libmuslshim"
+	cd 3rdparty
+	rm -rf ingenic-musl
+	if [[ ! -d ingenic-musl ]]; then
+	git clone https://github.com/gtxaspec/ingenic-musl
+	cd ingenic-musl
+	if [[ "$2" == "-static" ]]; then
+		make CC="${PRUDYNT_CROSS}gcc" static
+	else
+		make CC="${PRUDYNT_CROSS}gcc" static
+	fi
+	cp libmuslshim.* ../install/lib/
 	fi
 	cd ..
 }

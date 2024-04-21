@@ -8,7 +8,7 @@ CFLAGS += -DKERNEL_VERSION_4
 endif
 CXXFLAGS = $(CFLAGS) -std=c++20
 LDFLAGS = -lrt
-LIBS = -limp -lalog -lsysutils -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lfreetype
+LIBS = -limp -lalog -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lfreetype
 
 ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))
     LIBIMP_INC_DIR = ./include/T31
@@ -28,10 +28,9 @@ SRC_DIR = ./src
 OBJ_DIR = ./obj
 BIN_DIR = ./bin
 
-SOURCES = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*.c) ingenic_musl/musl_shim.c
+SOURCES = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*.c)
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(wildcard $(SRC_DIR)/*.cpp)) \
           $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(wildcard $(SRC_DIR)/*.c)) \
-          $(patsubst ingenic_musl/%.c,$(OBJ_DIR)/%.o,ingenic_musl/musl_shim.c)
 
 $(info $(OBJECTS))
 
@@ -52,9 +51,6 @@ $(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(VERSION_FILE)
 	@mkdir -p $(@D)
 	$(CCACHE) $(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -c $< -o $@
-
-$(OBJ_DIR)/%.o: ingenic_musl/%.c $(VERSION_FILE)
-	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(VERSION_FILE)
 	@mkdir -p $(@D)
