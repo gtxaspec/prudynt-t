@@ -57,7 +57,7 @@ stream0: {
 	# osd_pos_uptime_y: 5;  # Y position for the uptime display in the OSD.
 	# osd_pos_logo_x: 1800;  # X position for the logo in the OSD.
 	# osd_pos_logo_y: 1030;  # Y position for the logo in the OSD.
-	# osd_logo_transparency: 255 # Transparency (0-255) for the logo in the OSD.
+	# osd_logo_transparency: 255; # Transparency (0-255) for the logo in the OSD.
 	# rotation: 0;  # Rotation of the video stream. 0: no rotation, 1: 90 degrees, 2: 270 degrees.
 	# scale_enabled: false;  # Enable scaling of the stream (true/false).
 	# scale_width: 640;  # Width of the scaled video stream (in pixels).
