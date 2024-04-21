@@ -131,7 +131,7 @@ deps() {
 	if [[ "$2" == "-static" ]]; then
 		make CC="${PRUDYNT_CROSS}gcc" static
 	else
-		make CC="${PRUDYNT_CROSS}gcc" static
+		make CC="${PRUDYNT_CROSS}gcc"
 	fi
 	cp libmuslshim.* ../install/lib/
 	fi
