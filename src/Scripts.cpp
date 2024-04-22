@@ -3,7 +3,7 @@
 #include "Logger.hpp"
 
 int Scripts::motionScript() {
-    LOG_DEBUG("Executing motion script.");
+    LOG_INFO("Executing motion script.");
 
     int ret;
     char formatted[512];
@@ -16,8 +16,7 @@ int Scripts::motionScript() {
 
     ret = system(formatted);
     if (ret != 0) {
-// Assuming LOG_ERROR accepts a C-style string (const char*)
-LOG_ERROR(std::string("Motion script failed:") + Config::singleton()->motionScriptPath.c_str());
+        LOG_ERROR(std::string("Motion script failed:") + Config::singleton()->motionScriptPath.c_str());
     }
     return ret;
 }
