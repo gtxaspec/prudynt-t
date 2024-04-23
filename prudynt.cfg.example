@@ -94,13 +94,13 @@ osd: {
 };
 
 motion: {
-	 enabled: false;  # Enable or disable motion detection.
+	enabled: false;  # Enable or disable motion detection.
 	# script_path: "/usr/sbin/motion";  # Path to the script executed when motion is detected.
 	# debounce_time: 0;  # Time to wait before triggering motion detection again (debounce period).
 	# post_time: 0;  # Time after motion detection stops to continue recording.
-	# cooldown_time: 5;  # Time to wait after a motion event before detecting new motion.
+	cooldown_time: 5;  # Time to wait after a motion event before detecting new motion.
 	# init_time: 5;  # Time for motion detection to initialize at startup.
-	# sensitivity: 1;  # Sensitivity level of motion detection.
+	sensitivity: 1;  # Sensitivity level of motion detection.
 	# skip_frame_count: 5;  # Number of frames to skip for motion detection (to reduce CPU load).
 	# frame_width: 1920;  # Width of the frame used for motion detection.
 	# frame_height: 1080;  # Height of the frame used for motion detection.
