@@ -120,7 +120,7 @@ int Encoder::encoder_init() {
     switch (rc_attr->attrRcMode.rcMode) {
         case IMP_ENC_RC_MODE_CAPPED_QUALITY:
         rc_attr->attrRcMode.attrVbr.uTargetBitRate = Config::singleton()->stream0bitrate;
-        rc_attr->attrRcMode.attrVbr.uMaxBitRate = Config::singleton()->stream0bitrate * 1.333;
+        rc_attr->attrRcMode.attrVbr.uMaxBitRate = Config::singleton()->stream0bitrate;
         rc_attr->attrRcMode.attrVbr.iInitialQP = -1;
         rc_attr->attrRcMode.attrVbr.iMinQP = 20;
         rc_attr->attrRcMode.attrVbr.iMaxQP = 45;
@@ -171,7 +171,7 @@ int Encoder::encoder_init() {
         rc_attr->attrRcMode.attrH264Smart.maxQp = 45;
         rc_attr->attrRcMode.attrH264Smart.minQp = 24;
         rc_attr->attrRcMode.attrH264Smart.staticTime = 2;
-        rc_attr->attrRcMode.attrH264Smart.maxBitRate = Config::singleton()->stream0bitrate * 1.333;
+        rc_attr->attrRcMode.attrH264Smart.maxBitRate = Config::singleton()->stream0bitrate;
         rc_attr->attrRcMode.attrH264Smart.iBiasLvl = 0;
         rc_attr->attrRcMode.attrH264Smart.changePos = 80;
         rc_attr->attrRcMode.attrH264Smart.qualityLvl = 0;
@@ -184,7 +184,7 @@ int Encoder::encoder_init() {
         rc_attr->attrRcMode.attrH265Smart.maxQp = 45;
         rc_attr->attrRcMode.attrH265Smart.minQp = 15;
         rc_attr->attrRcMode.attrH265Smart.staticTime = 2;
-        rc_attr->attrRcMode.attrH265Smart.maxBitRate = Config::singleton()->stream0bitrate * 1.333;
+        rc_attr->attrRcMode.attrH265Smart.maxBitRate = Config::singleton()->stream0bitrate;
         rc_attr->attrRcMode.attrH265Smart.iBiasLvl = 0;
         rc_attr->attrRcMode.attrH265Smart.changePos = 80;
         rc_attr->attrRcMode.attrH265Smart.qualityLvl = 2;
