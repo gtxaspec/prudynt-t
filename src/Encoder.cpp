@@ -27,6 +27,7 @@ bool Encoder::init() {
         LOG_ERROR("IMP_Encoder_CreateGroup() == " << ret);
         return true;
     }
+    LOG_DEBUG("Encoder Group created");
 
     ret = system_init();
     if (ret < 0) {
@@ -50,6 +51,7 @@ bool Encoder::init() {
             LOG_ERROR("IMP_System_Bind(FS, ENC) == " << ret);
             return true;
         }
+        LOG_DEBUG("IMP_System_Bind(FS, ENC)");
 
     } else {
         // If OSD is enabled, initialize OSD and bind FrameSource to OSD, then OSD to Encoder
@@ -70,12 +72,15 @@ bool Encoder::init() {
             LOG_ERROR("IMP_System_Bind(FS, OSD) == " << ret);
             return true;
         }
+        LOG_DEBUG("IMP_System_Bind(FS, OSD)");
+
         // OSD -> Encoder
         ret = IMP_System_Bind(&osd_cell, &enc);
         if (ret < 0) {
             LOG_ERROR("IMP_System_Bind(OSD, ENC) == " << ret);
             return true;
         }
+        LOG_DEBUG("IMP_System_Bind(OSD, ENC)");
 
     }
 
@@ -84,14 +89,13 @@ bool Encoder::init() {
         LOG_ERROR("IMP_FrameSource_EnableChn() == " << ret);
         return true;
     }
+    LOG_DEBUG("Frame Source Channel 0 enabled");
 
     return false;
 }
 
 int Encoder::system_init() {
     int ret = 0;
-
-    IMP_ISP_Tuning_SetAntiFlickerAttr(IMPISP_ANTIFLICKER_60HZ);
 
     return ret;
 }
@@ -210,6 +214,7 @@ int Encoder::encoder_init() {
         if (ret < 0) {
             LOG_ERROR("IMP_Encoder_SetbufshareChn() == " << ret);
         }
+        LOG_ERROR("IMP_Encoder_SetbufshareChn(1, 0) enabled");
     }
 #endif
 
@@ -218,12 +223,14 @@ int Encoder::encoder_init() {
         LOG_ERROR("IMP_Encoder_CreateChn() == " << ret);
         return ret;
     }
+    LOG_DEBUG("Encoder Channel 0 created");
 
     ret = IMP_Encoder_RegisterChn(0, 0);
     if (ret < 0) {
         LOG_ERROR("IMP_Encoder_RegisterChn() == " << ret);
         return ret;
     }
+    LOG_DEBUG("Encoder Channel 0 registered");
 
 #if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
 /*
@@ -335,11 +342,13 @@ void Encoder::jpeg_snap() {
     if (ret < 0) {
         LOG_ERROR("IMP_Encoder_CreateChn() == " << ret);
     }
+    LOG_DEBUG("Encoder JPEG Channel 1 created");
 
     ret = IMP_Encoder_RegisterChn(0, 1);
     if (ret < 0) {
         LOG_ERROR("IMP_Encoder_RegisterChn() == " << ret);
     }
+    LOG_DEBUG("Encoder JPEG Channel 1 registered");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Wait for ISP to init before saving initial image
 
@@ -399,7 +408,7 @@ void Encoder::jpeg_snap() {
 }
 
 void Encoder::run() {
-    LOG_DEBUG("Encoder Start.");
+    LOG_DEBUG("Encoder Start");
 
     //The encoder thread is very important, but we
     //want sink threads to have higher priority.
@@ -416,6 +425,8 @@ void Encoder::run() {
     IMP_System_RebaseTimeStamp(0);
     gettimeofday(&imp_time_base, NULL);
     IMP_Encoder_StartRecvPic(0);
+    LOG_DEBUG("Encoder StartRecvPic success");
+
     while (true) {
         IMPEncoderStream stream;
 

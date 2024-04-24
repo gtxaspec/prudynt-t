@@ -77,7 +77,7 @@ int main(int argc, const char *argv[]) {
     }
 
     if (Config::singleton()->stream1jpegEnable) {
-        LOG_DEBUG("JPEG Channel enabled");
+        LOG_DEBUG("JPEG support enabled");
         std::thread jpegThread(&Encoder::jpeg_snap, &jpg);
         jpegThread.detach();
     }

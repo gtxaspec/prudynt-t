@@ -284,6 +284,7 @@ bool OSD::init() {
         LOG_DEBUG("IMP_OSD_CreateGroup() == " + std::to_string(ret));
         return true;
     }
+    LOG_DEBUG("IMP_OSD_CreateGroup group 0 created");
 
     memset(&timestamp.imp_rgn, 0, sizeof(timestamp.imp_rgn));
     timestamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
@@ -395,8 +396,9 @@ bool OSD::init() {
         LOG_DEBUG("IMP_OSD_Start() == " + std::to_string(ret));
         return true;
     }
+    LOG_DEBUG("IMP_OSD_Start succeed");
 
-    LOG_DEBUG("OSD init done");
+    LOG_DEBUG("OSD init completed");
     return false;
 }
 

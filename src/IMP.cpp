@@ -4,6 +4,8 @@
 #include "Config.hpp"
 #include "Logger.hpp"
 
+#define OSDPoolSize 131072
+
 bool IMP::init() {
     int ret;
 
@@ -19,7 +21,6 @@ bool IMP::init() {
         return true;
     }
 
-    IMP_ISP_Tuning_SetISPBypass(IMPISP_TUNING_OPS_MODE_ENABLE);
     return false;
 }
 
@@ -79,6 +80,7 @@ int IMP::framesource_init() {
         LOG_DEBUG("IMP_FrameSource_SetChnRotate() == " + std::to_string(ret));
         return ret;
     }
+    LOG_DEBUG("IMP_FrameSource_SetChnRotate == " + std::to_string(rotation));
 #endif
 #endif
 
@@ -87,18 +89,39 @@ int IMP::framesource_init() {
         LOG_DEBUG("IMP_FrameSource_CreateChn() == " + std::to_string(ret));
         return ret;
     }
+    LOG_DEBUG("IMP_FrameSource_CreateChn created");
 
     ret = IMP_FrameSource_SetChnAttr(0, &fs_chn_attr);
     if (ret < 0) {
-        LOG_DEBUG("IMP_FrameSource_CreateChn() == " + std::to_string(ret));
+        LOG_DEBUG("IMP_FrameSource_SetChnAttr() == " + std::to_string(ret));
         return ret;
     }
+    LOG_DEBUG("IMP_FrameSource_SetChnAttr set");
 
     IMPFSChnFifoAttr fifo;
-    IMP_FrameSource_GetChnFifoAttr(0, &fifo);
+
+    ret = IMP_FrameSource_GetChnFifoAttr(0, &fifo);
+    if (ret < 0) {
+        LOG_DEBUG("IMP_FrameSource_GetChnFifoAttr() == " + std::to_string(ret));
+        return ret;
+    }
+    LOG_DEBUG("IMP_FrameSource_GetChnFifoAttr set");
+
     fifo.maxdepth = 0;
-    IMP_FrameSource_SetChnFifoAttr(0, &fifo);
-    IMP_FrameSource_SetFrameDepth(0, 0);
+    ret = IMP_FrameSource_SetChnFifoAttr(0, &fifo);
+    if (ret < 0) {
+        LOG_DEBUG("IMP_FrameSource_SetChnFifoAttr() == " + std::to_string(ret));
+        return ret;
+    }
+    LOG_DEBUG("IMP_FrameSource_SetChnFifoAttr set");
+
+    ret = IMP_FrameSource_SetFrameDepth(0, 0);
+    if (ret < 0) {
+        LOG_DEBUG("IMP_FrameSource_SetFrameDepth() == " + std::to_string(ret));
+        return ret;
+    }
+    LOG_DEBUG("IMP_FrameSource_SetFrameDepth set");
+
     return ret;
 }
 
@@ -120,12 +143,12 @@ int IMP::system_init() {
     const char* cpuInfo = IMP_System_GetCPUInfo();
     LOG_INFO("CPU Information: " << cpuInfo);
 
-    ret = IMP_OSD_SetPoolSize(131072);
+    ret = IMP_OSD_SetPoolSize(OSDPoolSize);
     if (ret < 0) {
-        LOG_DEBUG("Error: IMP_OSD_SetPoolSize() == " + std::to_string(ret));
+        LOG_DEBUG("Error: IMP_OSD_SetPoolSize == " + std::to_string(ret));
         return ret;
     }
-    LOG_DEBUG("OSD Pool Size set");
+    LOG_DEBUG("IMP_OSD_SetPoolSize == " + std::to_string(OSDPoolSize));
 
     ret = IMP_ISP_Open();
     if (ret < 0) {
@@ -154,7 +177,7 @@ int IMP::system_init() {
         LOG_DEBUG("Error: IMP_System_Init() == " + std::to_string(ret));
         return ret;
     }
-    LOG_DEBUG("System Initialized");
+    LOG_DEBUG("IMP System Initialized");
 
     //Enable tuning.
     //This is necessary to customize the sensor's image output.
@@ -164,18 +187,23 @@ int IMP::system_init() {
         LOG_DEBUG("ERROR: IMP_ISP_EnableTuning() == " + std::to_string(ret));
         return ret;
     }
+    LOG_DEBUG("IMP_ISP_EnableTuning enabled");
 
     /* Set tuning defaults; on some SoC platforms, if we don't do this, the stream will be dark until manually set */
     IMP_ISP_Tuning_SetContrast(128);
     IMP_ISP_Tuning_SetSharpness(128);
     IMP_ISP_Tuning_SetSaturation(128);
     IMP_ISP_Tuning_SetBrightness(128);
+    IMP_ISP_Tuning_SetISPBypass(IMPISP_TUNING_OPS_MODE_ENABLE);
+    IMP_ISP_Tuning_SetAntiFlickerAttr(IMPISP_ANTIFLICKER_60HZ);
+    LOG_DEBUG("ISP Tuning Defaults set");
 
     ret = IMP_ISP_Tuning_SetSensorFPS(Config::singleton()->sensorFps, 1);
     if (ret < 0) {
         LOG_DEBUG("ERROR: IMP_ISP_Tuning_SetSensorFPS() == " + std::to_string(ret));
         return ret;
     }
+    LOG_DEBUG("IMP_ISP_Tuning_SetSensorFPS == " + std::to_string(Config::singleton()->sensorFps));
 
     // Set the ISP to DAY on launch
     ret = IMP_ISP_Tuning_SetISPRunningMode(IMPISP_RUNNING_MODE_DAY);
@@ -183,6 +211,8 @@ int IMP::system_init() {
         LOG_DEBUG("ERROR: IMP_ISP_Tuning_SetISPRunningMode() == " + std::to_string(ret));
         return ret;
     }
+    LOG_DEBUG("IMP_ISP_Tuning_SetISPRunningMode == " + std::to_string(IMPISP_RUNNING_MODE_DAY));
+
 
     return ret;
 }
