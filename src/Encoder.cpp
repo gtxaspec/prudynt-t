@@ -214,7 +214,7 @@ int Encoder::encoder_init() {
         if (ret < 0) {
             LOG_ERROR("IMP_Encoder_SetbufshareChn() == " << ret);
         }
-        LOG_ERROR("IMP_Encoder_SetbufshareChn(1, 0) enabled");
+        LOG_DEBUG("IMP_Encoder_SetbufshareChn(1, 0) enabled");
     }
 #endif
 
@@ -517,7 +517,7 @@ void Encoder::run() {
                         //Discard old NALUs if our sinks aren't keeping up.
                         //This prevents the MsgChannels from clogging up with
                         //old data.
-                        LOG_ERROR("Sink " << it->second.name << " clogged! Discarding NAL.  Please alert the developers =D");
+                        LOG_ERROR("Sink " << it->second.name << " clogged! Discarding NAL.");
                         //H264NALUnit old_nal;
                         //it->second.chn->read(&old_nal);
                     }
