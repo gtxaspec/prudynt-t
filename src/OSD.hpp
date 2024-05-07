@@ -19,6 +19,8 @@ struct OSDTextItem {
     int stroke;
     uint32_t color;
     uint32_t stroke_color;
+    uint8_t update_intervall;  //update intervall in seconds
+    uint32_t last_update;      //second of the day (last update)
 };
 
 class OSD {

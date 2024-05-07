@@ -3,9 +3,14 @@
 #include "OSD.hpp"
 #include "Config.hpp"
 #include "Logger.hpp"
-
+#include <unistd.h>
 #include <fstream>
 #include <memory>
+
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <netinet/in.h> 
+#include <arpa/inet.h>
 
 void set_glyph_transform(FT_Face fontface, int angle) {
     // Normalize the angle to [0, 360)
@@ -327,6 +332,9 @@ bool OSD::init() {
         userText.imp_grp_attr.scalex = 1;
         userText.imp_grp_attr.scaley = 1;
         IMP_OSD_SetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
+
+        userText.update_intervall = 10;
+        userText.last_update = 0;
     }
 
     if (Config::singleton()->OSDUptimeEnable) {
@@ -416,6 +424,29 @@ unsigned long getSystemUptime() {
     return 0; // Default to 0 if unable to read uptime
 }
 
+int getIp (char * addressBuffer) {
+    struct ifaddrs * ifAddrStruct=NULL;
+    struct ifaddrs * ifa=NULL;
+    void * tmpAddrPtr=NULL;
+
+    getifaddrs(&ifAddrStruct);
+
+    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+        if (!ifa->ifa_addr) {
+            continue;
+        }
+        if (ifa->ifa_addr->sa_family == AF_INET) { // check it is IP4
+            // is a valid IP4 Address
+            tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+            //char addressBuffer[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+            //snprintf(buff, sizeof(buff), "%s", addressBuffer); 
+        }
+    }
+    if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct);
+    return 0;
+}
+
 // Var to keep track of the last second updated
 static int last_updated_second = -1;
 
@@ -427,7 +458,36 @@ void OSD::updateDisplayEverySecond() {
     if (ltime->tm_sec != last_updated_second) {
         last_updated_second = ltime->tm_sec;  // Update the last second tracker
 
+        //get second of the day
+        uint32_t sod = (ltime->tm_hour * 3600) + (ltime->tm_min * 60) + ltime->tm_sec;
+        
         // Now we ensure both updates are performed as close together as possible
+        //Format user text
+        if (Config::singleton()->OSDUserTextEnable && 
+            ( sod < userText.last_update || sod > ( userText.last_update + userText.update_intervall ))) {
+
+            userText.last_update = sod;
+
+            std::string sTextFormated = Config::singleton()->OSDUserTextString;
+
+            std::size_t tokenPos = sTextFormated.find("%h");
+            if (tokenPos != std::string::npos) {
+                char hostname[64];
+                gethostname(hostname, 64);
+                sTextFormated.replace(tokenPos, 2, std::string(hostname));
+            }
+
+            tokenPos = sTextFormated.find("%i");
+            if (tokenPos != std::string::npos) {
+                char ip[INET_ADDRSTRLEN];
+                getIp(ip);
+                sTextFormated.replace(tokenPos, 2, std::string(ip));
+            }
+
+            set_text(&userText, sTextFormated);
+            IMP_OSD_SetRgnAttr(userText.imp_rgn, &userText.imp_attr);
+        }
+
         // Format and update system time
         if (Config::singleton()->OSDTimeEnable) {
             char timeFormatted[256];
