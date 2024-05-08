@@ -470,18 +470,18 @@ void OSD::updateDisplayEverySecond() {
 
             std::string sTextFormated = Config::singleton()->OSDUserTextString;
 
-            std::size_t tokenPos = sTextFormated.find("%h");
+            std::size_t tokenPos = sTextFormated.find("%hostname");
             if (tokenPos != std::string::npos) {
                 char hostname[64];
                 gethostname(hostname, 64);
-                sTextFormated.replace(tokenPos, 2, std::string(hostname));
+                sTextFormated.replace(tokenPos, 9, std::string(hostname));
             }
 
-            tokenPos = sTextFormated.find("%i");
+            tokenPos = sTextFormated.find("%ipaddress");
             if (tokenPos != std::string::npos) {
                 char ip[INET_ADDRSTRLEN];
                 getIp(ip);
-                sTextFormated.replace(tokenPos, 2, std::string(ip));
+                sTextFormated.replace(tokenPos, 10, std::string(ip));
             }
 
             set_text(&userText, sTextFormated);
