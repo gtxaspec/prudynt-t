@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include "OSD.hpp"
+#include "Encoder.hpp"
 #include "Config.hpp"
 #include "Logger.hpp"
 #include <unistd.h>
@@ -11,6 +12,21 @@
 #include <ifaddrs.h>
 #include <netinet/in.h> 
 #include <arpa/inet.h>
+
+int OSD::get_abs_pos(int max, int size, int pos) {
+
+    if(pos==0) return max / 2 - size / 2;
+    if(pos<0) return max - size + pos;
+    return pos;
+}
+
+void OSD::set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width, int height) {
+
+    rgnAttr->rect.p0.x = get_abs_pos(channelAttributes.encAttr.uWidth, width, x);
+    rgnAttr->rect.p0.y = get_abs_pos(channelAttributes.encAttr.uHeight, height, y);
+    rgnAttr->rect.p1.x = rgnAttr->rect.p0.x + width - 1;
+    rgnAttr->rect.p1.y = rgnAttr->rect.p0.y + height - 1;     
+}
 
 void set_glyph_transform(FT_Face fontface, int angle) {
     // Normalize the angle to [0, 360)
@@ -233,8 +249,7 @@ void OSD::set_text(OSDTextItem *ti, std::string text) {
     if (item_width % 2 != 0)
         ++item_width;
 
-    ti->imp_attr.rect.p1.x = ti->imp_attr.rect.p0.x + item_width - 1;
-    ti->imp_attr.rect.p1.y = ti->imp_attr.rect.p0.y + item_height - 1;
+    set_pos(&ti->imp_attr, ti->x, ti->y, item_width, item_height);
 
     free(ti->data);
     ti->data = (uint8_t*)malloc(item_width * item_height * 4);
@@ -284,6 +299,15 @@ bool OSD::init() {
         return true;
     }
 
+    ret = IMP_Encoder_GetChnAttr(0, &channelAttributes);
+    if (ret < 0) {
+        LOG_DEBUG("IMP_Encoder_GetChnAttr() == " + std::to_string(ret));
+        return true;
+    }
+    LOG_DEBUG(
+        printf("IMP_Encoder_GetChnAttr read. Stream resolution: %d x %d\n", 
+                channelAttributes.encAttr.uWidth, channelAttributes.encAttr.uHeight));
+
     ret = IMP_OSD_CreateGroup(0);
     if (ret < 0) {
         LOG_DEBUG("IMP_OSD_CreateGroup() == " + std::to_string(ret));
@@ -291,34 +315,39 @@ bool OSD::init() {
     }
     LOG_DEBUG("IMP_OSD_CreateGroup group 0 created");
 
-    memset(&timestamp.imp_rgn, 0, sizeof(timestamp.imp_rgn));
-    timestamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
-    IMP_OSD_RegisterRgn(timestamp.imp_rgn, 0, NULL);
-    timestamp.imp_attr.type = OSD_REG_PIC;
-    timestamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdPosTimeX;
-    timestamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdPosTimeY;
-    timestamp.imp_attr.fmt = PIX_FMT_BGRA;
-    timestamp.imp_attr.data.picData.pData = timestamp.data;
+    if (Config::singleton()->OSDTimeEnable) {
 
-    memset(&timestamp.imp_grp_attr, 0, sizeof(timestamp.imp_grp_attr));
-    IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
-    IMP_OSD_GetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
-    timestamp.imp_grp_attr.show = 1;
-    timestamp.imp_grp_attr.layer = 1;
-    timestamp.imp_grp_attr.scalex = 0;
-    timestamp.imp_grp_attr.scaley = 0;
-    IMP_OSD_SetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
+        timestamp.x = Config::singleton()->stream0osdPosTimeX;
+        timestamp.y = Config::singleton()->stream0osdPosTimeY;
+
+        memset(&timestamp.imp_rgn, 0, sizeof(timestamp.imp_rgn));
+        timestamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
+        IMP_OSD_RegisterRgn(timestamp.imp_rgn, 0, NULL);
+        timestamp.imp_attr.type = OSD_REG_PIC;
+        timestamp.imp_attr.fmt = PIX_FMT_BGRA;
+        timestamp.imp_attr.data.picData.pData = timestamp.data;
+
+        memset(&timestamp.imp_grp_attr, 0, sizeof(timestamp.imp_grp_attr));
+        IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
+        IMP_OSD_GetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
+        timestamp.imp_grp_attr.show = 1;
+        timestamp.imp_grp_attr.layer = 1;
+        timestamp.imp_grp_attr.scalex = 0;
+        timestamp.imp_grp_attr.scaley = 0;
+        timestamp.imp_grp_attr.gAlphaEn = 1;
+        timestamp.imp_grp_attr.fgAlhpa = Config::singleton()->stream0osdTimeAlpha;
+        IMP_OSD_SetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
+    }
 
     if (Config::singleton()->OSDUserTextEnable) {
-        int userTextPosX = (Config::singleton()->stream0osdUserTextPosX == 0) ?
-                    Config::singleton()->stream0width / 2 :
-                    Config::singleton()->stream0osdUserTextPosX;
+
+        userText.x = Config::singleton()->stream0osdUserTextPosX;
+        userText.y = Config::singleton()->stream0osdUserTextPosY;
+
         memset(&userText.imp_rgn, 0, sizeof(userText.imp_rgn));
         userText.imp_rgn = IMP_OSD_CreateRgn(NULL);
         IMP_OSD_RegisterRgn(userText.imp_rgn, 0, NULL);
         userText.imp_attr.type = OSD_REG_PIC;
-        userText.imp_attr.rect.p0.x = userTextPosX;
-        userText.imp_attr.rect.p0.y = Config::singleton()->stream0osdUserTextPosY;
         userText.imp_attr.fmt = PIX_FMT_BGRA;
         userText.data = NULL;
         userText.imp_attr.data.picData.pData = userText.data;
@@ -331,22 +360,23 @@ bool OSD::init() {
         userText.imp_grp_attr.layer = 2;
         userText.imp_grp_attr.scalex = 1;
         userText.imp_grp_attr.scaley = 1;
+        userText.imp_grp_attr.gAlphaEn = 1;
+        userText.imp_grp_attr.fgAlhpa = Config::singleton()->stream0osdUserTextAlpha;
         IMP_OSD_SetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
 
         userText.update_intervall = 10;
-        userText.last_update = 0;
+        userText.last_update = 0;      
     }
 
     if (Config::singleton()->OSDUptimeEnable) {
-        int uptimePosX = (Config::singleton()->stream0osdUptimeStampPosX == 0) ?
-                    Config::singleton()->stream0width - 240 :
-                    Config::singleton()->stream0osdUptimeStampPosX;
+
+        uptimeStamp.x = Config::singleton()->stream0osdUptimeStampPosX;
+        uptimeStamp.y = Config::singleton()->stream0osdUptimeStampPosY;
+
         memset(&uptimeStamp.imp_rgn, 0, sizeof(uptimeStamp.imp_rgn));
         uptimeStamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
         IMP_OSD_RegisterRgn(uptimeStamp.imp_rgn, 0, NULL);
         uptimeStamp.imp_attr.type = OSD_REG_PIC;
-        uptimeStamp.imp_attr.rect.p0.x = uptimePosX;
-        uptimeStamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdUptimeStampPosY;
         uptimeStamp.imp_attr.fmt = PIX_FMT_BGRA;
         uptimeStamp.data = NULL;
         uptimeStamp.imp_attr.data.picData.pData = uptimeStamp.data;
@@ -358,32 +388,28 @@ bool OSD::init() {
         uptimeStamp.imp_grp_attr.layer = 3;
         uptimeStamp.imp_grp_attr.scalex = 1;
         uptimeStamp.imp_grp_attr.scaley = 1;
-        IMP_OSD_SetGrpRgnAttr(uptimeStamp.imp_rgn, 0, &uptimeStamp.imp_grp_attr);
+        uptimeStamp.imp_grp_attr.gAlphaEn = 1;
+        uptimeStamp.imp_grp_attr.fgAlhpa = Config::singleton()->stream0osdUptimeAlpha;
+        IMP_OSD_SetGrpRgnAttr(uptimeStamp.imp_rgn, 0, &uptimeStamp.imp_grp_attr);        
     }
 
     if (Config::singleton()->OSDLogoEnable) {
         size_t imageSize;
         auto imageData = loadBGRAImage(Config::singleton()->OSDLogoPath.c_str(), imageSize);
-
-        int OSDLogoX = (Config::singleton()->stream0osdLogoPosX == 0) ?
-                        (Config::singleton()->stream0width - Config::singleton()->OSDLogoWidth - 20) :
-                        Config::singleton()->stream0osdLogoPosX;
-
-        int OSDLogoY = (Config::singleton()->stream0osdLogoPosY == 0) ?
-                        (Config::singleton()->stream0height - Config::singleton()->OSDLogoHeight - 10):
-                        Config::singleton()->stream0osdLogoPosY;
-
+        
         IMPOSDRgnAttr OSDLogo;
         memset(&OSDLogo, 0, sizeof(OSDLogo));
         OSDLogo.type = OSD_REG_PIC;
-        int picw = Config::singleton()->OSDLogoWidth;
-        int pich = Config::singleton()->OSDLogoHeight;
-        OSDLogo.rect.p0.x = OSDLogoX;
-        OSDLogo.rect.p0.y = OSDLogoY;
-        OSDLogo.rect.p1.x = OSDLogo.rect.p0.x+picw-1;
-        OSDLogo.rect.p1.y = OSDLogo.rect.p0.y+pich-1;
         OSDLogo.fmt = PIX_FMT_BGRA;
         OSDLogo.data.picData.pData = imageData.get();
+    
+        int picw = Config::singleton()->OSDLogoWidth + 1;
+        int pich = Config::singleton()->OSDLogoHeight + 1;
+
+        set_pos(&OSDLogo, 
+                Config::singleton()->stream0osdLogoPosX, 
+                Config::singleton()->stream0osdLogoPosY, 
+                picw-1, pich-1);
 
         IMPRgnHandle handle = IMP_OSD_CreateRgn(NULL);
         IMP_OSD_SetRgnAttr(handle, &OSDLogo);
@@ -396,7 +422,7 @@ bool OSD::init() {
         OSDLogoGroup.gAlphaEn = 1;
         OSDLogoGroup.fgAlhpa = Config::singleton()->stream0osdLogoAlpha;
 
-        IMP_OSD_RegisterRgn(handle, 0, &OSDLogoGroup);
+        IMP_OSD_RegisterRgn(handle, 0, &OSDLogoGroup);                
     }
 
     ret = IMP_OSD_Start(0);

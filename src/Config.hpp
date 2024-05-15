@@ -28,10 +28,13 @@ public:
     int stream0bitrate;
     int stream0osdPosTimeX;
     int stream0osdPosTimeY;
+    int stream0osdTimeAlpha;
     int stream0osdUserTextPosX;
     int stream0osdUserTextPosY;
+    int stream0osdUserTextAlpha;
     int stream0osdUptimeStampPosX;
     int stream0osdUptimeStampPosY;
+    int stream0osdUptimeAlpha;
     int stream0osdLogoPosX;
     int stream0osdLogoPosY;
     int stream0osdLogoAlpha;
