@@ -87,9 +87,9 @@ osd: {
 	# time_enabled: true;  # Enable or disable the time display in the OSD.
 	# time_format: "%I:%M:%S%p %m/%d/%Y";  # Format string for displaying time.
 	# user_text_enabled: true;  # Enable or disable the display of custom user text.
-	# user_text_string: "thingino";  # Custom text to display in the OSD.
-	# uptime_display_enabled: true;  # Enable or disable the display of system uptime.
-	# uptime_display_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
+	# user_text_format: "thingino";  # Custom text to display in the OSD.
+	# uptime_enabled: true;  # Enable or disable the display of system uptime.
+	# uptime_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
 	# logo_enabled: true;  # Enable or disable the display of a logo image.
 	# logo_path: "/usr/share/thingino_logo_1.bgra";  # Path to the logo image file.
 	# logo_width: 100;  # Width of the logo image.
