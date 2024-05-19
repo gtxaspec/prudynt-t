@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-#PRUDYNT_CROSS="ccache mipsel-linux-"
+PRUDYNT_CROSS="ccache mipsel-linux-"
 TOP=$(pwd)
 
 prudynt(){
@@ -25,6 +25,12 @@ prudynt(){
 deps() {
 	rm -rf 3rdparty
 	mkdir -p 3rdparty/install
+	mkdir -p 3rdparty/install/include
+
+	echo "Build libwebsockets"
+	cd 3rdparty
+	../scripts/make_libwebsockets_deps.sh
+	cd ../
 
 	echo "Build freetype2"
 	cd 3rdparty

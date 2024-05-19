@@ -1,6 +1,13 @@
 CC = ${CROSS_COMPILE}gcc
 CXX = ${CROSS_COMPILE}g++
 
+#required for libwebsockets
+CONFIG_UCLIBC_BUILD=n
+CONFIG_GCC_BUILD=n
+CONFIG_MUSL_BUILD=y
+CONFIG_STATIC_BUILD=n
+DEBUG=n
+
 CCACHE = ccache
 CFLAGS = -Wall -Wextra -Wno-unused-parameter -O2 -DNO_OPENSSL=1
 ifeq ($(KERNEL_VERSION_4),y)
@@ -8,7 +15,7 @@ CFLAGS += -DKERNEL_VERSION_4
 endif
 CXXFLAGS = $(CFLAGS) -std=c++20
 LDFLAGS = -lrt
-LIBS = -limp -lalog -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lfreetype
+LIBS = -limp -lalog -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lfreetype -lwebsockets
 
 ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))
     LIBIMP_INC_DIR = ./include/T31
@@ -40,7 +47,8 @@ ifndef commit_tag
 commit_tag=$(shell git rev-parse --short HEAD)
 endif
 
-VERSION_FILE = $(LIBIMP_INC_DIR)/version.hpp
+LIBWEBSOCKETS = ./3rdparty/install/include/
+VERSION_FILE  = $(LIBIMP_INC_DIR)/version.hpp
 
 $(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
 	@if ! grep -q "$(commit_tag)" version.h > /dev/null 2>&1; then \
@@ -50,11 +58,11 @@ $(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(VERSION_FILE)
 	@mkdir -p $(@D)
-	$(CCACHE) $(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -c $< -o $@
+	$(CCACHE) $(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -c $< -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(VERSION_FILE)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(VERSION_FILE) 
 	@mkdir -p $(@D)
-	$(CCACHE) $(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -c $< -o $@
+	$(CCACHE) $(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -c $< -o $@
 
 $(TARGET): $(OBJECTS) $(VERSION_FILE)
 	@mkdir -p $(@D)
