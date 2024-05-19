@@ -8,6 +8,7 @@
 #include "IMP.hpp"
 #include "Config.hpp"
 #include "Motion.hpp"
+#include "WS.hpp"
 
 #include "version.hpp"
 
@@ -19,6 +20,7 @@ Encoder enc;
 Encoder jpg;
 Motion motion;
 RTSP rtsp;
+WS ws;
 
 bool timesync_wait() {
     // I don't really have a better way to do this than
@@ -38,6 +40,7 @@ int main(int argc, const char *argv[]) {
 
     LOG_INFO("PRUDYNT Video Daemon: " << VERSION);
 
+    std::thread ws_thread;
     std::thread enc_thread;
     std::thread rtsp_thread;
     std::thread motion_thread;
@@ -67,7 +70,7 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-
+    ws_thread = std::thread(&WS::run, &ws);
     enc_thread = std::thread(start_component<Encoder>, enc);
     rtsp_thread = std::thread(start_component<RTSP>, rtsp);
 
