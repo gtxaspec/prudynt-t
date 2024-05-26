@@ -173,7 +173,7 @@ int Encoder::system_init()
         return ret;
     }
     LOG_DEBUG("IMP_ISP_EnableTuning enabled");
-    
+
     /* Set tuning defaults; on some SoC platforms, if we don't do this, the stream will be dark until manually set */
     IMP_ISP_Tuning_SetContrast(128);
     IMP_ISP_Tuning_SetSharpness(128);
@@ -764,7 +764,7 @@ void Encoder::jpeg_snap(std::atomic<int> *thread_signal)
     }
 }
 
-void Encoder::run(std::atomic<int> *thread_signal)
+void Encoder::run(std::atomic<int> *thread_signal, CFG *cfg)
 {
     LOG_DEBUG("Encoder Start");
 

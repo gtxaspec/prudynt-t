@@ -544,7 +544,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
     return 0;
 }
 
-void WS::run() {
+void WS::run(CFG *cfg) {
 
     int opt;
     char *ip = NULL;

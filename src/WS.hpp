@@ -4,7 +4,6 @@
 #include <atomic>
 #include "Logger.hpp"
 #include "Config.hpp"
-#include <iostream>
 #include "libwebsockets.h"
 #include <imp/imp_system.h>
 #include <imp/imp_common.h>
@@ -16,7 +15,7 @@
 class WS {
     
     public:
-        void run();    
+        void run(CFG *cfg);    
 
     private:
 

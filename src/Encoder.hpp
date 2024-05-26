@@ -65,7 +65,7 @@ struct EncoderSink {
 class Encoder {
 	public:
 		Encoder();
-		void run(std::atomic<int> *thread_signal);
+		void run(std::atomic<int> *thread_signal, CFG *cfg);
 
 
 		static void flush() {

@@ -20,6 +20,7 @@ Encoder enc;
 Encoder jpg;
 Motion motion;
 RTSP rtsp;
+CFG cfg;
 WS ws;
 
 std::atomic<int> enc_thread_signal;
@@ -108,10 +109,8 @@ int main(int argc, const char *argv[]) {
     }
     */
 
-    Config::singleton()->logLevel = "DEBUG";
-
-    ws_thread = std::thread(&WS::run, &ws);
-    enc_thread = std::thread(&Encoder::run, &enc, &enc_thread_signal);
+    ws_thread = std::thread(&WS::run, &ws, &cfg);
+    enc_thread = std::thread(&Encoder::run, &enc, &enc_thread_signal, &cfg);
     rtsp_thread = std::thread(start_component<RTSP>, rtsp);
 
     if (Config::singleton()->motionEnable) {
