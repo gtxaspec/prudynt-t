@@ -13,6 +13,11 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 
+#if defined(PLATFORM_T31)
+	#define picWidth uWidth
+	#define picHeight uHeight
+#endif
+
 int OSD::get_abs_pos(int max, int size, int pos) {
 
     if(pos==0) return max / 2 - size / 2;
@@ -21,9 +26,9 @@ int OSD::get_abs_pos(int max, int size, int pos) {
 }
 
 void OSD::set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width, int height) {
-
-    rgnAttr->rect.p0.x = get_abs_pos(channelAttributes.encAttr.uWidth, width, x);
-    rgnAttr->rect.p0.y = get_abs_pos(channelAttributes.encAttr.uHeight, height, y);
+    //picWidth, picHeight cpp macro !!
+    rgnAttr->rect.p0.x = get_abs_pos(channelAttributes.encAttr.picWidth, width, x);
+    rgnAttr->rect.p0.y = get_abs_pos(channelAttributes.encAttr.picWidth, height, y);
     rgnAttr->rect.p1.x = rgnAttr->rect.p0.x + width - 1;
     rgnAttr->rect.p1.y = rgnAttr->rect.p0.y + height - 1;     
 }
@@ -306,7 +311,7 @@ bool OSD::init() {
     }
     LOG_DEBUG(
         printf("IMP_Encoder_GetChnAttr read. Stream resolution: %d x %d\n", 
-                channelAttributes.encAttr.uWidth, channelAttributes.encAttr.uHeight));
+                channelAttributes.encAttr.picWidth, channelAttributes.encAttr.picHeight)); //picWidth, picHeight cpp macro !!
 
     ret = IMP_OSD_CreateGroup(0);
     if (ret < 0) {

@@ -10,6 +10,11 @@
 #include FT_FREETYPE_H
 #include FT_STROKER_H
 
+#if defined(PLATFORM_T31)
+	#define IMPEncoderCHNAttr IMPEncoderChnAttr
+	#define IMPEncoderCHNStat IMPEncoderChnStat
+#endif
+
 struct OSDTextItem {
     IMPRgnHandle imp_rgn;
     IMPOSDRgnAttr imp_attr;
@@ -49,7 +54,7 @@ private:
     OSDTextItem userText;
     OSDTextItem uptimeStamp;
 
-    IMPEncoderChnAttr channelAttributes;
+    IMPEncoderCHNAttr channelAttributes;
 
     std::map<char,FT_BitmapGlyph> bitmaps;
     std::map<char,FT_BitmapGlyph> stroke_bitmaps;
