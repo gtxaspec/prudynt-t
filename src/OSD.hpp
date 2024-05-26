@@ -4,7 +4,6 @@
 #include <map>
 
 #include <imp/imp_osd.h>
-#include <imp/imp_encoder.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -20,10 +19,6 @@ struct OSDTextItem {
     int stroke;
     uint32_t color;
     uint32_t stroke_color;
-    uint8_t update_intervall;  //update intervall in seconds
-    uint32_t last_update;      //second of the day (last update)
-    int x;
-    int y;
 };
 
 class OSD {
@@ -38,8 +33,6 @@ private:
                     int item_height, int item_width,
                    uint32_t color);
     void set_text(OSDTextItem *ti, std::string text);
-    void set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width, int height);
-    int get_abs_pos(int max, int size, int pos);
 
     FT_Library freetype;
     FT_Face fontface;
@@ -48,8 +41,6 @@ private:
     OSDTextItem timestamp;
     OSDTextItem userText;
     OSDTextItem uptimeStamp;
-
-    IMPEncoderChnAttr channelAttributes;
 
     std::map<char,FT_BitmapGlyph> bitmaps;
     std::map<char,FT_BitmapGlyph> stroke_bitmaps;
