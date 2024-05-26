@@ -51,10 +51,13 @@ stream0: {
 	# max_gop: 60;  # Maximum GOP size for the stream.
 	# osd_pos_time_x: 10;  # X position for the On-Screen Display (OSD) time.
 	# osd_pos_time_y: 10;  # Y position for the OSD.
+	# osd_time_transparency: 255;  #Transparency for time OSD in stream 0
 	# osd_pos_user_text_x: 900;  # X position for the user-defined text in the OSD.
 	# osd_pos_user_text_y: 5;  # Y position for the user-defined text in the OSD.
+	# osd_user_text_transparency: 255;  #Transparency for user text OSD in stream 0
 	# osd_pos_uptime_x: 1600;  # X position for the uptime display in the OSD.
 	# osd_pos_uptime_y: 5;  # Y position for the uptime display in the OSD.
+	# osd_uptime_transparency: 255;  #Transparency for uptime OSD in stream 0
 	# osd_pos_logo_x: 1800;  # X position for the logo in the OSD.
 	# osd_pos_logo_y: 1030;  # Y position for the logo in the OSD.
 	# osd_logo_transparency: 255; # Transparency (0-255) for the logo in the OSD.
@@ -84,9 +87,9 @@ osd: {
 	# time_enabled: true;  # Enable or disable the time display in the OSD.
 	# time_format: "%I:%M:%S%p %m/%d/%Y";  # Format string for displaying time.
 	# user_text_enabled: true;  # Enable or disable the display of custom user text.
-	# user_text_string: "thingino";  # Custom text to display in the OSD.
-	# uptime_display_enabled: true;  # Enable or disable the display of system uptime.
-	# uptime_display_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
+	# user_text_format: "thingino";  # Custom text to display in the OSD.
+	# uptime_enabled: true;  # Enable or disable the display of system uptime.
+	# uptime_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
 	# logo_enabled: true;  # Enable or disable the display of a logo image.
 	# logo_path: "/usr/share/thingino_logo_1.bgra";  # Path to the logo image file.
 	# logo_width: 100;  # Width of the logo image.
