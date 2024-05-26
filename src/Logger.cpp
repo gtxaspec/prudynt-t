@@ -49,6 +49,10 @@ bool Logger::init() {
     return false;
 }
 
+void Logger::setLevel(std::string lvl) {
+    Logger::level = stringToLogLevel(lvl);
+}
+
 void Logger::log(Level lvl, std::string module, LogMsg msg) {
     std::unique_lock<std::mutex> lck(log_mtx);
 

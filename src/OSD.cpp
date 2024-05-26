@@ -13,6 +13,11 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 
+#if defined(PLATFORM_T31)
+	#define picWidth uWidth
+	#define picHeight uHeight
+#endif
+
 int OSD::get_abs_pos(int max, int size, int pos) {
 
     if(pos==0) return max / 2 - size / 2;
@@ -21,9 +26,9 @@ int OSD::get_abs_pos(int max, int size, int pos) {
 }
 
 void OSD::set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width, int height) {
-
-    rgnAttr->rect.p0.x = get_abs_pos(channelAttributes.encAttr.uWidth, width, x);
-    rgnAttr->rect.p0.y = get_abs_pos(channelAttributes.encAttr.uHeight, height, y);
+    //picWidth, picHeight cpp macro !!
+    rgnAttr->rect.p0.x = get_abs_pos(channelAttributes.encAttr.picWidth, width, x);
+    rgnAttr->rect.p0.y = get_abs_pos(channelAttributes.encAttr.picHeight, height, y);
     rgnAttr->rect.p1.x = rgnAttr->rect.p0.x + width - 1;
     rgnAttr->rect.p1.y = rgnAttr->rect.p0.y + height - 1;     
 }
@@ -256,6 +261,7 @@ void OSD::set_text(OSDTextItem *ti, std::string text) {
     ti->imp_attr.data.picData.pData = ti->data;
     memset(ti->data, 0, item_width * item_height * 4);
 
+    
     //Then, render the stroke & text
     for (unsigned int i = 0; i < ti->text.length(); ++i) {
         int cpx = pen_x;
@@ -306,7 +312,7 @@ bool OSD::init() {
     }
     LOG_DEBUG(
         printf("IMP_Encoder_GetChnAttr read. Stream resolution: %d x %d\n", 
-                channelAttributes.encAttr.uWidth, channelAttributes.encAttr.uHeight));
+                channelAttributes.encAttr.picWidth, channelAttributes.encAttr.picHeight)); //picWidth, picHeight cpp macro !!
 
     ret = IMP_OSD_CreateGroup(0);
     if (ret < 0) {
@@ -397,7 +403,6 @@ bool OSD::init() {
         size_t imageSize;
         auto imageData = loadBGRAImage(Config::singleton()->OSDLogoPath.c_str(), imageSize);
         
-        IMPOSDRgnAttr OSDLogo;
         memset(&OSDLogo, 0, sizeof(OSDLogo));
         OSDLogo.type = OSD_REG_PIC;
         OSDLogo.fmt = PIX_FMT_BGRA;
@@ -411,8 +416,8 @@ bool OSD::init() {
                 Config::singleton()->stream0osdLogoPosY, 
                 picw-1, pich-1);
 
-        IMPRgnHandle handle = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_SetRgnAttr(handle, &OSDLogo);
+        IMPRgnHandle OSDLogoHandle = IMP_OSD_CreateRgn(NULL);
+        IMP_OSD_SetRgnAttr(OSDLogoHandle, &OSDLogo);
         IMPOSDGrpRgnAttr OSDLogoGroup;
         memset(&OSDLogoGroup, 0, sizeof(OSDLogoGroup));
         OSDLogoGroup.show = 1;
@@ -422,7 +427,7 @@ bool OSD::init() {
         OSDLogoGroup.gAlphaEn = 1;
         OSDLogoGroup.fgAlhpa = Config::singleton()->stream0osdLogoAlpha;
 
-        IMP_OSD_RegisterRgn(handle, 0, &OSDLogoGroup);                
+        IMP_OSD_RegisterRgn(OSDLogoHandle, 0, &OSDLogoGroup);                
     }
 
     ret = IMP_OSD_Start(0);
@@ -436,6 +441,63 @@ bool OSD::init() {
     return false;
 }
 
+bool OSD::exit() {
+
+    int ret;
+
+    ret = IMP_OSD_ShowRgn(timestamp.imp_rgn, 0, 0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_OSD_ShowRgn close timeStamp error");
+    }
+
+    ret = IMP_OSD_ShowRgn(userText.imp_rgn, 0, 0);
+    if (ret < 0) {
+        LOG_ERROR( "IMP_OSD_ShowRgn close user text error");
+    }
+
+    ret = IMP_OSD_ShowRgn(uptimeStamp.imp_rgn, 0, 0);
+    if (ret < 0) {
+        LOG_ERROR( "IMP_OSD_ShowRgn close uptime error");
+    }
+
+    ret = IMP_OSD_ShowRgn(OSDLogoHandle, 0, 0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_OSD_ShowRgn close Rect error");
+    }
+
+    ret = IMP_OSD_UnRegisterRgn(timestamp.imp_rgn, 0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_OSD_UnRegisterRgn timeStamp error");
+    }
+
+    ret = IMP_OSD_UnRegisterRgn(userText.imp_rgn, 0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_OSD_UnRegisterRgn user text error");
+    }
+
+    ret = IMP_OSD_UnRegisterRgn(uptimeStamp.imp_rgn, 0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_OSD_UnRegisterRgn Cover error");
+    }
+
+    ret = IMP_OSD_UnRegisterRgn(OSDLogoHandle, 0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_OSD_UnRegisterRgn Rect error");
+    }
+
+    IMP_OSD_DestroyRgn(timestamp.imp_rgn);
+    IMP_OSD_DestroyRgn(userText.imp_rgn);
+    IMP_OSD_DestroyRgn(uptimeStamp.imp_rgn);
+    IMP_OSD_DestroyRgn(OSDLogoHandle);
+
+    ret = IMP_OSD_DestroyGroup(0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_OSD_DestroyGroup(0) error");
+        return -1;
+    }
+
+    return 0;    
+}
 unsigned long getSystemUptime() {
     std::ifstream uptimeFile("/proc/uptime");
     std::string line;

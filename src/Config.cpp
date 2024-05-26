@@ -3,8 +3,10 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 #include <functional>
 #include <libconfig.h++>
+#include <variant>
 
 #include "Config.hpp"
 #include "Logger.hpp"
@@ -13,6 +15,116 @@
 
 namespace fs = std::filesystem;
 Config* Config::instance = nullptr;
+
+bool read_proc(std::string procPath, std::string &line) {
+
+    std::ifstream procFile(procPath);
+
+    if (procFile) {
+        if (std::getline(procFile, line)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+CFG::CFG() {
+    libconfig::Config lc;
+
+    // Construct the path to the configuration file in the same directory as the program binary
+    fs::path binaryPath = fs::read_symlink("/proc/self/exe").parent_path();
+    fs::path cfgFilePath = binaryPath / "prudynt.cfg";
+
+    // Try to load the configuration file from the specified paths
+    try {
+        lc.readFile(cfgFilePath.c_str());
+        LOG_INFO("Loaded configuration from " + cfgFilePath.string());
+    } catch (const libconfig::FileIOException &) {
+        LOG_DEBUG("Failed to load prudynt configuration file from binary directory. Trying /etc...");
+        fs::path etcPath = "/etc/prudynt.cfg";
+        try {
+            lc.readFile(etcPath.c_str());
+            LOG_INFO("Loaded configuration from " + etcPath.string());
+        } catch (...) {
+            LOG_WARN("Failed to load prudynt configuration file from /etc.");
+            return; // Exit if configuration file is missing
+        }
+    } catch (const libconfig::ParseException &pex) {
+        LOG_WARN("Parse error at " + std::string(pex.getFile()) + ":" + std::to_string(pex.getLine()) + " - " + pex.getError());
+        return; // Exit on parsing error
+    }
+    
+    for (auto &item : settings) {
+        
+        std::cout << item.first.c_str() << std::endl;
+        std::string path = item.first;
+
+        std::visit([&path,&lc](const auto& e) {
+
+            using T = std::decay_t<decltype(e.value)>;
+            using U = std::decay_t<decltype(e)>;
+            
+            T value; 
+            std::string line;
+            int state = lc.lookupValue(path, value);
+            if (!state && !e.procPath.empty()) 
+                state = read_proc(e.procPath, line)?2:0;
+
+            if constexpr (std::is_same_v<U, bolEntry>) {
+                if constexpr (std::is_same_v<T, bool>) {
+                    if(state && e.isValid(value)) { 
+                        e.value = value;
+                    } else {
+                        e.value = e.defaultValue;
+                        if(!e.isValid(value)) LOG_DEBUG(e.message);
+                    } 
+                    std::cout << "Value: " << e.value << ", defaultValue: " << e.defaultValue << ", procPath: " << e.procPath << ", state: " << state << ", valid: " << e.isValid(value) << std::endl;
+                }
+            } else if constexpr (std::is_same_v<U, intEntry>) {
+                if constexpr (std::is_same_v<T, int>)
+                    if(state==2) {
+                        std::istringstream iss(line);
+                        iss >> value;
+                    }
+                    if(state && e.isValid(value)) { 
+                        e.value = value;
+                    } else {
+                        e.value = e.defaultValue;
+                        if(!e.isValid(value)) LOG_DEBUG(e.message);
+                    } 
+                    std::cout << "Value: " << e.value << ", defaultValue: " << e.defaultValue << ", procPath: " << e.procPath << ", state: " << state<< ", valid: " << e.isValid(value) << std::endl;
+            } else if constexpr (std::is_same_v<U, strEntry>) {
+                if constexpr (std::is_same_v<T, std::string>)
+                    if(state==2) value = line;
+                    if(state && e.isValid(value)) { 
+                        e.value = value;
+                    } else {
+                        e.value =e.defaultValue;
+                        if(!e.isValid(value)) LOG_DEBUG(e.message);
+                    } 
+                    std::cout << "Value: " << e.value << ", defaultValue: " << e.defaultValue << ", procPath: " << e.procPath << ", state: " << state<< ", valid: " << e.isValid(value) << std::endl;
+            }else if constexpr (std::is_same_v<U, uintEntry>) {
+                if constexpr (std::is_same_v<T, unsigned int>)
+                    if(state==2) {
+                        std::istringstream iss(line);
+                        if (line.find("0x") == 0) { 
+                            iss >> std::hex >> value;
+                        } else {
+                            iss >> value;
+                        }
+                    }
+                    if(state && e.isValid(value)) { 
+                        e.value = value;
+                    } else {
+                        e.value =e.defaultValue;
+                        if(!e.isValid(value)) LOG_DEBUG(e.message);
+                    } 
+                    std::cout << "Value: " << e.value << ", defaultValue: " << e.defaultValue << ", procPath: " << e.procPath << ", state: " << state << ", valid: " << e.isValid(value) << std::endl;
+            }
+        }, item.second);
+    }
+}
 
 // Define a structure for configuration items
 template<typename T>
@@ -24,6 +136,7 @@ struct ConfigItem {
     std::string errorMessage;
     std::string procPath;
 };
+
 
 // Utility function to handle configuration lookup, default assignment, and validation
 template<typename T>
@@ -61,13 +174,13 @@ void handleConfigItem(libconfig::Config &lc, ConfigItem<T> &item, std::vector<st
             }
         }
     }
-
+    std::cout << "##############" << item.path << " ## " << item.validate(item.value) << std::endl; // Log validation error
     if (!readFromConfig && !readFromProc) {
         item.value = item.defaultValue; // Assign default value if not found anywhere
         missingConfigs.push_back(item.path); // Record missing config
         LOG_WARN("Missing configuration for " + item.path + ", using default.");
     } else if (!item.validate(item.value)) {
-        LOG_ERROR(item.errorMessage); // Log validation error
+        LOG_ERROR("##############" << item.errorMessage); // Log validation error
         item.value = item.defaultValue; // Revert to default if validation fails
     }
 }
@@ -99,6 +212,9 @@ Config::Config() {
     }
 
     std::vector<std::string> missingConfigs; // Track missing configuration entries
+
+    // Configuration items
+
 
     // Configuration items
     std::vector<ConfigItem<bool>> boolItems = {

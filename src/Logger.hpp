@@ -47,9 +47,12 @@ public:
     static bool init();
     static void log(Level level, std::string module, LogMsg msg);
 
+    static void setLevel(std::string lvl);
+    static Level level;
+
 private:
     static std::mutex log_mtx;
-    static Level level;
+    
 };
 
 #endif

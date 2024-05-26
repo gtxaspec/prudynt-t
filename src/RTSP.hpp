@@ -9,7 +9,7 @@
 
 class RTSP {
 public:
-    RTSP() {};
+    //RTSP() {};
     void run();
 
     void set_framesource(std::shared_ptr<MsgChannel<H264NALUnit>> chn) {

@@ -1,3 +1,4 @@
+#include <chrono>
 #include <iostream>
 #include <thread>
 
@@ -5,7 +6,6 @@
 #include "Encoder.hpp"
 #include "RTSP.hpp"
 #include "Logger.hpp"
-#include "IMP.hpp"
 #include "Config.hpp"
 #include "Motion.hpp"
 #include "WS.hpp"
@@ -20,7 +20,42 @@ Encoder enc;
 Encoder jpg;
 Motion motion;
 RTSP rtsp;
+CFG cfg;
 WS ws;
+
+std::atomic<int> enc_thread_signal;
+
+void restart_encoder() {
+
+    LOG_DEBUG("WEncoder restart.");
+
+    std::chrono::milliseconds duration;
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    enc_thread_signal.store(2);
+
+    while(!(enc_thread_signal.load() & 4)) {
+
+        usleep(1000);
+        duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
+        if( duration.count() > 1000 * 1000 * 10 ) break;
+    }
+    LOG_DEBUG("Encoder stopped in " << duration.count() << "ms");
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    enc_thread_signal.store(0);
+
+    while(enc_thread_signal.load()!=1) {
+
+        usleep(1000);
+        duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t1);
+        if( duration.count() > 1000 * 1000 * 10 ) break;
+    }
+    LOG_DEBUG("Encoder started in " << duration.count() << "ms"); 
+
+    duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
+    LOG_DEBUG("Encoder restarted in " << duration.count() << "ms"); 
+}
 
 bool timesync_wait() {
     // I don't really have a better way to do this than
@@ -55,23 +90,27 @@ int main(int argc, const char *argv[]) {
         LOG_ERROR("Time is not synchronized.");
         return 1;
     }
+    /*
     if (IMP::init()) {
         LOG_ERROR("IMP initialization failed.");
         return 1;
     }
+    */
     if (Config::singleton()->motionEnable) {
         if (motion.init()) {
         std::cout << "Motion initialization failed." << std::endl;
         return 1;
         }
     }
+    /*
     if (enc.init()) {
         LOG_ERROR("Encoder initialization failed.");
         return 1;
     }
+    */
 
-    ws_thread = std::thread(&WS::run, &ws);
-    enc_thread = std::thread(start_component<Encoder>, enc);
+    ws_thread = std::thread(&WS::run, &ws, &cfg);
+    enc_thread = std::thread(&Encoder::run, &enc, &enc_thread_signal, &cfg);
     rtsp_thread = std::thread(start_component<RTSP>, rtsp);
 
     if (Config::singleton()->motionEnable) {
@@ -79,11 +118,14 @@ int main(int argc, const char *argv[]) {
         motion_thread = std::thread(start_component<Motion>, motion);
     }
 
+    /*
     if (Config::singleton()->stream1jpegEnable) {
         LOG_DEBUG("JPEG support enabled");
         std::thread jpegThread(&Encoder::jpeg_snap, &jpg);
         jpegThread.detach();
     }
+    */   
+    
 
     enc_thread.join();
     rtsp_thread.join();
