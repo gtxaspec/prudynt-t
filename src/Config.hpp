@@ -5,6 +5,7 @@
 #include <variant>
 #include <iostream>
 #include <functional>
+#include <libconfig.h++>
 
 struct intEntry {
 	int& value;
@@ -133,9 +134,14 @@ class CFG {
 			std::string script_path;
 		};
 
+        bool config_loaded = false;
+        libconfig::Config lc;
+
     public:
 
 		CFG();
+        bool readConfig();
+        bool updateConfig();
 
 		_general general;
 		_rtsp rtsp;
@@ -307,6 +313,8 @@ class CFG {
 			{"motion.roi_count", 		intEntry{motion.roi_count, 1, [](const int &v) { return v >= 0 && v <= 4; }, "Motion ROI count should be between 0 and 4"}},						
 		};
 };
+
+//extern CFG cfg;
 
 class Config {
 public:

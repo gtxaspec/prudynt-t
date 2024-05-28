@@ -1,13 +1,17 @@
 #include "WS.hpp"
 #include <random>
 #include <fstream>
+#include <memory>
 #include "Config.hpp"
 #include "libwebsockets.h"
+#include <imp/imp_osd.h>
+
 
 #define MODULE "WEBSOCKET"
 
 extern void restart_encoder();
 extern std::atomic<int> enc_thread_signal;
+extern std::atomic<int> main_thread_signal;
 
 /* ROOT */
 enum {
@@ -69,11 +73,13 @@ static const char * const sensor_keys[] = {
 
 /* STREAM0 */
 enum {
-   PNT_STREAM0_RTSP_ENDBOINT = 1
+   PNT_STREAM0_RTSP_ENDBOINT = 1,
+   PNP_STREAM0_OSD_POS_UPTIME_X
 };
 
 static const char * const stream0_keys[] = {
-    "rtsp_endpoint"
+    "rtsp_endpoint",
+    "osd_pos_uptime_x"
 };
 
 /* STREAM1 */
@@ -125,7 +131,8 @@ char token[WEBSOCKET_TOKEN_LENGTH+1]{0};
 char ws_send_msg[2048]{0};
 
 struct user_ctx {
-    bool s = 0;
+    WS* ws;
+    bool s;
 };
 
 std::string generateToken(int length) {
@@ -273,6 +280,32 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
                 append_message(
                     "\"%s\"", Config::singleton()->stream0endpoint.c_str());                 
                 break;                                                  
+            case PNP_STREAM0_OSD_POS_UPTIME_X:
+                if(reason == LEJPCB_VAL_NUM_INT) {
+                    /*
+                    cfg.stream0.osd_pos_uptime_x = atoi(ctx->buf);
+
+                    IMPOSDRgnAttr rgnAttr;
+                    int ret = IMP_OSD_GetRgnAttr(2, &rgnAttr);
+                    int w = rgnAttr.rect.p1.x - rgnAttr.rect.p0.x + 1;
+
+                    LOG_DEBUG(cfg.stream0.osd_pos_uptime_x);
+                    LOG_DEBUG("X:" << rgnAttr.rect.p0.x << ", Y:" << rgnAttr.rect.p0.y << ", w:" << w) ;
+                    LOG_DEBUG(ret);
+                    if(ret==0) {
+                        rgnAttr.rect.p0.x = cfg.stream0.osd_pos_uptime_x;
+                        rgnAttr.rect.p1.x = rgnAttr.rect.p0.x + w;
+                        LOG_DEBUG("X:" << rgnAttr.rect.p0.x << ", Y:" << rgnAttr.rect.p0.y << ", w:" << w) ;
+                        ret = IMP_OSD_SetRgnAttr(2, &rgnAttr);
+                        LOG_DEBUG(ret);
+                    }
+                    */
+                   main_thread_signal.store(1);
+                   main_thread_signal.notify_one();
+                }
+                append_message(
+                    "\"%s\"", Config::singleton()->stream0endpoint.c_str());                 
+                break;             
             }
 
         u_ctx->s = 1;
@@ -435,8 +468,10 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
 signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
 {
     if ((reason & LEJPCB_OBJECT_START) && ctx->path_match) {
-
+        
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
+        
+        std::cout << "P: " << u_ctx->ws->cfg->stream0.osd_pos_uptime_x << std::endl;
 
         append_message(
             "%s\"%s\":{", u_ctx->s?",":"", root_keys[ctx->path_match-1]);
@@ -490,7 +525,8 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
 int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len) {
 
     struct lejp_ctx ctx;
-    struct user_ctx u_ctx;
+
+    user_ctx* u_ctx = (user_ctx*)lws_context_user(lws_get_context(wsi));
 
     int ws_send_msg_length, url_length;
     char url_token[128];
@@ -525,7 +561,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
             std::strcat(ws_send_msg, "{"); //start response json
 
-            lejp_construct(&ctx, root_callback, &u_ctx, root_keys, LWS_ARRAY_SIZE(root_keys));
+            lejp_construct(&ctx, root_callback, u_ctx, root_keys, LWS_ARRAY_SIZE(root_keys));
             lejp_parse(&ctx, (uint8_t *)json_data.c_str(), json_data.length());
             lejp_destruct(&ctx);
 
@@ -544,8 +580,8 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
     return 0;
 }
 
-void WS::run(CFG *cfg) {
-
+void WS::run() {
+    
     int opt;
     char *ip = NULL;
     int port = 8089;
@@ -562,15 +598,21 @@ void WS::run(CFG *cfg) {
 
     protocols.name = "WSS prudynt";
     protocols.callback = ws_callback;
-    protocols.per_session_data_size = 0;
+    protocols.per_session_data_size = sizeof(user_ctx);
     protocols.rx_buffer_size = 65536;
-
+    
     memset(&info, 0, sizeof(info));
     info.port = port;
     info.iface = ip;
     info.protocols = &protocols;
     info.gid = -1;
     info.uid = -1;
+
+    //add current class instances to lws context
+    user_ctx u_ctx;
+    u_ctx.ws = this;
+    u_ctx.s = 0;
+    info.user = &u_ctx;
 
     context = lws_create_context(&info);
 

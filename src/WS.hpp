@@ -4,6 +4,7 @@
 #include <atomic>
 #include "Logger.hpp"
 #include "Config.hpp"
+#include <memory>
 #include "libwebsockets.h"
 #include <imp/imp_system.h>
 #include <imp/imp_common.h>
@@ -15,10 +16,13 @@
 class WS {
     
     public:
-        void run(CFG *cfg);    
-
+        void run();  
+        WS(std::shared_ptr<CFG> conf) : cfg(conf) {}
+        
     private:
-
+        
+        std::shared_ptr<CFG> cfg;
+        
         lws_protocols protocols;
         struct lws_context_creation_info info;     
         struct lws_context *context;  

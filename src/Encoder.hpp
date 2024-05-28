@@ -17,7 +17,6 @@
 
 #include "MsgChannel.hpp"
 #include "Logger.hpp"
-#include "Config.hpp"
 #include "OSD.hpp"
 
 #include <../sysutils/su_base.h>
@@ -65,7 +64,7 @@ struct EncoderSink {
 class Encoder {
 	public:
 		Encoder();
-		void run(std::atomic<int> *thread_signal, CFG *cfg);
+		void run(std::atomic<int> *thread_signal);
 
 
 		static void flush() {

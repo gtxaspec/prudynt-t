@@ -27,6 +27,12 @@ int OSD::get_abs_pos(int max, int size, int pos) {
 
 void OSD::set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width, int height) {
     //picWidth, picHeight cpp macro !!
+    if(x>channelAttributes.encAttr.picWidth-width)
+        x=channelAttributes.encAttr.picWidth-width;
+    
+    if(y>channelAttributes.encAttr.picHeight-height)
+        y=channelAttributes.encAttr.picHeight-height;
+
     rgnAttr->rect.p0.x = get_abs_pos(channelAttributes.encAttr.picWidth, width, x);
     rgnAttr->rect.p0.y = get_abs_pos(channelAttributes.encAttr.picHeight, height, y);
     rgnAttr->rect.p1.x = rgnAttr->rect.p0.x + width - 1;

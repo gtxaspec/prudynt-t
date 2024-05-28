@@ -16,13 +16,18 @@ template <class T> void start_component(T c) {
     c.run();
 }
 
+
+
 Encoder enc;
 Encoder jpg;
 Motion motion;
 RTSP rtsp;
-CFG cfg;
-WS ws;
+//CFG cfg;
 
+std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
+WS ws(cfg);
+
+std::atomic<int> main_thread_signal;
 std::atomic<int> enc_thread_signal;
 
 void restart_encoder() {
@@ -109,8 +114,8 @@ int main(int argc, const char *argv[]) {
     }
     */
 
-    ws_thread = std::thread(&WS::run, &ws, &cfg);
-    enc_thread = std::thread(&Encoder::run, &enc, &enc_thread_signal, &cfg);
+    ws_thread = std::thread(&WS::run, ws);
+    enc_thread = std::thread(&Encoder::run, &enc, &enc_thread_signal);
     rtsp_thread = std::thread(start_component<RTSP>, rtsp);
 
     if (Config::singleton()->motionEnable) {
@@ -118,6 +123,12 @@ int main(int argc, const char *argv[]) {
         motion_thread = std::thread(start_component<Motion>, motion);
     }
 
+    while(1) {
+
+        main_thread_signal.wait(0);
+        usleep(1000*1000);
+        //std::cout << "MAIN: " << cfg.stream0.osd_pos_uptime_x << std::endl;
+    }
     /*
     if (Config::singleton()->stream1jpegEnable) {
         LOG_DEBUG("JPEG support enabled");

@@ -764,7 +764,7 @@ void Encoder::jpeg_snap(std::atomic<int> *thread_signal)
     }
 }
 
-void Encoder::run(std::atomic<int> *thread_signal, CFG *cfg)
+void Encoder::run(std::atomic<int> *thread_signal)
 {
     LOG_DEBUG("Encoder Start");
 

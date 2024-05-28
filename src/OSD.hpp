@@ -37,6 +37,14 @@ public:
     bool exit();
     void update();
     void updateDisplayEverySecond();
+
+    OSDTextItem timestamp;
+    OSDTextItem userText;
+    OSDTextItem uptimeStamp;
+
+    IMPOSDRgnAttr OSDLogo;
+    IMPRgnHandle OSDLogoHandle;
+        
 private:
     int freetype_init();
     void draw_glyph(OSDTextItem *ti, FT_BitmapGlyph bmg,
@@ -51,12 +59,7 @@ private:
     FT_Face fontface;
     FT_Stroker stroker;
 
-    OSDTextItem timestamp;
-    OSDTextItem userText;
-    OSDTextItem uptimeStamp;
 
-    IMPOSDRgnAttr OSDLogo;
-    IMPRgnHandle OSDLogoHandle;
 
     IMPEncoderCHNAttr channelAttributes;
 

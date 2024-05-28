@@ -28,9 +28,7 @@ bool read_proc(std::string procPath, std::string &line) {
     return false;
 }
 
-
-CFG::CFG() {
-    libconfig::Config lc;
+bool CFG::readConfig() {
 
     // Construct the path to the configuration file in the same directory as the program binary
     fs::path binaryPath = fs::read_symlink("/proc/self/exe").parent_path();
@@ -48,81 +46,119 @@ CFG::CFG() {
             LOG_INFO("Loaded configuration from " + etcPath.string());
         } catch (...) {
             LOG_WARN("Failed to load prudynt configuration file from /etc.");
-            return; // Exit if configuration file is missing
+            return 0; // Exit if configuration file is missing
         }
     } catch (const libconfig::ParseException &pex) {
         LOG_WARN("Parse error at " + std::string(pex.getFile()) + ":" + std::to_string(pex.getLine()) + " - " + pex.getError());
-        return; // Exit on parsing error
+        return 0; // Exit on parsing error
     }
+
+    return 1;
+}
+
+ bool CFG::updateConfig() {
+
+    if( config_loaded ) {
+
+    }
+    return 1;
+}
+
+CFG::CFG() {
     
-    for (auto &item : settings) {
-        
-        std::cout << item.first.c_str() << std::endl;
-        std::string path = item.first;
+    config_loaded = readConfig();
 
-        std::visit([&path,&lc](const auto& e) {
+    if( config_loaded ) {
 
-            using T = std::decay_t<decltype(e.value)>;
-            using U = std::decay_t<decltype(e)>;
+        for (auto &item : settings) {
             
-            T value; 
-            std::string line;
-            int state = lc.lookupValue(path, value);
-            if (!state && !e.procPath.empty()) 
-                state = read_proc(e.procPath, line)?2:0;
+            std::string path = item.first;
 
-            if constexpr (std::is_same_v<U, bolEntry>) {
-                if constexpr (std::is_same_v<T, bool>) {
-                    if(state && e.isValid(value)) { 
-                        e.value = value;
-                    } else {
-                        e.value = e.defaultValue;
-                        if(!e.isValid(value)) LOG_DEBUG(e.message);
-                    } 
-                    std::cout << "Value: " << e.value << ", defaultValue: " << e.defaultValue << ", procPath: " << e.procPath << ", state: " << state << ", valid: " << e.isValid(value) << std::endl;
-                }
-            } else if constexpr (std::is_same_v<U, intEntry>) {
-                if constexpr (std::is_same_v<T, int>)
-                    if(state==2) {
-                        std::istringstream iss(line);
-                        iss >> value;
-                    }
-                    if(state && e.isValid(value)) { 
-                        e.value = value;
-                    } else {
-                        e.value = e.defaultValue;
-                        if(!e.isValid(value)) LOG_DEBUG(e.message);
-                    } 
-                    std::cout << "Value: " << e.value << ", defaultValue: " << e.defaultValue << ", procPath: " << e.procPath << ", state: " << state<< ", valid: " << e.isValid(value) << std::endl;
-            } else if constexpr (std::is_same_v<U, strEntry>) {
-                if constexpr (std::is_same_v<T, std::string>)
-                    if(state==2) value = line;
-                    if(state && e.isValid(value)) { 
-                        e.value = value;
-                    } else {
-                        e.value =e.defaultValue;
-                        if(!e.isValid(value)) LOG_DEBUG(e.message);
-                    } 
-                    std::cout << "Value: " << e.value << ", defaultValue: " << e.defaultValue << ", procPath: " << e.procPath << ", state: " << state<< ", valid: " << e.isValid(value) << std::endl;
-            }else if constexpr (std::is_same_v<U, uintEntry>) {
-                if constexpr (std::is_same_v<T, unsigned int>)
-                    if(state==2) {
-                        std::istringstream iss(line);
-                        if (line.find("0x") == 0) { 
-                            iss >> std::hex >> value;
+            std::visit([&path,this](const auto& e) {
+
+                using T = std::decay_t<decltype(e.value)>;
+                using U = std::decay_t<decltype(e)>;
+                
+                T value; 
+                std::string line;
+                int state = lc.lookupValue(path, value);
+
+                if (!state && !e.procPath.empty()) 
+                    state |= read_proc(e.procPath, line)?2:0;
+
+                if constexpr (std::is_same_v<U, bolEntry>) {
+                    if constexpr (std::is_same_v<T, bool>) {
+                        if(state){ 
+                            if(e.isValid(value)) { 
+                                e.value = value;
+                            } else {
+                                std::cout << "[CFG:Config.cpp] " << path << ", " << e.message << std::endl;
+                                e.value = e.defaultValue;
+                            }
                         } else {
-                            iss >> value;
+                            e.value = e.defaultValue;
                         }
                     }
-                    if(state && e.isValid(value)) { 
-                        e.value = value;
-                    } else {
-                        e.value =e.defaultValue;
-                        if(!e.isValid(value)) LOG_DEBUG(e.message);
-                    } 
-                    std::cout << "Value: " << e.value << ", defaultValue: " << e.defaultValue << ", procPath: " << e.procPath << ", state: " << state << ", valid: " << e.isValid(value) << std::endl;
-            }
-        }, item.second);
+                } else if constexpr (std::is_same_v<U, intEntry>) {
+                    if constexpr (std::is_same_v<T, int>) {
+                        if(state==2) {
+                            std::istringstream iss(line);
+                            iss >> value;
+                            std::cout << "[CFG:Config.cpp] " << path << ", Use config from procfs." << std::endl;
+                        }
+                        if(state){ 
+                            if(e.isValid(value)) { 
+                                e.value = value;
+                            } else {
+                                std::cout << "[CFG:Config.cpp] " << path << ", " << e.message << std::endl;
+                                e.value = e.defaultValue;
+                            }
+                        } else {
+                            e.value = e.defaultValue;
+                        }
+                    }
+                } else if constexpr (std::is_same_v<U, strEntry>) {
+                    if constexpr (std::is_same_v<T, std::string>) {
+                        if(state == 2) { //not read from config but found in procfs
+                            value = line;
+                            std::cout << "[CFG:Config.cpp] " << path << ", use config from procfs." << std::endl;
+                        }
+                        if(state){ 
+                            if(e.isValid(value)) { 
+                                e.value = value;
+                            } else {
+                                std::cout << "[CFG:Config.cpp] " << path << ", " << e.message << std::endl;
+                                e.value = e.defaultValue;
+                            }
+                        } else {
+                            e.value = e.defaultValue;
+                        }
+                    }
+                }else if constexpr (std::is_same_v<U, uintEntry>) {
+                    if constexpr (std::is_same_v<T, unsigned int>) {
+                        if(state==2) {
+                            std::istringstream iss(line);
+                            if (line.find("0x") == 0) { 
+                                iss >> std::hex >> value;
+                            } else {
+                                iss >> value;
+                            }
+                            std::cout << "[CFG:Config.cpp] " << path << ", Use config from procfs." << std::endl;
+                        }
+                        if(state){ 
+                            if(e.isValid(value)) { 
+                                e.value = value;
+                            } else {
+                                std::cout << "[CFG:Config.cpp]" << path << ", " << e.message << std::endl;
+                                e.value = e.defaultValue;
+                            }
+                        } else {
+                            e.value = e.defaultValue;
+                        }
+                    }
+                }
+            }, item.second);
+        }
     }
 }
 
