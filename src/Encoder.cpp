@@ -7,23 +7,23 @@
 
 #define MODULE "ENCODER"
 
-#define OSDPoolSize 131072
+#define OSDPoolSize 131072*4
 
 std::mutex Encoder::sinks_lock;
 std::map<uint32_t, EncoderSink> Encoder::sinks;
 uint32_t Encoder::sink_id = 0;
 
-Encoder::Encoder() {}
+//Encoder::Encoder() {}
 
 IMPSensorInfo Encoder::create_sensor_info(std::string sensor)
 {
     IMPSensorInfo out;
     memset(&out, 0, sizeof(IMPSensorInfo));
-    LOG_INFO("Sensor: " << Config::singleton()->sensorModel.c_str());
-    std::strcpy(out.name, Config::singleton()->sensorModel.c_str());
+    LOG_INFO("Sensor: " << cfg->sensor.model.c_str());
+    std::strcpy(out.name, cfg->sensor.model.c_str());
     out.cbus_type = TX_SENSOR_CONTROL_INTERFACE_I2C;
-    std::strcpy(out.i2c.type, Config::singleton()->sensorModel.c_str());
-    out.i2c.addr = Config::singleton()->sensorI2Caddress;
+    std::strcpy(out.i2c.type, cfg->sensor.model.c_str());
+    out.i2c.addr = cfg->sensor.i2c_address;
     return out;
 }
 
@@ -38,20 +38,20 @@ IMPFSChnAttr Encoder::create_fs_attr()
     // PIX_FMT_NV12
     // Of those, I have only gotten PIX_FMT_NV12 to produce frames.
     out.pixFmt = PIX_FMT_NV12;
-    out.outFrmRateNum = Config::singleton()->stream0fps;
+    out.outFrmRateNum = cfg->stream0.fps;
     out.outFrmRateDen = 1;
-    out.nrVBs = Config::singleton()->stream0buffers;
+    out.nrVBs = cfg->stream0.buffers;
     out.type = FS_PHY_CHANNEL;
     out.crop.enable = 0;
     out.crop.top = 0;
     out.crop.left = 0;
-    out.crop.width = Config::singleton()->stream0width;
-    out.crop.height = Config::singleton()->stream0height;
-    out.scaler.enable = Config::singleton()->stream0scaleEnable;
-    out.scaler.outwidth = Config::singleton()->stream0scaleWidth;
-    out.scaler.outheight = Config::singleton()->stream0scaleHeight;
-    out.picWidth = Config::singleton()->stream0width; // Testing stream size sync
-    out.picHeight = Config::singleton()->stream0height;
+    out.crop.width = cfg->stream0.width;
+    out.crop.height =cfg->stream0.height;
+    out.scaler.enable = cfg->stream0.scale_enabled;
+    out.scaler.outwidth = cfg->stream0.scale_width;
+    out.scaler.outheight = cfg->stream0.scale_width;
+    out.picWidth = cfg->stream0.width; // Testing stream size sync
+    out.picHeight = cfg->stream0.height;
     return out;
 }
 
@@ -138,7 +138,7 @@ int Encoder::system_init()
     }
     LOG_DEBUG("ISP Opened!");
 
-    sinfo = create_sensor_info(Config::singleton()->sensorModel.c_str());
+    sinfo = create_sensor_info(cfg->sensor.model.c_str());
     ret = IMP_ISP_AddSensor(&sinfo);
     if (ret < 0)
     {
@@ -183,13 +183,13 @@ int Encoder::system_init()
     IMP_ISP_Tuning_SetAntiFlickerAttr(IMPISP_ANTIFLICKER_60HZ);
     LOG_DEBUG("ISP Tuning Defaults set");
 
-    ret = IMP_ISP_Tuning_SetSensorFPS(Config::singleton()->sensorFps, 1);
+    ret = IMP_ISP_Tuning_SetSensorFPS(cfg->sensor.fps, 1);
     if (ret < 0)
     {
         LOG_DEBUG("ERROR: IMP_ISP_Tuning_SetSensorFPS() == " + std::to_string(ret));
         return ret;
     }
-    LOG_DEBUG("IMP_ISP_Tuning_SetSensorFPS == " + std::to_string(Config::singleton()->sensorFps));
+    LOG_DEBUG("IMP_ISP_Tuning_SetSensorFPS == " + std::to_string(cfg->sensor.fps));
 
     // Set the ISP to DAY on launch
     ret = IMP_ISP_Tuning_SetISPRunningMode(IMPISP_RUNNING_MODE_DAY);
@@ -207,9 +207,9 @@ int Encoder::framesource_init()
 {
     LOG_DEBUG("Encoder::framesource_init()");
     int ret = 0;
-    int rotation = Config::singleton()->stream0rotation;
-    int rot_height = Config::singleton()->stream0height;
-    int rot_width = Config::singleton()->stream0width;
+    int rotation = cfg->stream0.rotation;
+    int rot_height = cfg->stream0.height;
+    int rot_width = cfg->stream0.width;
 
     IMPFSChnAttr fs_chn_attr = create_fs_attr();
 
@@ -282,37 +282,38 @@ int Encoder::encoder_init()
 
     memset(&channel_attr, 0, sizeof(IMPEncoderCHNAttr));
     rc_attr = &channel_attr.rcAttr;
+
 #if defined(PLATFORM_T31)
     IMPEncoderProfile encoderProfile;
 
     // Allow user to specify the profile directly in the future with fallback defaults
-    const std::string &format = Config::singleton()->stream0format;
+    const std::string &format = cfg->stream0.format;
     encoderProfile = (format == "H265") ? IMP_ENC_PROFILE_HEVC_MAIN : IMP_ENC_PROFILE_AVC_HIGH;
 
     IMP_Encoder_SetDefaultParam(
-        &channel_attr, encoderProfile, IMP_ENC_RC_MODE_CAPPED_QUALITY, Config::singleton()->stream0width, Config::singleton()->stream0height,
-        Config::singleton()->stream0fps, 1, Config::singleton()->stream0gop, 2,
-        -1, Config::singleton()->stream0bitrate);
+        &channel_attr, encoderProfile, IMP_ENC_RC_MODE_CAPPED_QUALITY, cfg->stream0.width, cfg->stream0.height,
+        cfg->stream0.fps, 1, cfg->stream0.gop, 2,
+        -1, cfg->stream0.bitrate);
 
     switch (rc_attr->attrRcMode.rcMode)
     {
     case IMP_ENC_RC_MODE_CAPPED_QUALITY:
-        rc_attr->attrRcMode.attrVbr.uTargetBitRate = Config::singleton()->stream0bitrate;
-        rc_attr->attrRcMode.attrVbr.uMaxBitRate = Config::singleton()->stream0bitrate;
+        rc_attr->attrRcMode.attrVbr.uTargetBitRate = cfg->stream0.bitrate;
+        rc_attr->attrRcMode.attrVbr.uMaxBitRate = cfg->stream0.bitrate;
         rc_attr->attrRcMode.attrVbr.iInitialQP = -1;
         rc_attr->attrRcMode.attrVbr.iMinQP = 20;
         rc_attr->attrRcMode.attrVbr.iMaxQP = 45;
         rc_attr->attrRcMode.attrVbr.iIPDelta = 3;
         rc_attr->attrRcMode.attrVbr.iPBDelta = 3;
         // rc_attr->attrRcMode.attrVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
-        rc_attr->attrRcMode.attrVbr.uMaxPictureSize = Config::singleton()->stream0width;
+        rc_attr->attrRcMode.attrVbr.uMaxPictureSize = cfg->stream0.width;
         rc_attr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
         break;
     }
 
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
     // channel_attr.encAttr.enType = PT_JPEG;
-    const std::string &format = Config::singleton()->stream0format;
+    const std::string &format = cfg->stream0.format;
 
 #if defined(PLATFORM_T30)
     channel_attr.encAttr.enType = (format == "H264") ? PT_H264 : (format == "H265") ? PT_H265
@@ -330,25 +331,25 @@ int Encoder::encoder_init()
     // requested framerate when the profile is set to Baseline.
     // For this reason, Main or High are recommended.
     channel_attr.encAttr.profile = 2;
-    channel_attr.encAttr.picWidth = Config::singleton()->stream0width;
-    channel_attr.encAttr.picHeight = Config::singleton()->stream0height;
+    channel_attr.encAttr.picWidth = cfg->stream0.width;
+    channel_attr.encAttr.picHeight = cfg->stream0.height;
 
-    channel_attr.rcAttr.outFrmRate.frmRateNum = Config::singleton()->stream0fps;
+    channel_attr.rcAttr.outFrmRate.frmRateNum = cfg->stream0.fps;
     channel_attr.rcAttr.outFrmRate.frmRateDen = 1;
 
     // Setting maxGop to a low value causes the encoder to emit frames at a much
     // slower rate. A sufficiently low value can cause the frame emission rate to
     // drop below the frame rate.
     // I find that 2x the frame rate is a good setting.
-    rc_attr->maxGop = Config::singleton()->stream0maxGop;
+    rc_attr->maxGop = cfg->stream0.max_gop;
 
-    if (Config::singleton()->stream0format == "H264")
+    if (cfg->stream0.format == "H264")
     {
         rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
         rc_attr->attrRcMode.attrH264Smart.maxQp = 45;
         rc_attr->attrRcMode.attrH264Smart.minQp = 24;
         rc_attr->attrRcMode.attrH264Smart.staticTime = 2;
-        rc_attr->attrRcMode.attrH264Smart.maxBitRate = Config::singleton()->stream0bitrate;
+        rc_attr->attrRcMode.attrH264Smart.maxBitRate = cfg->stream0.bitrate;
         rc_attr->attrRcMode.attrH264Smart.iBiasLvl = 0;
         rc_attr->attrRcMode.attrH264Smart.changePos = 80;
         rc_attr->attrRcMode.attrH264Smart.qualityLvl = 0;
@@ -357,13 +358,13 @@ int Encoder::encoder_init()
         rc_attr->attrRcMode.attrH264Smart.gopRelation = false;
 #if defined(PLATFORM_T30)
     }
-    else if (Config::singleton()->stream0format == "H265")
+    else if (cfg->stream0.format == "H265")
     {
         rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
         rc_attr->attrRcMode.attrH265Smart.maxQp = 45;
         rc_attr->attrRcMode.attrH265Smart.minQp = 15;
         rc_attr->attrRcMode.attrH265Smart.staticTime = 2;
-        rc_attr->attrRcMode.attrH265Smart.maxBitRate = Config::singleton()->stream0bitrate;
+        rc_attr->attrRcMode.attrH265Smart.maxBitRate = cfg->stream0.bitrate;
         rc_attr->attrRcMode.attrH265Smart.iBiasLvl = 0;
         rc_attr->attrRcMode.attrH265Smart.changePos = 80;
         rc_attr->attrRcMode.attrH265Smart.qualityLvl = 2;
@@ -384,7 +385,7 @@ int Encoder::encoder_init()
 #endif
 
 #if defined(PLATFORM_T31)
-    if (Config::singleton()->stream1jpegEnable)
+    if (cfg->stream1.jpeg_enabled)
     {
         ret = IMP_Encoder_SetbufshareChn(1, 0);
         if (ret < 0)
@@ -450,7 +451,7 @@ bool Encoder::init()
     }
     LOG_DEBUG("Encoder Group created");
 
-    if (Config::singleton()->OSDEnable == 0)
+    if (!cfg->osd.enabled)
     {
         LOG_DEBUG("OSD disabled");
 
@@ -468,7 +469,8 @@ bool Encoder::init()
         // If OSD is enabled, initialize OSD and bind FrameSource to OSD, then OSD to Encoder
         LOG_DEBUG("OSD enabled");
 
-        ret = osd.init();
+        //OSD osd(cfg);
+        ret = osd.init(cfg);
         if (ret)
         {
             LOG_ERROR("OSD Init Failed");
@@ -505,15 +507,15 @@ bool Encoder::init()
     return false;
 }
 
-void Encoder::stop()
+void Encoder::exit()
 {
 
     int ret = 0, i = 0, chnNum = 0;
     IMPEncoderChnStat chn_stat;
 
-    if (Config::singleton()->stream1jpegEnable)
+    if (cfg->stream1.jpeg_enabled)
     {
-        jpeg_thread_signal.store(2);
+        cfg->jpg_thread_signal.fetch_or(4);
     }
 
     IMP_Encoder_StopRecvPic(0);
@@ -549,7 +551,7 @@ void Encoder::stop()
     LOG_DEBUG("IMP_Encoder_DestroyGroup(" << i << ") error: " << ret);
 
     osd.exit();
-    
+
     IMP_System_Exit();
     LOG_DEBUG("IMP_System_Exit");
 
@@ -573,6 +575,9 @@ void Encoder::stop()
 
     IMP_ISP_Close();
     LOG_DEBUG("IMP_ISP_Close");
+
+    cfg->encoder_thread_signal.fetch_xor(4); // remove stopping
+    cfg->encoder_thread_signal.fetch_or(8); // set stopped
 }
 
 static int save_jpeg_stream(int fd, IMPEncoderStream *stream)
@@ -654,7 +659,7 @@ void MakeTables(int q, uint8_t *lqt, uint8_t *cqt)
     }
 }
 
-void Encoder::jpeg_snap(std::atomic<int> *thread_signal)
+void Encoder::jpeg_snap(std::shared_ptr<CFG>& cfg)
 {
     nice(-18);
 
@@ -664,15 +669,16 @@ void Encoder::jpeg_snap(std::atomic<int> *thread_signal)
 
     // memset(&channel_attr_jpg, 0, sizeof(IMPEncoderCHNAttr));
     // rc_attr = &channel_attr_jpg.rcAttr;
-
-    while ((thread_signal->load() & 8) != 8)
+    
+    while ((cfg->jpg_thread_signal.load() & 256) != 256)
     {
-
-        if (thread_signal->load() == 0)
+        // init
+        if (cfg->jpg_thread_signal.load() & 1)
         {
+            LOG_DEBUG("Init jpeg thread.");
 #if defined(PLATFORM_T31)
             IMP_Encoder_SetDefaultParam(&channel_attr_jpg, IMP_ENC_PROFILE_JPEG, IMP_ENC_RC_MODE_FIXQP,
-                                        Config::singleton()->stream0width, Config::singleton()->stream0height, 24, 1, 0, 0, Config::singleton()->stream1jpegQuality, 0);
+                                        cfg->stream0.width, cfg->stream0.height, 24, 1, 0, 0, cfg->stream1.jpeg_quality, 0);
 
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
             IMPEncoderAttr *enc_attr;
@@ -680,8 +686,8 @@ void Encoder::jpeg_snap(std::atomic<int> *thread_signal)
             enc_attr->enType = PT_JPEG;
             enc_attr->bufSize = 0;
             enc_attr->profile = 2;
-            enc_attr->picWidth = Config::singleton()->stream0width;
-            enc_attr->picHeight = Config::singleton()->stream0height;
+            enc_attr->picWidth = cfg->stream0.width;
+            enc_attr->picHeight = cfg->stream0.height;
 #endif
 
             ret = channel_init(1, 0, &channel_attr_jpg);
@@ -694,15 +700,17 @@ void Encoder::jpeg_snap(std::atomic<int> *thread_signal)
 
             IMP_Encoder_StartRecvPic(1); // Start receiving pictures once
 
-            thread_signal->store(1);
+            cfg->jpg_thread_signal.fetch_or(2);
+            LOG_DEBUG("Start jpeg thread.");
         }
 
-        while (thread_signal->load() == 1)
-        { // Check condition to exit loop
+        // running
+        while (cfg->jpg_thread_signal.load() & 2)
+        { 
 
 #if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
             IMPEncoderJpegeQl pstJpegeQl;
-            MakeTables(Config::singleton()->stream1jpegQuality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
+            MakeTables(cfg->stream1.jpeg_quality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
             pstJpegeQl.user_ql_en = 1;
             IMP_Encoder_SetJpegeQl(1, &pstJpegeQl);
 #endif
@@ -713,7 +721,7 @@ void Encoder::jpeg_snap(std::atomic<int> *thread_signal)
             if (IMP_Encoder_GetStream(1, &stream_jpeg, 1) == 0)
             {                                                                 // Check for success
                 std::string tempPath = "/tmp/snapshot.tmp";                   // Temporary path
-                std::string finalPath = Config::singleton()->stream1jpegPath; // Final path for the JPEG snapshot
+                std::string finalPath = cfg->stream1.jpeg_path; // Final path for the JPEG snapshot
 
                 // Open and create temporary file with read and write permissions
                 int snap_fd = open(tempPath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
@@ -751,22 +759,26 @@ void Encoder::jpeg_snap(std::atomic<int> *thread_signal)
                 }
 
                 // Delay before we release, otherwise an overflow may occur
-                std::this_thread::sleep_for(std::chrono::milliseconds(Config::singleton()->stream1jpegRefresh)); // Control the rate
-                IMP_Encoder_ReleaseStream(1, &stream_jpeg);                                                      // Release stream after saving
+                std::this_thread::sleep_for(std::chrono::milliseconds(cfg->stream1.jpeg_refresh)); // Control the rate
+                IMP_Encoder_ReleaseStream(1, &stream_jpeg);                                        // Release stream after saving
+            }
+
+            if (cfg->jpg_thread_signal.load() & 4)
+            {
+
+                LOG_DEBUG("Stop jpeg thread.");
+                cfg->jpg_thread_signal.fetch_xor(7);
+                cfg->jpg_thread_signal.fetch_or(8);
             }
         }
 
-        if (thread_signal->load() & 2)
-        {
-
-            thread_signal->store(4);
-        }
+        usleep(1000);
     }
 }
 
-void Encoder::run(std::atomic<int> *thread_signal)
+void Encoder::run()
 {
-    LOG_DEBUG("Encoder Start");
+    LOG_DEBUG("Encoder Start. ");
 
     // The encoder thread is very important, but we
     // want sink threads to have higher priority.
@@ -774,7 +786,8 @@ void Encoder::run(std::atomic<int> *thread_signal)
 
     int64_t last_nal_ts;
 
-    while ((thread_signal->load() & 8) != 8)
+    // 256 = exit thread
+    while ((cfg->encoder_thread_signal.load() & 256) != 256)
     {
 
         // LOG_DEBUG("thread_signal->load() " << thread_signal->load());
@@ -785,8 +798,9 @@ void Encoder::run(std::atomic<int> *thread_signal)
         //  or nearly 300,000 years. I think it's okay if we don't
         //  handle timestamp overflows. :)
         last_nal_ts = 0;
-
-        if (thread_signal->load() == 0)
+        
+        // 1 = init and start
+        if (cfg->encoder_thread_signal.load() & 1)
         {
 
             init();
@@ -796,24 +810,24 @@ void Encoder::run(std::atomic<int> *thread_signal)
             IMP_Encoder_StartRecvPic(0);
             LOG_DEBUG("Encoder StartRecvPic success");
 
-            if (Config::singleton()->stream1jpegEnable)
+            if (cfg->stream1.jpeg_enabled)
             {
 
                 LOG_DEBUG("JPEG support enabled");
+                cfg->jpg_thread_signal.fetch_xor(8); //remove stopped bit
                 if (jpeg_thread.joinable())
                 {
-                    jpeg_thread_signal.store(0);
+                    cfg->jpg_thread_signal.fetch_or(1);
                 }
                 else
                 {
-                    jpeg_thread = std::thread(&Encoder::jpeg_snap, this, &jpeg_thread_signal);
+                    jpeg_thread = std::thread(&Encoder::jpeg_snap, this, std::ref(cfg));
                 }
             }
-
-            thread_signal->store(1);
+            cfg->encoder_thread_signal.fetch_or(2);
         }
 
-        while (thread_signal->load() == 1)
+        while (cfg->encoder_thread_signal.load() & 2)
         {
 
             IMPEncoderStream stream;
@@ -828,7 +842,7 @@ void Encoder::run(std::atomic<int> *thread_signal)
             // really matter which NAL we select here as they
             // all have identical timestamps.
             int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
-            if (nal_ts - last_nal_ts > 1.5 * (1000000 / Config::singleton()->stream0fps))
+            if (nal_ts - last_nal_ts > 1.5 * (1000000 / cfg->stream0.fps))
             {
                 // Silence for now until further tests / THINGINO
                 // LOG_WARN("The encoder dropped a frame.");
@@ -926,7 +940,6 @@ void Encoder::run(std::atomic<int> *thread_signal)
                             // This prevents the MsgChannels from clogging up with
                             // old data.
                             LOG_ERROR("Sink " << it->second.name << " clogged! Discarding NAL.");
-                            usleep(1000);
                             // H264NALUnit old_nal;
                             // it->second.chn->read(&old_nal);
                         }
@@ -934,7 +947,7 @@ void Encoder::run(std::atomic<int> *thread_signal)
                 }
             }
 
-            if (Config::singleton()->OSDEnable)
+            if (cfg->osd.enabled)
             {
                 osd.update();
             }
@@ -944,11 +957,11 @@ void Encoder::run(std::atomic<int> *thread_signal)
             std::this_thread::yield();
         }
 
-        // stop and cleanup thread on signal
-        if (thread_signal->load() & 2)
-        {
-            stop();
-            thread_signal->store(4);
+        // 4 = Stop thread
+        if(cfg->encoder_thread_signal.load() & 4) {
+            exit();
         }
+
+        usleep(1000);
     }
 }

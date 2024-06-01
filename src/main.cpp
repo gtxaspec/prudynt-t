@@ -16,30 +16,28 @@ template <class T> void start_component(T c) {
     c.run();
 }
 
-
-
-Encoder enc;
-Encoder jpg;
-Motion motion;
-RTSP rtsp;
-//CFG cfg;
+//std::atomic<int> enc_thread_signal;
+auto main_thread_signal = std::make_shared<std::atomic<int>>(0);
 
 std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
-WS ws(cfg);
 
-std::atomic<int> main_thread_signal;
-std::atomic<int> enc_thread_signal;
+WS ws(cfg, main_thread_signal);
+Encoder enc(cfg);
+Encoder jpg(cfg);
+Motion motion;
+RTSP rtsp;
 
 void restart_encoder() {
 
-    LOG_DEBUG("WEncoder restart.");
+    LOG_DEBUG("Encoder restart. ");
 
     std::chrono::milliseconds duration;
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    enc_thread_signal.store(2);
+    cfg->encoder_thread_signal.fetch_xor(3);
+    cfg->encoder_thread_signal.fetch_or(4);
 
-    while(!(enc_thread_signal.load() & 4)) {
+    while((cfg->encoder_thread_signal.load() & 8) != 8) {
 
         usleep(1000);
         duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
@@ -48,9 +46,10 @@ void restart_encoder() {
     LOG_DEBUG("Encoder stopped in " << duration.count() << "ms");
 
     auto t1 = std::chrono::high_resolution_clock::now();
-    enc_thread_signal.store(0);
+    cfg->encoder_thread_signal.fetch_xor(8);
+    cfg->encoder_thread_signal.fetch_or(1);
 
-    while(enc_thread_signal.load()!=1) {
+    while((cfg->encoder_thread_signal.load() & 2) != 2) {
 
         usleep(1000);
         duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t1);
@@ -101,7 +100,7 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
     */
-    if (Config::singleton()->motionEnable) {
+    if (cfg->motion.enabled) {
         if (motion.init()) {
         std::cout << "Motion initialization failed." << std::endl;
         return 1;
@@ -115,19 +114,28 @@ int main(int argc, const char *argv[]) {
     */
 
     ws_thread = std::thread(&WS::run, ws);
-    enc_thread = std::thread(&Encoder::run, &enc, &enc_thread_signal);
+    enc_thread = std::thread(&Encoder::run, &enc);
     rtsp_thread = std::thread(start_component<RTSP>, rtsp);
 
-    if (Config::singleton()->motionEnable) {
+    if (cfg->motion.enabled) {
         LOG_DEBUG("Motion detection enabled");
         motion_thread = std::thread(start_component<Motion>, motion);
     }
 
     while(1) {
 
-        main_thread_signal.wait(0);
         usleep(1000*1000);
-        //std::cout << "MAIN: " << cfg.stream0.osd_pos_uptime_x << std::endl;
+
+        cfg->main_thread_signal.wait(1);
+
+        std::cout << "MAIN SIGNAL" << std::endl;
+
+        if(cfg->main_thread_signal & 2) {
+            cfg->main_thread_signal.fetch_xor(2);
+            restart_encoder();
+        }
+
+        cfg->main_thread_signal.store(1);
     }
     /*
     if (Config::singleton()->stream1jpegEnable) {

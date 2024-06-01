@@ -1,5 +1,8 @@
 #include <iostream>
 #include <vector>
+#include <cmath>
+#include <algorithm>
+#include <cstdint>
 #include "OSD.hpp"
 #include "Encoder.hpp"
 #include "Config.hpp"
@@ -16,7 +19,112 @@
 #if defined(PLATFORM_T31)
 	#define picWidth uWidth
 	#define picHeight uHeight
+	#define IMPEncoderCHNAttr IMPEncoderChnAttr
+	#define IMPEncoderCHNStat IMPEncoderChnStat    
 #endif
+/*
+void OSD::rotateBGRAImage(uint8_t*& inputImage, int& width, int& height, int angle, bool del = true) {
+
+    double angleRad = angle * (M_PI / 180.0);
+
+    int newWidth = static_cast<int>(std::abs(width * std::cos(angleRad)) + std::abs(height * std::sin(angleRad))) * 1.02;
+    int newHeight = static_cast<int>(std::abs(width * std::sin(angleRad)) + std::abs(height * std::cos(angleRad))) * 1.02;
+
+    int centerX = width / 2;
+    int centerY = height / 2;
+
+    int newCenterX = newWidth / 2;
+    int newCenterY = newHeight / 2;
+
+    uint8_t* rotatedImage = new uint8_t[newWidth * newHeight * 4]();
+
+    for (int y = 0; y < newHeight; ++y) {
+        for (int x = 0; x < newWidth; ++x) {
+
+            int newX = x - newCenterX;
+            int newY = y - newCenterY;
+
+            int origX = static_cast<int>(newX * std::cos(angleRad) + newY * std::sin(angleRad)) + centerX;
+            int origY = static_cast<int>(-newX * std::sin(angleRad) + newY * std::cos(angleRad)) + centerY;
+
+            if (origX >= 0 && origX < width && origY >= 0 && origY < height) {
+
+                for (int c = 0; c < 4; ++c) {
+                    rotatedImage[(y * newWidth + x) * 4 + c] = inputImage[(origY * width + origX) * 4 + c];
+                }
+            }
+        }
+    }
+
+    if(del) delete[] inputImage;
+    inputImage = rotatedImage;
+    width = newWidth;
+    height = newHeight;
+}
+*/
+void OSD::rotateBGRAImage(uint8_t*& inputImage, int& width, int& height, int angle, bool del = true) {
+    // Convert angle to radians
+    double angleRad = angle * (M_PI / 180.0);
+
+    // Calculate the bounding box for the rotated image
+    int originalCorners[4][2] = {
+        {0, 0},
+        {width, 0},
+        {0, height},
+        {width, height}
+    };
+
+    int minX = INT_MAX, maxX = INT_MIN, minY = INT_MAX, maxY = INT_MIN;
+
+    for (int i = 0; i < 4; ++i) {
+        int x = originalCorners[i][0];
+        int y = originalCorners[i][1];
+        
+        int newX = static_cast<int>(x * std::cos(angleRad) - y * std::sin(angleRad));
+        int newY = static_cast<int>(x * std::sin(angleRad) + y * std::cos(angleRad));
+
+        if (newX < minX) minX = newX;
+        if (newX > maxX) maxX = newX;
+        if (newY < minY) minY = newY;
+        if (newY > maxY) maxY = newY;
+    }
+
+    int newWidth = maxX - minX + 1;
+    int newHeight = maxY - minY + 1;
+
+    // Center of the original image
+    int centerX = width / 2;
+    int centerY = height / 2;
+
+    // Center of the new image
+    int newCenterX = newWidth / 2;
+    int newCenterY = newHeight / 2;
+
+    // Initialize new image
+    uint8_t* rotatedImage = new uint8_t[newWidth * newHeight * 4]();
+
+    // Iterate over the new image
+    for (int y = 0; y < newHeight; ++y) {
+        for (int x = 0; x < newWidth; ++x) {
+            int newX = x - newCenterX;
+            int newY = y - newCenterY;
+
+            int origX = static_cast<int>(newX * std::cos(angleRad) + newY * std::sin(angleRad)) + centerX;
+            int origY = static_cast<int>(-newX * std::sin(angleRad) + newY * std::cos(angleRad)) + centerY;
+
+            if (origX >= 0 && origX < width && origY >= 0 && origY < height) {
+                for (int c = 0; c < 4; ++c) {
+                    rotatedImage[(y * newWidth + x) * 4 + c] = inputImage[(origY * width + origX) * 4 + c];
+                }
+            }
+        }
+    }
+
+    if (del) delete[] inputImage;
+    inputImage = rotatedImage;
+    width = newWidth;
+    height = newHeight;
+}
 
 int OSD::get_abs_pos(int max, int size, int pos) {
 
@@ -27,14 +135,17 @@ int OSD::get_abs_pos(int max, int size, int pos) {
 
 void OSD::set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width, int height) {
     //picWidth, picHeight cpp macro !!
-    if(x>channelAttributes.encAttr.picWidth-width)
-        x=channelAttributes.encAttr.picWidth-width;
-    
-    if(y>channelAttributes.encAttr.picHeight-height)
-        y=channelAttributes.encAttr.picHeight-height;
+    IMPEncoderCHNAttr chnAttr;
+    IMP_Encoder_GetChnAttr(0, &chnAttr);
 
-    rgnAttr->rect.p0.x = get_abs_pos(channelAttributes.encAttr.picWidth, width, x);
-    rgnAttr->rect.p0.y = get_abs_pos(channelAttributes.encAttr.picHeight, height, y);
+    if(x>chnAttr.encAttr.picWidth-width)
+        x=chnAttr.encAttr.picWidth-width;
+    
+    if(y>chnAttr.encAttr.picHeight-height)
+        y=chnAttr.encAttr.picHeight-height;
+
+    rgnAttr->rect.p0.x = get_abs_pos(chnAttr.encAttr.picWidth, width, x);
+    rgnAttr->rect.p0.y = get_abs_pos(chnAttr.encAttr.picHeight, height, y);
     rgnAttr->rect.p1.x = rgnAttr->rect.p0.x + width - 1;
     rgnAttr->rect.p1.y = rgnAttr->rect.p0.y + height - 1;     
 }
@@ -169,7 +280,7 @@ int OSD::freetype_init() {
     return 0;
 }
 
-void OSD::draw_glyph(OSDTextItem *ti, FT_BitmapGlyph bmg,
+void OSD::draw_glyph(uint8_t *data, FT_BitmapGlyph bmg,
                      int *pen_x, int *pen_y,
                      int item_height, int item_width,
                      uint32_t color) {
@@ -188,7 +299,7 @@ void OSD::draw_glyph(OSDTextItem *ti, FT_BitmapGlyph bmg,
 
             uint8_t red, green, blue, alpha;
             uint8_t alpha_a = bmg->bitmap.buffer[glyph_index];
-            uint8_t alpha_b = ti->data[data_index+3];
+            uint8_t alpha_b = data[data_index+3];
             //Exit early if alpha is zero.
             if (alpha_a == 0)
                 continue;
@@ -204,11 +315,11 @@ void OSD::draw_glyph(OSDTextItem *ti, FT_BitmapGlyph bmg,
                 float faa = alpha_a / 256.0;
                 float fab = alpha_b / 256.0;
                 float fra = ((color >> 16) & 0xFF) / 256.0;
-                float frb = ti->data[data_index+2] / 256.0;
+                float frb = data[data_index+2] / 256.0;
                 float fga = ((color >> 8) & 0xFF) / 256.0;
-                float fgb = ti->data[data_index+1] / 256.0;
+                float fgb = data[data_index+1] / 256.0;
                 float fba = ((color >> 0) & 0xFF) / 256.0;
-                float fbb = ti->data[data_index+0] / 256.0;
+                float fbb = data[data_index+0] / 256.0;
 
                 float alpha_o = faa + fab*(1.0 - faa);
                 fra = (fra*faa + frb*fab*(1.0 - faa)) / alpha_o;
@@ -219,10 +330,10 @@ void OSD::draw_glyph(OSDTextItem *ti, FT_BitmapGlyph bmg,
                 blue = (uint8_t)(fba * 256.0);
                 alpha = 0xFF;
             }
-            ti->data[data_index+0] = blue;
-            ti->data[data_index+1] = green;
-            ti->data[data_index+2] = red;
-            ti->data[data_index+3] = alpha;
+            data[data_index+0] = blue;
+            data[data_index+1] = green;
+            data[data_index+2] = red;
+            data[data_index+3] = alpha;
         }
         ++row;
         --rel_pen_y;
@@ -232,13 +343,12 @@ void OSD::draw_glyph(OSDTextItem *ti, FT_BitmapGlyph bmg,
     *pen_y += ((FT_Glyph)bmg)->advance.y >> 16;
 }
 
-void OSD::set_text(OSDTextItem *ti, std::string text) {
-    ti->text = text;
+void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, std::string text, int posX, int posY, int angle) {
 
     //First, calculate the size of the bitmap surface we need
     FT_BBox total_bbox = {0,0,0,0};
-    for (unsigned int i = 0; i < ti->text.length(); ++i) {
-        FT_BBox bbox = boxes[ti->text[i]];
+    for (unsigned int i = 0; i < text.length(); ++i) {
+        FT_BBox bbox = boxes[text[i]];
 
         if (bbox.yMin < total_bbox.yMin)
             total_bbox.yMin = bbox.yMin;
@@ -246,7 +356,7 @@ void OSD::set_text(OSDTextItem *ti, std::string text) {
             total_bbox.yMax = bbox.yMax;
         if (bbox.xMin < total_bbox.xMin)
             total_bbox.xMin = bbox.xMin;
-        total_bbox.xMax += advances[ti->text[i]].x >> 16;
+        total_bbox.xMax += advances[text[i]].x >> 16;
     }
     int item_height = total_bbox.yMax - total_bbox.yMin + 1;
     int item_width = total_bbox.xMax - total_bbox.xMin + 1;
@@ -260,27 +370,31 @@ void OSD::set_text(OSDTextItem *ti, std::string text) {
     if (item_width % 2 != 0)
         ++item_width;
 
-    set_pos(&ti->imp_attr, ti->x, ti->y, item_width, item_height);
+    free(osdItem->data);
+    osdItem->data = (uint8_t*)malloc(item_width * item_height * 4);
+    memset(osdItem->data, 0, item_width * item_height * 4);
 
-    free(ti->data);
-    ti->data = (uint8_t*)malloc(item_width * item_height * 4);
-    ti->imp_attr.data.picData.pData = ti->data;
-    memset(ti->data, 0, item_width * item_height * 4);
-
-    
     //Then, render the stroke & text
-    for (unsigned int i = 0; i < ti->text.length(); ++i) {
+    for (unsigned int i = 0; i < text.length(); ++i) {
         int cpx = pen_x;
         int cpy = pen_y;
 
-    if (Config::singleton()->OSDFontStrokeEnable) {
-        draw_glyph(ti, stroke_bitmaps[ti->text[i]], &cpx, &cpy, item_height, item_width, Config::singleton()->OSDFontStrokeColor);
+    if (cfg->osd.font_stroke_enabled) {
+        draw_glyph(osdItem->data, stroke_bitmaps[text[i]], &cpx, &cpy, item_height, item_width, cfg->osd.font_stroke_color);
     }
-        draw_glyph(ti, bitmaps[ti->text[i]], &pen_x, &pen_y, item_height, item_width, Config::singleton()->OSDFontColor);
+        draw_glyph(osdItem->data, bitmaps[text[i]], &pen_x, &pen_y, item_height, item_width, cfg->osd.font_color);
     }
+
+    if(angle) {
+        rotateBGRAImage(osdItem->data, item_width, item_height, angle);
+    }
+
+    set_pos(rgnAttr, posX, posY, item_width, item_height);
+    rgnAttr->data.picData.pData = osdItem->data;
 }
 
 std::unique_ptr<unsigned char[]> loadBGRAImage(const std::string& filepath, size_t& length) {
+
     std::ifstream file(filepath, std::ios::binary | std::ios::ate); // Open file at the end to get the size
     if (!file.is_open()) {
         LOG_ERROR("Failed to open the OSD logo file.");
@@ -302,9 +416,12 @@ std::unique_ptr<unsigned char[]> loadBGRAImage(const std::string& filepath, size
     return data;
 }
 
-bool OSD::init() {
+bool OSD::init(std::shared_ptr<CFG> _cfg) {
     int ret;
     LOG_DEBUG("OSD init begin");
+
+    cfg = _cfg;
+    last_updated_second = -1;
 
     if (freetype_init()) {
         LOG_DEBUG("FREETYPE init failed.");
@@ -316,9 +433,8 @@ bool OSD::init() {
         LOG_DEBUG("IMP_Encoder_GetChnAttr() == " + std::to_string(ret));
         return true;
     }
-    LOG_DEBUG(
-        printf("IMP_Encoder_GetChnAttr read. Stream resolution: %d x %d\n", 
-                channelAttributes.encAttr.picWidth, channelAttributes.encAttr.picHeight)); //picWidth, picHeight cpp macro !!
+     //picWidth, picHeight cpp macro !!
+    LOG_DEBUG("IMP_Encoder_GetChnAttr read. Stream resolution: " << channelAttributes.encAttr.picWidth << "x" << channelAttributes.encAttr.picHeight);
 
     ret = IMP_OSD_CreateGroup(0);
     if (ret < 0) {
@@ -327,113 +443,116 @@ bool OSD::init() {
     }
     LOG_DEBUG("IMP_OSD_CreateGroup group 0 created");
 
-    if (Config::singleton()->OSDTimeEnable) {
+    if (cfg->osd.time_enabled) {
 
-        timestamp.x = Config::singleton()->stream0osdPosTimeX;
-        timestamp.y = Config::singleton()->stream0osdPosTimeY;
+        /* OSD Time */
+        osdTime.data = NULL;
+        osdTime.imp_rgn = IMP_OSD_CreateRgn(NULL);
+        IMP_OSD_RegisterRgn(osdTime.imp_rgn, 0, NULL);
 
-        memset(&timestamp.imp_rgn, 0, sizeof(timestamp.imp_rgn));
-        timestamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(timestamp.imp_rgn, 0, NULL);
-        timestamp.imp_attr.type = OSD_REG_PIC;
-        timestamp.imp_attr.fmt = PIX_FMT_BGRA;
-        timestamp.imp_attr.data.picData.pData = timestamp.data;
-
-        memset(&timestamp.imp_grp_attr, 0, sizeof(timestamp.imp_grp_attr));
-        IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
-        IMP_OSD_GetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
-        timestamp.imp_grp_attr.show = 1;
-        timestamp.imp_grp_attr.layer = 1;
-        timestamp.imp_grp_attr.scalex = 0;
-        timestamp.imp_grp_attr.scaley = 0;
-        timestamp.imp_grp_attr.gAlphaEn = 1;
-        timestamp.imp_grp_attr.fgAlhpa = Config::singleton()->stream0osdTimeAlpha;
-        IMP_OSD_SetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
-    }
-
-    if (Config::singleton()->OSDUserTextEnable) {
-
-        userText.x = Config::singleton()->stream0osdUserTextPosX;
-        userText.y = Config::singleton()->stream0osdUserTextPosY;
-
-        memset(&userText.imp_rgn, 0, sizeof(userText.imp_rgn));
-        userText.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(userText.imp_rgn, 0, NULL);
-        userText.imp_attr.type = OSD_REG_PIC;
-        userText.imp_attr.fmt = PIX_FMT_BGRA;
-        userText.data = NULL;
-        userText.imp_attr.data.picData.pData = userText.data;
-        set_text(&userText, Config::singleton()->OSDUserTextString);
-
-        memset(&userText.imp_grp_attr, 0, sizeof(userText.imp_grp_attr));
-        IMP_OSD_SetRgnAttr(userText.imp_rgn, &userText.imp_attr);
-        IMP_OSD_GetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
-        userText.imp_grp_attr.show = 1;
-        userText.imp_grp_attr.layer = 2;
-        userText.imp_grp_attr.scalex = 1;
-        userText.imp_grp_attr.scaley = 1;
-        userText.imp_grp_attr.gAlphaEn = 1;
-        userText.imp_grp_attr.fgAlhpa = Config::singleton()->stream0osdUserTextAlpha;
-        IMP_OSD_SetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
-
-        userText.update_intervall = 10;
-        userText.last_update = 0;      
-    }
-
-    if (Config::singleton()->OSDUptimeEnable) {
-
-        uptimeStamp.x = Config::singleton()->stream0osdUptimeStampPosX;
-        uptimeStamp.y = Config::singleton()->stream0osdUptimeStampPosY;
-
-        memset(&uptimeStamp.imp_rgn, 0, sizeof(uptimeStamp.imp_rgn));
-        uptimeStamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(uptimeStamp.imp_rgn, 0, NULL);
-        uptimeStamp.imp_attr.type = OSD_REG_PIC;
-        uptimeStamp.imp_attr.fmt = PIX_FMT_BGRA;
-        uptimeStamp.data = NULL;
-        uptimeStamp.imp_attr.data.picData.pData = uptimeStamp.data;
-
-        memset(&uptimeStamp.imp_grp_attr, 0, sizeof(uptimeStamp.imp_grp_attr));
-        IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
-        IMP_OSD_GetGrpRgnAttr(uptimeStamp.imp_rgn, 0, &uptimeStamp.imp_grp_attr);
-        uptimeStamp.imp_grp_attr.show = 1;
-        uptimeStamp.imp_grp_attr.layer = 3;
-        uptimeStamp.imp_grp_attr.scalex = 1;
-        uptimeStamp.imp_grp_attr.scaley = 1;
-        uptimeStamp.imp_grp_attr.gAlphaEn = 1;
-        uptimeStamp.imp_grp_attr.fgAlhpa = Config::singleton()->stream0osdUptimeAlpha;
-        IMP_OSD_SetGrpRgnAttr(uptimeStamp.imp_rgn, 0, &uptimeStamp.imp_grp_attr);        
-    }
-
-    if (Config::singleton()->OSDLogoEnable) {
-        size_t imageSize;
-        auto imageData = loadBGRAImage(Config::singleton()->OSDLogoPath.c_str(), imageSize);
+        IMPOSDRgnAttr rgnAttr;
+        memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
+        rgnAttr.type = OSD_REG_PIC;
+        rgnAttr.fmt = PIX_FMT_BGRA;
+        set_text(&osdTime, &rgnAttr, cfg->osd.time_format, 
+            cfg->stream0.osd_pos_time_x, cfg->stream0.osd_pos_time_y, cfg->stream0.osd_time_rotation);
+        IMP_OSD_SetRgnAttr(osdTime.imp_rgn, &rgnAttr);
         
-        memset(&OSDLogo, 0, sizeof(OSDLogo));
-        OSDLogo.type = OSD_REG_PIC;
-        OSDLogo.fmt = PIX_FMT_BGRA;
-        OSDLogo.data.picData.pData = imageData.get();
-    
-        int picw = Config::singleton()->OSDLogoWidth + 1;
-        int pich = Config::singleton()->OSDLogoHeight + 1;
+        IMPOSDGrpRgnAttr grpRgnAttr;
+        memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
+        grpRgnAttr.show = 1;
+        grpRgnAttr.layer = 1;
+        grpRgnAttr.gAlphaEn = 0;
+        grpRgnAttr.fgAlhpa = cfg->stream0.osd_time_transparency;
+        IMP_OSD_SetGrpRgnAttr(osdTime.imp_rgn, 0, &grpRgnAttr);
+    }
 
-        set_pos(&OSDLogo, 
-                Config::singleton()->stream0osdLogoPosX, 
-                Config::singleton()->stream0osdLogoPosY, 
-                picw-1, pich-1);
+    if (cfg->osd.user_text_enabled) {
 
-        IMPRgnHandle OSDLogoHandle = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_SetRgnAttr(OSDLogoHandle, &OSDLogo);
-        IMPOSDGrpRgnAttr OSDLogoGroup;
-        memset(&OSDLogoGroup, 0, sizeof(OSDLogoGroup));
-        OSDLogoGroup.show = 1;
-        OSDLogoGroup.layer = 4;
-        OSDLogoGroup.scalex = 1;
-        OSDLogoGroup.scaley = 1;
-        OSDLogoGroup.gAlphaEn = 1;
-        OSDLogoGroup.fgAlhpa = Config::singleton()->stream0osdLogoAlpha;
+        /* OSD Usertext */
+        osdUser.data = NULL;
+        osdUser.imp_rgn = IMP_OSD_CreateRgn(NULL);
+        IMP_OSD_RegisterRgn(osdUser.imp_rgn, 0, NULL);
 
-        IMP_OSD_RegisterRgn(OSDLogoHandle, 0, &OSDLogoGroup);                
+        IMPOSDRgnAttr rgnAttr;
+        memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
+        rgnAttr.type = OSD_REG_PIC;
+        rgnAttr.fmt = PIX_FMT_BGRA;       
+        set_text(&osdUser, &rgnAttr, cfg->osd.user_text_format,
+            cfg->stream0.osd_pos_user_text_x, cfg->stream0.osd_pos_user_text_y, cfg->stream0.osd_user_text_rotation);
+        IMP_OSD_SetRgnAttr(osdUser.imp_rgn, &rgnAttr);
+        
+        IMPOSDGrpRgnAttr grpRgnAttr;
+        memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
+        grpRgnAttr.show = 1;
+        grpRgnAttr.layer = 2;        
+        grpRgnAttr.gAlphaEn = 1;
+        grpRgnAttr.fgAlhpa = cfg->stream0.osd_time_transparency;
+        IMP_OSD_SetGrpRgnAttr(osdUser.imp_rgn, 0, &grpRgnAttr);
+    }
+
+    if (cfg->osd.uptime_enabled) {
+
+        /* OSD Uptime */
+        osdUptm.data = NULL;
+        osdUptm.imp_rgn = IMP_OSD_CreateRgn(NULL);
+        IMP_OSD_RegisterRgn(osdUptm.imp_rgn, 0, NULL);
+
+        IMPOSDRgnAttr rgnAttr;
+        memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
+        rgnAttr.type = OSD_REG_PIC;
+        rgnAttr.fmt = PIX_FMT_BGRA;     
+        set_text(&osdUptm, &rgnAttr, cfg->osd.uptime_format,
+            cfg->stream0.osd_pos_uptime_x, cfg->stream0.osd_pos_uptime_y, cfg->stream0.osd_uptime_rotation);
+        IMP_OSD_SetRgnAttr(osdUptm.imp_rgn, &rgnAttr);
+        
+        IMPOSDGrpRgnAttr grpRgnAttr;
+        memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
+        grpRgnAttr.show = 1;
+        grpRgnAttr.layer = 3;       
+        grpRgnAttr.gAlphaEn = 1;
+        grpRgnAttr.fgAlhpa = cfg->stream0.osd_time_transparency;
+        IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, 0, &grpRgnAttr);
+    }
+
+   if (cfg->osd.logo_enabled) {
+
+        /* OSD Logo */
+
+        size_t imageSize;
+        auto imageData = loadBGRAImage(cfg->osd.logo_path.c_str(), imageSize);
+
+        osdLogo.data = NULL;
+        osdLogo.imp_rgn = IMP_OSD_CreateRgn(NULL);
+        IMP_OSD_RegisterRgn(osdLogo.imp_rgn, 0, NULL);
+
+        IMPOSDRgnAttr rgnAttr;
+        memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
+        rgnAttr.type = OSD_REG_PIC;
+        rgnAttr.fmt = PIX_FMT_BGRA;
+        rgnAttr.data.picData.pData = imageData.get();
+
+        //Logo rotation
+        int logo_width = cfg->osd.logo_width;
+        int logo_height = cfg->osd.logo_height;
+        if(cfg->stream0.osd_logo_rotation) {
+            uint8_t* imageData = static_cast<uint8_t*>(rgnAttr.data.picData.pData);
+            rotateBGRAImage(imageData, logo_width, 
+                logo_height, cfg->stream0.osd_logo_rotation, false);
+            rgnAttr.data.picData.pData = imageData;
+        }
+
+        set_pos(&rgnAttr, cfg->stream0.osd_pos_logo_x, 
+            cfg->stream0.osd_pos_logo_y, logo_width, logo_height);        
+        IMP_OSD_SetRgnAttr(osdLogo.imp_rgn, &rgnAttr);
+        
+        IMPOSDGrpRgnAttr grpRgnAttr;
+        memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
+        grpRgnAttr.show = 1;
+        grpRgnAttr.layer = 4;       
+        grpRgnAttr.gAlphaEn = 1;
+        grpRgnAttr.fgAlhpa = cfg->stream0.osd_logo_transparency;
+        IMP_OSD_SetGrpRgnAttr(osdLogo.imp_rgn, 0, &grpRgnAttr);     
     }
 
     ret = IMP_OSD_Start(0);
@@ -451,50 +570,50 @@ bool OSD::exit() {
 
     int ret;
 
-    ret = IMP_OSD_ShowRgn(timestamp.imp_rgn, 0, 0);
+    ret = IMP_OSD_ShowRgn(osdTime.imp_rgn, 0, 0);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_ShowRgn close timeStamp error");
     }
 
-    ret = IMP_OSD_ShowRgn(userText.imp_rgn, 0, 0);
+    ret = IMP_OSD_ShowRgn(osdUser.imp_rgn, 0, 0);
     if (ret < 0) {
         LOG_ERROR( "IMP_OSD_ShowRgn close user text error");
     }
 
-    ret = IMP_OSD_ShowRgn(uptimeStamp.imp_rgn, 0, 0);
+    ret = IMP_OSD_ShowRgn(osdUptm.imp_rgn, 0, 0);
     if (ret < 0) {
         LOG_ERROR( "IMP_OSD_ShowRgn close uptime error");
     }
 
-    ret = IMP_OSD_ShowRgn(OSDLogoHandle, 0, 0);
+    ret = IMP_OSD_ShowRgn(osdLogo.imp_rgn, 0, 0);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_ShowRgn close Rect error");
     }
 
-    ret = IMP_OSD_UnRegisterRgn(timestamp.imp_rgn, 0);
+    ret = IMP_OSD_UnRegisterRgn(osdTime.imp_rgn, 0);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_UnRegisterRgn timeStamp error");
     }
 
-    ret = IMP_OSD_UnRegisterRgn(userText.imp_rgn, 0);
+    ret = IMP_OSD_UnRegisterRgn(osdUser.imp_rgn, 0);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_UnRegisterRgn user text error");
     }
 
-    ret = IMP_OSD_UnRegisterRgn(uptimeStamp.imp_rgn, 0);
+    ret = IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, 0);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_UnRegisterRgn Cover error");
     }
 
-    ret = IMP_OSD_UnRegisterRgn(OSDLogoHandle, 0);
+    ret = IMP_OSD_UnRegisterRgn(osdLogo.imp_rgn, 0);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_UnRegisterRgn Rect error");
     }
 
-    IMP_OSD_DestroyRgn(timestamp.imp_rgn);
-    IMP_OSD_DestroyRgn(userText.imp_rgn);
-    IMP_OSD_DestroyRgn(uptimeStamp.imp_rgn);
-    IMP_OSD_DestroyRgn(OSDLogoHandle);
+    IMP_OSD_DestroyRgn(osdTime.imp_rgn);
+    IMP_OSD_DestroyRgn(osdUser.imp_rgn);
+    IMP_OSD_DestroyRgn(osdUptm.imp_rgn);
+    IMP_OSD_DestroyRgn(osdLogo.imp_rgn);
 
     ret = IMP_OSD_DestroyGroup(0);
     if (ret < 0) {
@@ -502,8 +621,22 @@ bool OSD::exit() {
         return -1;
     }
 
+    // cleanup osd image data
+    if(cfg->osd.enabled) {
+        if(cfg->osd.time_enabled) free(osdTime.data);
+        if(cfg->osd.user_text_enabled) free(osdUser.data);
+        if(cfg->osd.uptime_enabled) free(osdUptm.data);
+        if(cfg->osd.logo_enabled) free(osdLogo.data);
+    }
+
+    ret = FT_Done_FreeType(freetype);
+    if (ret < 0) {
+        LOG_ERROR("FT_Done_FreeType error");
+    }
+
     return 0;    
 }
+
 unsigned long getSystemUptime() {
     std::ifstream uptimeFile("/proc/uptime");
     std::string line;
@@ -541,66 +674,71 @@ int getIp (char * addressBuffer) {
     return 0;
 }
 
-// Var to keep track of the last second updated
-static int last_updated_second = -1;
-
 void OSD::updateDisplayEverySecond() {
     time_t current = time(NULL);
     struct tm *ltime = localtime(&current);
 
     // Check if we have moved to a new second
     if (ltime->tm_sec != last_updated_second) {
-        last_updated_second = ltime->tm_sec;  // Update the last second tracker
 
-        //get second of the day
-        uint32_t sod = (ltime->tm_hour * 3600) + (ltime->tm_min * 60) + ltime->tm_sec;
-        
-        // Now we ensure both updates are performed as close together as possible
-        //Format user text
-        if (Config::singleton()->OSDUserTextEnable && 
-            ( sod < userText.last_update || sod > ( userText.last_update + userText.update_intervall ))) {
+        // Format and update system time 
+        if (cfg->osd.time_enabled) {
 
-            userText.last_update = sod;
+            char timeFormatted[256];
+            strftime(timeFormatted, sizeof(timeFormatted), cfg->osd.time_format.c_str(), ltime);
+            
+            IMPOSDRgnAttr rgnAttr;
+            IMP_OSD_GetRgnAttr(osdTime.imp_rgn, &rgnAttr);
+            set_text(&osdTime, &rgnAttr, std::string(timeFormatted), 
+                cfg->stream0.osd_pos_time_x, cfg->stream0.osd_pos_time_y, cfg->stream0.osd_time_rotation);
+            IMP_OSD_SetRgnAttr(osdTime.imp_rgn, &rgnAttr);
+        }
 
-            std::string sTextFormated = Config::singleton()->OSDUserTextString;
+        // Format and update user text !! every 30 seconds !!
+        if (cfg->osd.user_text_enabled && (!(ltime->tm_sec % 30) || last_updated_second == -1)) {
 
-            std::size_t tokenPos = sTextFormated.find("%hostname");
+            std::string user_text = cfg->osd.user_text_format;
+
+            std::size_t tokenPos = user_text.find("%hostname");
             if (tokenPos != std::string::npos) {
                 char hostname[64];
                 gethostname(hostname, 64);
-                sTextFormated.replace(tokenPos, 9, std::string(hostname));
+                user_text.replace(tokenPos, 9, std::string(hostname));
             }
 
-            tokenPos = sTextFormated.find("%ipaddress");
+            tokenPos = user_text.find("%ipaddress");
             if (tokenPos != std::string::npos) {
                 char ip[INET_ADDRSTRLEN];
                 getIp(ip);
-                sTextFormated.replace(tokenPos, 10, std::string(ip));
+                user_text.replace(tokenPos, 10, std::string(ip));
             }
 
-            set_text(&userText, sTextFormated);
-            IMP_OSD_SetRgnAttr(userText.imp_rgn, &userText.imp_attr);
+            IMPOSDRgnAttr rgnAttr;
+            IMP_OSD_GetRgnAttr(osdUser.imp_rgn, &rgnAttr);
+            set_text(&osdUser, &rgnAttr, user_text,
+                cfg->stream0.osd_pos_user_text_x, cfg->stream0.osd_pos_user_text_y, cfg->stream0.osd_user_text_rotation);
+            IMP_OSD_SetRgnAttr(osdUser.imp_rgn, &rgnAttr);
         }
 
-        // Format and update system time
-        if (Config::singleton()->OSDTimeEnable) {
-            char timeFormatted[256];
-            strftime(timeFormatted, sizeof(timeFormatted), Config::singleton()->OSDFormat.c_str(), ltime);
-            set_text(&timestamp, std::string(timeFormatted));
-            IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
-        }
+        // Format and update uptime
+        if (cfg->osd.uptime_enabled) {
 
-        // Calculate and update system uptime
-        if (Config::singleton()->OSDUptimeEnable) {
             unsigned long currentUptime = getSystemUptime();
             unsigned long hours = currentUptime / 3600;
             unsigned long minutes = (currentUptime % 3600) / 60;
             unsigned long seconds = currentUptime % 60;
+
             char uptimeFormatted[256];
-            snprintf(uptimeFormatted, sizeof(uptimeFormatted), Config::singleton()->OSDUptimeFormat.c_str(), hours, minutes, seconds);
-            set_text(&uptimeStamp, std::string(uptimeFormatted));
-            IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
-        }
+            snprintf(uptimeFormatted, sizeof(uptimeFormatted), cfg->osd.uptime_format.c_str(), hours, minutes, seconds);
+
+            IMPOSDRgnAttr rgnAttr;
+            IMP_OSD_GetRgnAttr(osdUptm.imp_rgn, &rgnAttr);
+            set_text(&osdUptm, &rgnAttr, std::string(uptimeFormatted),
+                cfg->stream0.osd_pos_uptime_x, cfg->stream0.osd_pos_uptime_y, cfg->stream0.osd_uptime_rotation);
+            IMP_OSD_SetRgnAttr(osdUptm.imp_rgn, &rgnAttr);
+        }  
+
+        last_updated_second = ltime->tm_sec;  // Update the last second tracker              
     }
 }
 

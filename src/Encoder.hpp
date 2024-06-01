@@ -17,6 +17,7 @@
 
 #include "MsgChannel.hpp"
 #include "Logger.hpp"
+#include "Config.hpp"
 #include "OSD.hpp"
 
 #include <../sysutils/su_base.h>
@@ -63,9 +64,9 @@ struct EncoderSink {
 
 class Encoder {
 	public:
-		Encoder();
-		void run(std::atomic<int> *thread_signal);
+		Encoder(std::shared_ptr<CFG> _cfg) : cfg(_cfg) {};
 
+		void run();
 
 		static void flush() {
 			IMP_Encoder_RequestIDR(0);
@@ -90,10 +91,11 @@ class Encoder {
 		static const int FRAME_RATE;
 
 	private:
+		std::shared_ptr<CFG> cfg;
 		OSD osd;
 
 		bool init();
-		void stop();
+		void exit();
 
 		int system_init();
 		int framesource_init();
@@ -105,8 +107,8 @@ class Encoder {
 		static uint32_t sink_id;
 		static std::map<uint32_t, EncoderSink> sinks;
 		struct timeval imp_time_base;
-		static IMPFSChnAttr create_fs_attr();
-		static IMPSensorInfo create_sensor_info(std::string sensor);
+		IMPFSChnAttr create_fs_attr();
+		IMPSensorInfo create_sensor_info(std::string sensor);
 		
 		IMPCell fs = { DEV_ID_FS, 0, 0 };
 		IMPCell osd_cell = { DEV_ID_OSD, 0, 0 };
@@ -114,8 +116,7 @@ class Encoder {
 		IMPSensorInfo sinfo;
 		
 		std::thread jpeg_thread;
-		std::atomic<int> jpeg_thread_signal{0};
-		void jpeg_snap(std::atomic<int> *thread_signal);
+		void jpeg_snap(std::shared_ptr<CFG>& cfg);
 };
 
 #endif

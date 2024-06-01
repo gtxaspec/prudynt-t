@@ -17,11 +17,13 @@ class WS {
     
     public:
         void run();  
-        WS(std::shared_ptr<CFG> conf) : cfg(conf) {}
-        
+        WS(std::shared_ptr<CFG> _cfg, std::shared_ptr<std::atomic<int>> _mts) : cfg(_cfg), main_thread_signal(_mts) {}
+        void restartEncoder();
+
     private:
         
         std::shared_ptr<CFG> cfg;
+        std::shared_ptr<std::atomic<int>> main_thread_signal;
         
         lws_protocols protocols;
         struct lws_context_creation_info info;     
