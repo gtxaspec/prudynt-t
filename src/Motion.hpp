@@ -10,6 +10,7 @@
 
 class Motion {
 public:
+    Motion(std::shared_ptr<CFG> _cfg) : cfg(_cfg) {};
     static void detect_start(Motion *m);
     void detect();
     void run();
@@ -20,6 +21,7 @@ public:
     static std::atomic<bool> indicator;
 
 private:
+    std::shared_ptr<CFG> cfg;
     IMP_IVS_MoveParam move_param;
     IMPIVSInterface *move_intf;
     static std::thread detect_thread;

@@ -44,13 +44,13 @@ void Motion::detect() {
         auto currentTime = steady_clock::now();
         auto elapsedTime = duration_cast<seconds>(currentTime - startTime);
 
-        if (ignoreInitialPeriod && elapsedTime.count() < Config::singleton()->motionInitTime) {
+        if (ignoreInitialPeriod && elapsedTime.count() < cfg->motion.init_time) {
             continue;
         } else {
             ignoreInitialPeriod = false;
         }
 
-        if (isInCooldown && duration_cast<seconds>(currentTime - cooldownEndTime).count() < Config::singleton()->motionCooldownTime) {
+        if (isInCooldown && duration_cast<seconds>(currentTime - cooldownEndTime).count() < cfg->motion.cooldown_time) {
             continue;
         } else {
             isInCooldown = false;
@@ -62,7 +62,7 @@ void Motion::detect() {
                 motionDetected = true;
                 LOG_INFO("Active motion detected in region " << i);
                 debounce++;
-                if (debounce >= Config::singleton()->motionDebounce) {
+                if (debounce >= cfg->motion.debounce_time) {
                     if (!Motion::moving.load()) {
                         Motion::moving = true;
                         LOG_INFO("Motion Start");
@@ -76,7 +76,7 @@ void Motion::detect() {
 
         if (!motionDetected) {
             debounce = 0;
-            if (Motion::moving && duration_cast<seconds>(currentTime - motionEndTime).count() >= Config::singleton()->motionPostTime) {
+            if (Motion::moving && duration_cast<seconds>(currentTime - motionEndTime).count() >= cfg->motion.post_time) {
                 LOG_INFO("End of Motion");
                 Motion::moving = false;
                 Motion::indicator = false;
@@ -106,15 +106,15 @@ bool Motion::init() {
     memset(&move_param, 0, sizeof(IMP_IVS_MoveParam));
     //OSD is affecting motion for some reason.
     //Sensitivity range is 0-4
-    move_param.sense[0] = Config::singleton()->motionSensitivity;
-    move_param.skipFrameCnt = Config::singleton()->motionSkipFrameCnt;
-    move_param.frameInfo.width = Config::singleton()->motionFrameWidth;
-    move_param.frameInfo.height = Config::singleton()->motionFrameHeight;
-    move_param.roiRect[0].p0.x = Config::singleton()->motionRoi0X;
-    move_param.roiRect[0].p0.y = Config::singleton()->motionRoi0Y;
-    move_param.roiRect[0].p1.x = Config::singleton()->motionRoi1X - 1;
-    move_param.roiRect[0].p1.y = Config::singleton()->motionRoi1Y - 1;
-    move_param.roiRectCnt = Config::singleton()->roiCnt;
+    move_param.sense[0] = cfg->motion.sensitivity;
+    move_param.skipFrameCnt = cfg->motion.skip_frame_count;
+    move_param.frameInfo.width = cfg->motion.frame_width;
+    move_param.frameInfo.height = cfg->motion.frame_width;
+    move_param.roiRect[0].p0.x = cfg->motion.roi_0_x;
+    move_param.roiRect[0].p0.y = cfg->motion.roi_0_y;
+    move_param.roiRect[0].p1.x = cfg->motion.roi_1_x - 1;
+    move_param.roiRect[0].p1.y = cfg->motion.roi_1_y - 1;
+    move_param.roiRectCnt = cfg->motion.roi_count;
     move_intf = IMP_IVS_CreateMoveInterface(&move_param);
 
     ret = IMP_IVS_CreateChn(0, move_intf);

@@ -24,7 +24,7 @@ std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
 WS ws(cfg, main_thread_signal);
 Encoder enc(cfg);
 Encoder jpg(cfg);
-Motion motion;
+Motion motion(cfg);
 RTSP rtsp(cfg);
 
 void stop_encoder() {
