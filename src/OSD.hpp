@@ -46,7 +46,7 @@ class OSD {
         void updateDisplayEverySecond();
         
         static void rotateBGRAImage(uint8_t*& inputImage, int& width, int& height, int angle, bool del);
-        static void set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width, int height);
+        static void set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width = 0, int height = 0);
         static int get_abs_pos(int max, int size, int pos);            
     private:
         std::shared_ptr<CFG> cfg;

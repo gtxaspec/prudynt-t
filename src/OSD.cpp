@@ -138,6 +138,11 @@ void OSD::set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width, int height) {
     IMPEncoderCHNAttr chnAttr;
     IMP_Encoder_GetChnAttr(0, &chnAttr);
 
+    if(width == 0 || height == 0) {
+        width = rgnAttr->rect.p1.x - rgnAttr->rect.p0.x + 1;
+        height = rgnAttr->rect.p1.y - rgnAttr->rect.p0.y + 1;
+    }
+
     if(x>chnAttr.encAttr.picWidth-width)
         x=chnAttr.encAttr.picWidth-width;
     
