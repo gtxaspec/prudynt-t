@@ -175,11 +175,23 @@ static const char *const info_keys[] = {
 /* ACTION */
 enum
 {
-    PNT_RESTART_ENCODER = 1
+    PNT_STOP_THREAD = 1,
+    PNT_START_THREAD,
+    PNT_RESTART_THREAD,
+};
+
+enum
+{
+    PNT_THREAD_RTSP = 1,
+    PNT_THREAD_ENCODER = 2,
+    PNT_THREAD_MOTION = 4
 };
 
 static const char *const action_keys[] = {
-    "restart_encoder"};
+    "stop_thread",
+    "start_thread",
+    "restart_thread"
+};
 
 #pragma endregion keys_and_enums
 
@@ -194,12 +206,6 @@ struct user_ctx
     std::string path;
     int signal;
 };
-
-void WS::restartEncoder()
-{
-    cfg->main_thread_signal.fetch_or(2);
-    cfg->main_thread_signal.notify_one();
-}
 
 std::string generateToken(int length)
 {
@@ -355,6 +361,8 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
+        LOG_DEBUG("stream0_callback: " << u_ctx->path << " = " << (char *)ctx->buf);
+
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", stream0_keys[ctx->path_match - 1]);
 
@@ -428,8 +436,7 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
                     memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
                     if (IMP_OSD_GetRgnAttr(3, &rgnAttr) == 0)
                     {
-                        OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd_pos_logo_x, u_ctx->ws->cfg->stream0.osd_pos_logo_y,
-                                     u_ctx->ws->cfg->osd.logo_width, u_ctx->ws->cfg->osd.logo_height);
+                        OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd_pos_logo_x, u_ctx->ws->cfg->stream0.osd_pos_logo_y);
                         IMP_OSD_SetRgnAttr(3, &rgnAttr);
                     }
                 }
@@ -444,8 +451,7 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
                     memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
                     if (IMP_OSD_GetRgnAttr(3, &rgnAttr) == 0)
                     {
-                        OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd_pos_logo_x, u_ctx->ws->cfg->stream0.osd_pos_logo_y,
-                                     u_ctx->ws->cfg->osd.logo_width, u_ctx->ws->cfg->osd.logo_height);
+                        OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd_pos_logo_x, u_ctx->ws->cfg->stream0.osd_pos_logo_y);
                         IMP_OSD_SetRgnAttr(3, &rgnAttr);
                     }
                 }
@@ -633,12 +639,31 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
 
         switch (ctx->path_match)
         {
-        case PNT_RESTART_ENCODER:
-            u_ctx->signal = 1; // restart encoder
+        case PNT_STOP_THREAD:
+            if (reason == LEJPCB_VAL_NUM_INT) {
+                u_ctx->signal = atoi(ctx->buf); // stop targets 
+                u_ctx->signal |= 8; // stop action
+            }
             append_message(
-                "\"%s\"", "done");
+                "\"%s\"", "initiated");
             break;
-        }
+        case PNT_START_THREAD:
+            if (reason == LEJPCB_VAL_NUM_INT) {
+                u_ctx->signal = atoi(ctx->buf); // start targets
+                u_ctx->signal |= 16; // start action
+            }
+            append_message(
+                "\"%s\"", "initiated");
+            break;            
+        case PNT_RESTART_THREAD:
+            if (reason == LEJPCB_VAL_NUM_INT) {
+                u_ctx->signal = atoi(ctx->buf); // restart targets
+                u_ctx->signal |= 24; // restart action
+            }
+            append_message(
+                "\"%s\"", "initiated");
+            break;            
+        }        
 
         u_ctx->s = 1;
     }
@@ -659,6 +684,8 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
         u_ctx->path.clear();
         u_ctx->root = ctx->path;
+
+        LOG_DEBUG("root_callback: " << (char *)ctx->path);
 
         append_message(
             "%s\"%s\":{", u_ctx->s ? "," : "", root_keys[ctx->path_match - 1]);
@@ -759,10 +786,10 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
         std::strcat(ws_send_msg, "}"); // close response json
 
-        if (u_ctx->signal & 1)
+        if (u_ctx->signal != 0)
         {
-            u_ctx->signal ^= 1;
-            u_ctx->ws->restartEncoder();
+            u_ctx->ws->cfg->main_thread_signal.store(u_ctx->signal);
+            u_ctx->ws->cfg->main_thread_signal.notify_one();
         }
 
         lws_callback_on_writable(wsi);

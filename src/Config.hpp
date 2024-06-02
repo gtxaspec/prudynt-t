@@ -162,7 +162,7 @@ class CFG {
         // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
         std::atomic<int> encoder_thread_signal{1};
         std::atomic<int> jpg_thread_signal{1};
-        std::atomic<int> rtsp_thread_signal{1};
+        char volatile rtsp_thread_signal{0};
 
         template <typename T>
         T get(const std::string& key) {

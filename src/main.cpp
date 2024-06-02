@@ -25,11 +25,11 @@ WS ws(cfg, main_thread_signal);
 Encoder enc(cfg);
 Encoder jpg(cfg);
 Motion motion;
-RTSP rtsp;
+RTSP rtsp(cfg);
 
-void restart_encoder() {
+void stop_encoder() {
 
-    LOG_DEBUG("Encoder restart. ");
+    LOG_DEBUG("Stop encoder.");
 
     std::chrono::milliseconds duration;
     auto t0 = std::chrono::high_resolution_clock::now();
@@ -41,24 +41,62 @@ void restart_encoder() {
 
         usleep(1000);
         duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
-        if( duration.count() > 1000 * 1000 * 10 ) break;
+        if( duration.count() > 1000 * 1000 * 10 ) {
+            LOG_ERROR("Unable to stop encoder, no response.");
+            return;
+        }
     }
     LOG_DEBUG("Encoder stopped in " << duration.count() << "ms");
+}
 
-    auto t1 = std::chrono::high_resolution_clock::now();
+void start_encoder() {
+
+    LOG_DEBUG("Start encoder.");
+
+    std::chrono::milliseconds duration;
+    auto t0 = std::chrono::high_resolution_clock::now();
+
     cfg->encoder_thread_signal.fetch_xor(8);
     cfg->encoder_thread_signal.fetch_or(1);
 
     while((cfg->encoder_thread_signal.load() & 2) != 2) {
 
         usleep(1000);
-        duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t1);
-        if( duration.count() > 1000 * 1000 * 10 ) break;
+        duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
+        if( duration.count() > 1000 * 1000 * 10 ) {
+            LOG_ERROR("Unable to start encoder, no response.");
+            return;
+        }
     }
-    LOG_DEBUG("Encoder started in " << duration.count() << "ms"); 
+    LOG_DEBUG("Encoder started in " << duration.count() << "ms");
+}
 
-    duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
-    LOG_DEBUG("Encoder restarted in " << duration.count() << "ms"); 
+void stop_rtsp() {
+
+    LOG_DEBUG("Stop RTSP Server.");
+
+    std::chrono::milliseconds duration;
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    cfg->rtsp_thread_signal = 1;
+
+    while(cfg->rtsp_thread_signal != 2) {
+
+        usleep(1000);
+        duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
+        if( duration.count() > 1000 * 1000 * 10 ) {
+            LOG_ERROR("Unable to stop RTSP Server, no response.");
+            return;
+        }
+    }
+    LOG_DEBUG("RTSP Server stopped in " << duration.count() << "ms");
+}
+
+void start_rtsp() {
+
+    LOG_DEBUG("Start RTSP Server.");
+
+    cfg->rtsp_thread_signal = 0;
 }
 
 bool timesync_wait() {
@@ -94,24 +132,13 @@ int main(int argc, const char *argv[]) {
         LOG_ERROR("Time is not synchronized.");
         return 1;
     }
-    /*
-    if (IMP::init()) {
-        LOG_ERROR("IMP initialization failed.");
-        return 1;
-    }
-    */
+
     if (cfg->motion.enabled) {
         if (motion.init()) {
         std::cout << "Motion initialization failed." << std::endl;
         return 1;
         }
     }
-    /*
-    if (enc.init()) {
-        LOG_ERROR("Encoder initialization failed.");
-        return 1;
-    }
-    */
 
     ws_thread = std::thread(&WS::run, ws);
     enc_thread = std::thread(&Encoder::run, &enc);
@@ -130,9 +157,30 @@ int main(int argc, const char *argv[]) {
 
         std::cout << "MAIN SIGNAL" << std::endl;
 
-        if(cfg->main_thread_signal & 2) {
-            cfg->main_thread_signal.fetch_xor(2);
-            restart_encoder();
+        if(cfg->main_thread_signal & 8) { // 8 = stop action
+            cfg->main_thread_signal.fetch_xor(8);
+            if(cfg->main_thread_signal & 1) {  // 1 = rtsp thread
+                stop_rtsp();
+            }
+            if(cfg->main_thread_signal & 2) { // 2 = encoder thread
+                stop_encoder();
+            }
+            if(cfg->main_thread_signal & 4) { // 4 = motion thread
+                //stop_motion();
+            }                                
+        }
+
+        if(cfg->main_thread_signal & 16) { // 16 = start action
+            cfg->main_thread_signal.fetch_xor(16);
+            if(cfg->main_thread_signal & 1) {  // 1 = rtsp thread
+                start_rtsp();
+            }
+            if(cfg->main_thread_signal & 2) { // 2 = encoder thread
+                start_encoder();
+            }
+            if(cfg->main_thread_signal & 4) { // 4 = motion thread
+                //stop_motion();
+            }                                
         }
 
         cfg->main_thread_signal.store(1);
