@@ -6,25 +6,28 @@
 #include <atomic>
 #include "imp/imp_ivs.h"
 #include "imp/imp_ivs_move.h"
-#include "Encoder.hpp"
+#include "Config.hpp"
+#include "Logger.hpp"
+#include <imp/imp_system.h>
 
 class Motion {
-public:
-    Motion(std::shared_ptr<CFG> _cfg) : cfg(_cfg) {};
-    static void detect_start(Motion *m);
-    void detect();
-    void run();
-    bool init();
+    public:
+        static void detect_start(Motion *m);
+        void detect();
+        void run();
+        bool init(std::shared_ptr<CFG> _cfg);
+        bool exit();
 
-public:
-    static std::atomic<bool> moving;
-    static std::atomic<bool> indicator;
+    private:
+        std::atomic<bool> moving;
+        std::atomic<bool> indicator;    
+        std::shared_ptr<CFG> cfg;
+        IMP_IVS_MoveParam move_param;
+        IMPIVSInterface *move_intf;
+        std::thread detect_thread;
 
-private:
-    std::shared_ptr<CFG> cfg;
-    IMP_IVS_MoveParam move_param;
-    IMPIVSInterface *move_intf;
-    static std::thread detect_thread;
+        IMPCell fs = { DEV_ID_FS, 0, 1 };
+        IMPCell ivs_cell = { DEV_ID_IVS, 0, 0 };    
 };
 
 #endif /* Motion_hpp */

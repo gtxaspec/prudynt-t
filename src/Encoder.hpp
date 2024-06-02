@@ -19,6 +19,7 @@
 #include "Logger.hpp"
 #include "Config.hpp"
 #include "OSD.hpp"
+#include "Motion.hpp"
 
 #include <../sysutils/su_base.h>
 
@@ -93,6 +94,7 @@ class Encoder {
 	private:
 		std::shared_ptr<CFG> cfg;
 		OSD osd;
+		Motion motion;
 
 		bool init();
 		void exit();
@@ -117,6 +119,9 @@ class Encoder {
 		
 		std::thread jpeg_thread;
 		void jpeg_snap(std::shared_ptr<CFG>& cfg);
+
+		bool osdInitialized{0};
+		bool motionInitialized{0};
 };
 
 #endif

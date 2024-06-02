@@ -427,7 +427,7 @@ bool OSD::init(std::shared_ptr<CFG> _cfg) {
 
     cfg = _cfg;
     last_updated_second = -1;
-
+    
     if (freetype_init()) {
         LOG_DEBUG("FREETYPE init failed.");
         return true;
@@ -577,6 +577,9 @@ bool OSD::init(std::shared_ptr<CFG> _cfg) {
     LOG_DEBUG("IMP_OSD_Start succeed");
 
     LOG_DEBUG("OSD init completed");
+
+    initialized = true;
+
     return false;
 }
 
@@ -636,12 +639,10 @@ bool OSD::exit() {
     }
 
     // cleanup osd image data
-    if(cfg->osd.enabled) {
-        if(cfg->osd.time_enabled) free(osdTime.data);
-        if(cfg->osd.user_text_enabled) free(osdUser.data);
-        if(cfg->osd.uptime_enabled) free(osdUptm.data);
-        if(cfg->osd.logo_enabled) free(osdLogo.data);
-    }
+    free(osdTime.data);
+    free(osdUser.data);
+    free(osdUptm.data);
+    free(osdLogo.data);
 
     ret = FT_Done_FreeType(freetype);
     if (ret < 0) {

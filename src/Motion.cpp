@@ -5,21 +5,20 @@
 
 #include "Motion.hpp"
 #include "Config.hpp"
-#include "Scripts.hpp"
 
 extern "C" {
     #include <unistd.h>
 }
 
-std::atomic<bool> Motion::moving;
-std::atomic<bool> Motion::indicator;
-std::thread Motion::detect_thread;
 void Motion::detect_start(Motion *m) { m->detect(); }
 using namespace std::chrono;
 bool ignoreInitialPeriod = true;
 
 void Motion::detect() {
-    LOG_INFO("Detection thread started");
+
+    LOG_INFO("Start motion detection thread.");
+    cfg->motion_thread_signal.fetch_or(2);
+
     int ret;
     int debounce = 0;
     IMP_IVS_MoveOutput *result;
@@ -28,8 +27,17 @@ void Motion::detect() {
     auto motionEndTime = steady_clock::now();
     auto startTime = steady_clock::now();
 
-    while (true) {
-        ret = IMP_IVS_PollingResult(0, IMP_IVS_DEFAULT_TIMEOUTMS);
+    while (cfg->motion_thread_signal.load() & 2) {
+
+        // stop thread request
+        if(cfg->motion_thread_signal.load() & 4) {
+
+            // !2 = exit while 
+            cfg->motion_thread_signal.fetch_xor(2);
+            continue;
+        }
+
+        ret = IMP_IVS_PollingResult(0, cfg->motion.thread_wait); // IMP_IVS_DEFAULT_TIMEOUTMS ~10sec are really long 
         if (ret < 0) {
             LOG_WARN("IMP_IVS_PollingResult error: " << ret);
             continue;
@@ -63,12 +71,16 @@ void Motion::detect() {
                 LOG_INFO("Active motion detected in region " << i);
                 debounce++;
                 if (debounce >= cfg->motion.debounce_time) {
-                    if (!Motion::moving.load()) {
-                        Motion::moving = true;
+                    if (!moving.load()) {
+                        moving = true;
                         LOG_INFO("Motion Start");
-                        Scripts::motionScript();
+
+                        ret = system(cfg->motion.script_path.c_str());
+                        if (ret != 0) {
+                            LOG_ERROR(std::string("Motion script failed:") + cfg->motion.script_path.c_str());
+                        }                        
                     }
-                    Motion::indicator = true;
+                    indicator = true;
                     motionEndTime = steady_clock::now(); // Update last motion time
                 }
             }
@@ -76,10 +88,10 @@ void Motion::detect() {
 
         if (!motionDetected) {
             debounce = 0;
-            if (Motion::moving && duration_cast<seconds>(currentTime - motionEndTime).count() >= cfg->motion.post_time) {
+            if (moving && duration_cast<seconds>(currentTime - motionEndTime).count() >= cfg->motion.post_time) {
                 LOG_INFO("End of Motion");
-                Motion::moving = false;
-                Motion::indicator = false;
+                moving = false;
+                indicator = false;
                 cooldownEndTime = steady_clock::now(); // Start cooldown
                 isInCooldown = true;
             }
@@ -91,17 +103,28 @@ void Motion::detect() {
             continue;
         }
     }
+
+    LOG_DEBUG("Exit motion detect thread.");
+    cfg->motion_thread_signal.fetch_xor(4);
+    cfg->motion_thread_signal.fetch_or(8);
 }
 
-bool Motion::init() {
+bool Motion::init(std::shared_ptr<CFG> _cfg) {
+
+    LOG_INFO("Initialize motion detection.");
+    
+    nice(-20);
+
     int ret;
-    IMP_IVS_MoveParam move_param;
-    IMPIVSInterface *move_intf;
+    cfg = _cfg;
+    cfg->motion_thread_signal.store(0);
+
     ret = IMP_IVS_CreateGroup(0);
     if (ret < 0) {
-        LOG_ERROR("IMP_IVS_CreateGroup() == " << ret);
-        return true;
+        LOG_ERROR("IMP_IVS_CreateGroup(0) == " << ret);
+        return false;
     }
+    LOG_DEBUG("IMP_IVS_CreateGroup(0)");
 
     memset(&move_param, 0, sizeof(IMP_IVS_MoveParam));
     //OSD is affecting motion for some reason.
@@ -110,6 +133,7 @@ bool Motion::init() {
     move_param.skipFrameCnt = cfg->motion.skip_frame_count;
     move_param.frameInfo.width = cfg->motion.frame_width;
     move_param.frameInfo.height = cfg->motion.frame_width;
+    
     move_param.roiRect[0].p0.x = cfg->motion.roi_0_x;
     move_param.roiRect[0].p0.y = cfg->motion.roi_0_y;
     move_param.roiRect[0].p1.x = cfg->motion.roi_1_x - 1;
@@ -119,39 +143,95 @@ bool Motion::init() {
 
     ret = IMP_IVS_CreateChn(0, move_intf);
     if (ret < 0) {
-        LOG_ERROR("IMP_IVS_CreateChn() == " << ret);
-        return true;
+        LOG_ERROR("IMP_IVS_CreateChn(0, move_intf) == " << ret);
+        return false;
     }
+    LOG_DEBUG("IMP_IVS_CreateChn()");
 
     ret = IMP_IVS_RegisterChn(0, 0);
     if (ret < 0) {
-        LOG_ERROR("IMP_IVS_RegisterChn() == " << ret);
-        return true;
+        LOG_ERROR("IMP_IVS_RegisterChn(0, 0) == " << ret);
+        return false;
     }
+    LOG_DEBUG("IMP_IVS_RegisterChn(0, 0)");
 
     ret = IMP_IVS_StartRecvPic(0);
     if (ret < 0) {
-        LOG_ERROR("IMP_IVS_StartRecvPic() == " << ret);
-        return true;
+        LOG_ERROR("IMP_IVS_StartRecvPic(0) == " << ret);
+        return false;
     }
+    LOG_DEBUG("IMP_IVS_StartRecvPic(0)");
 
-    IMPCell fs = { DEV_ID_FS, 0, 1 };
-    IMPCell ivs_cell = { DEV_ID_IVS, 0, 0 };
     //Framesource -> IVS
     ret = IMP_System_Bind(&fs, &ivs_cell);
     if (ret < 0) {
         LOG_ERROR("IMP_System_Bind(FS, IVS) == " << ret);
-        return true;
+        return false;
     }
-    return false;
-}
+    LOG_ERROR("IMP_System_Bind(FS, IVS)");
 
-
-void Motion::run() {
-    LOG_INFO("Starting Motion Detection");
-    nice(-20);
+    //initialize and start
+    cfg->motion_thread_signal.fetch_or(1);
 
     // Start the detection thread
     detect_thread = std::thread(Motion::detect_start, this);
 
+    return true;
+}
+
+bool Motion::exit() {
+
+    int ret;
+
+    LOG_DEBUG("Exit motion detection.");
+
+    cfg->motion_thread_signal.fetch_or(4);
+
+    ret = IMP_IVS_StopRecvPic(0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_IVS_StopRecvPic() == " << ret);
+        return true;
+    }
+    LOG_DEBUG("IMP_IVS_StopRecvPic(0)");
+
+    ret = IMP_IVS_UnRegisterChn(0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_IVS_UnRegisterChn(0) == " << ret);
+        return true;
+    }
+    LOG_DEBUG("IMP_IVS_UnRegisterChn(0)");
+
+    ret = IMP_IVS_DestroyChn(0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_IVS_DestroyChn(0) == " << ret);
+        return true;
+    }
+    LOG_DEBUG("IMP_IVS_DestroyChn(0)");
+
+    ret = IMP_IVS_DestroyGroup(0);
+    if (ret < 0) {
+        LOG_ERROR("IMP_IVS_DestroyGroup(0) == " << ret);
+        return true;
+    }
+    LOG_DEBUG("IMP_IVS_DestroyGroup(0)");
+
+    IMP_IVS_DestroyMoveInterface(move_intf);
+
+    std::chrono::milliseconds duration;
+    auto t0 = std::chrono::high_resolution_clock::now();
+    while((cfg->motion_thread_signal.load() & 8)!=8) {
+        LOG_DEBUG("Wait for motion detect thread exit." << cfg->motion_thread_signal.load());
+        duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
+        if( duration.count() > 1000 * 1000 * 30 ) { //30 seconds
+            LOG_ERROR("Motion thread exit timeout.");
+            return false;
+        }
+        usleep(1000 * 1000);
+    }
+    LOG_DEBUG("Join motion detect thread to cleanup.");
+    detect_thread.join();
+
+    cfg->motion_thread_signal.fetch_xor(1);
+
+    return true;
 }

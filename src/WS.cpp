@@ -183,8 +183,7 @@ enum
 enum
 {
     PNT_THREAD_RTSP = 1,
-    PNT_THREAD_ENCODER = 2,
-    PNT_THREAD_MOTION = 4
+    PNT_THREAD_ENCODER = 2
 };
 
 static const char *const action_keys[] = {

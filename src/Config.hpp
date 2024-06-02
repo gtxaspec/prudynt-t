@@ -127,6 +127,7 @@ class CFG {
 			int post_time;
 			int cooldown_time;
 			int init_time;
+            int thread_wait;
 			int sensitivity;
 			int skip_frame_count;
 			int frame_width;
@@ -161,8 +162,12 @@ class CFG {
 
         // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
         std::atomic<int> encoder_thread_signal{1};
+        // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
         std::atomic<int> jpg_thread_signal{1};
+        // bit 0 = start, 1 = stop, 2 = stopped, 256 = exit
         char volatile rtsp_thread_signal{0};
+        // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
+        std::atomic<int> motion_thread_signal{1};
 
         template <typename T>
         T get(const std::string& key) {
@@ -301,17 +306,18 @@ class CFG {
             {"motion.script_path",      strEntry{motion.script_path, "/usr/sbin/motion", [](const std::string &v) { return !v.empty(); }, "Motion detection script path cannot be empty.", ""}},
 			{"motion.debounce_time", 	intEntry{motion.debounce_time, 0, [](const int &v) { return v >= 0; }, "Motion debounce time should be non-negative", ""}},
 			{"motion.post_time", 		intEntry{motion.post_time, 0, [](const int &v) { return v >= 0; }, "Motion post time should be non-negative", ""}},
+            {"motion.thread_wait", 		intEntry{motion.thread_wait, 5000, [](const int &v) { return v >= 1000 && v <= 10000; }, "Motion detection wait time.", ""}},
 			{"motion.cooldown_time", 	intEntry{motion.cooldown_time, 5, [](const int &v) { return v >= 0; }, "Motion cooldown time should be non-negative", ""}},
 			{"motion.init_time", 		intEntry{motion.init_time, 5, [](const int &v) { return v >= 0; }, "Motion initialization time should be non-negative", ""}},
 			{"motion.sensitivity", 		intEntry{motion.sensitivity, 1, [](const int &v) { return v >= 0; }, "Motion sensitivity should be non-negative"}},
 			{"motion.skip_frame_count", intEntry{motion.skip_frame_count, 5, [](const int &v) { return v >= 0; }, "Motion skip frame count should be non-negative", ""}},
 			{"motion.frame_width", 		intEntry{motion.frame_width, 1920, [](const int &v) { return v > 0; }, "Motion frame width should be greater than 0", ""}},
-			{"motion.frame_height", 	intEntry{motion.frame_width, 1080, [](const int &v) { return v > 0; }, "Motion frame height should be greater than 0", ""}},
+			{"motion.frame_height", 	intEntry{motion.frame_height, 1080, [](const int &v) { return v > 0; }, "Motion frame height should be greater than 0", ""}},
 			{"motion.roi_0_x", 			intEntry{motion.roi_0_x, 0, [](const int &v) { return v >= 0; }, "Motion ROI 0 X position should be non-negative", ""}},
 			{"motion.roi_0_y", 			intEntry{motion.roi_0_y, 0, [](const int &v) { return v >= 0; }, "Motion ROI 0 Y position should be non-negative", ""}},
 			{"motion.roi_1_x", 			intEntry{motion.roi_1_x, 1920, [](const int &v) { return v >= 0; }, "Motion ROI 1 X position should be non-negative", ""}},
 			{"motion.roi_1_y", 			intEntry{motion.roi_1_y, 1080, [](const int &v) { return v >= 0; }, "Motion ROI 1 Y position should be non-negative", ""}},
-			{"motion.roi_count", 		intEntry{motion.roi_count, 1, [](const int &v) { return v >= 0 && v <= 4; }, "Motion ROI count should be between 0 and 4", ""}},						
+			{"motion.roi_count", 		intEntry{motion.roi_count, 1, [](const int &v) { return v >= 1 && v <= 52; }, "Motion ROI count should be between 1 and 52", ""}},						
 		};
 };
 

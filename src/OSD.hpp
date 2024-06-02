@@ -16,22 +16,6 @@
 	#define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
 
-struct OSDTextItem {
-    IMPRgnHandle imp_rgn;
-    IMPOSDRgnAttr imp_attr;
-    IMPOSDGrpRgnAttr imp_grp_attr;
-    std::string text;
-    uint8_t *data;
-    int point_size;
-    int stroke;
-    uint32_t color;
-    uint32_t stroke_color;
-    uint8_t update_intervall;  //update intervall in seconds
-    uint32_t last_update;      //second of the day (last update)
-    int x;
-    int y;
-};
-
 struct OSDItem {
     IMPRgnHandle imp_rgn;
     uint8_t *data;
@@ -75,6 +59,8 @@ class OSD {
         std::map<char,FT_BitmapGlyph> stroke_bitmaps;
         std::map<char,FT_BBox> boxes;
         std::map<char,FT_Vector> advances;
+
+        bool initialized{0};
 };
 
 #endif

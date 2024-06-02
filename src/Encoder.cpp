@@ -468,8 +468,8 @@ bool Encoder::init()
     {
         // If OSD is enabled, initialize OSD and bind FrameSource to OSD, then OSD to Encoder
         LOG_DEBUG("OSD enabled");
+        osdInitialized = true;
 
-        //OSD osd(cfg);
         ret = osd.init(cfg);
         if (ret)
         {
@@ -503,6 +503,19 @@ bool Encoder::init()
         return true;
     }
     LOG_DEBUG("Frame Source Channel 0 enabled");
+
+    if(cfg->motion.enabled) {
+
+        LOG_DEBUG("Motion enabled");
+        motionInitialized = true;
+
+        ret = motion.init(cfg);
+        if (!ret)
+        {
+            LOG_ERROR("Motion Init Failed");
+            return true;
+        }
+    }
 
     return false;
 }
@@ -550,7 +563,14 @@ void Encoder::exit()
     ret = IMP_Encoder_DestroyGroup(0);
     LOG_DEBUG("IMP_Encoder_DestroyGroup(" << i << ") error: " << ret);
 
-    osd.exit();
+    if(osdInitialized)
+        osd.exit();
+
+    if(motionInitialized) {
+        if(!motion.exit()) {
+            LOG_ERROR("Exit motion detection failed.");
+        }
+    }
 
     IMP_System_Exit();
     LOG_DEBUG("IMP_System_Exit");

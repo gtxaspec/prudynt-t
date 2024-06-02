@@ -24,7 +24,6 @@ std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
 WS ws(cfg, main_thread_signal);
 Encoder enc(cfg);
 Encoder jpg(cfg);
-Motion motion(cfg);
 RTSP rtsp(cfg);
 
 void stop_encoder() {
@@ -120,7 +119,7 @@ int main(int argc, const char *argv[]) {
     std::thread ws_thread;
     std::thread enc_thread;
     std::thread rtsp_thread;
-    std::thread motion_thread;
+    //std::thread motion_thread;
 
     if (Logger::init()) {
         LOG_ERROR("Logger initialization failed.");
@@ -133,21 +132,21 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    if (cfg->motion.enabled) {
-        if (motion.init()) {
-        std::cout << "Motion initialization failed." << std::endl;
-        return 1;
-        }
-    }
-
     ws_thread = std::thread(&WS::run, ws);
     enc_thread = std::thread(&Encoder::run, &enc);
-    rtsp_thread = std::thread(start_component<RTSP>, rtsp);
+    rtsp_thread = std::thread(&RTSP::run, rtsp);
 
+    /*
     if (cfg->motion.enabled) {
         LOG_DEBUG("Motion detection enabled");
-        motion_thread = std::thread(start_component<Motion>, motion);
+        while((cfg->encoder_thread_signal.load() & 2) != 2) {
+            LOG_DEBUG("Wait for encoder bekomes ready.");
+             usleep(1000*1000);
+        }
+        
+        motion_thread = std::thread(&Motion::run, &motion);
     }
+    */
 
     while(1) {
 
@@ -164,10 +163,7 @@ int main(int argc, const char *argv[]) {
             }
             if(cfg->main_thread_signal & 2) { // 2 = encoder thread
                 stop_encoder();
-            }
-            if(cfg->main_thread_signal & 4) { // 4 = motion thread
-                //stop_motion();
-            }                                
+            }                              
         }
 
         if(cfg->main_thread_signal & 16) { // 16 = start action
@@ -177,26 +173,11 @@ int main(int argc, const char *argv[]) {
             }
             if(cfg->main_thread_signal & 2) { // 2 = encoder thread
                 start_encoder();
-            }
-            if(cfg->main_thread_signal & 4) { // 4 = motion thread
-                //stop_motion();
-            }                                
+            }                              
         }
 
         cfg->main_thread_signal.store(1);
     }
-    /*
-    if (Config::singleton()->stream1jpegEnable) {
-        LOG_DEBUG("JPEG support enabled");
-        std::thread jpegThread(&Encoder::jpeg_snap, &jpg);
-        jpegThread.detach();
-    }
-    */   
-    
-
-    enc_thread.join();
-    rtsp_thread.join();
-    motion_thread.join();
 
     return 0;
 }
