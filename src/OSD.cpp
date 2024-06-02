@@ -533,22 +533,31 @@ bool OSD::init(std::shared_ptr<CFG> _cfg) {
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
-        rgnAttr.type = OSD_REG_PIC;
-        rgnAttr.fmt = PIX_FMT_BGRA;
-        rgnAttr.data.picData.pData = imageData.get();
 
-        //Logo rotation
-        int logo_width = cfg->osd.logo_width;
-        int logo_height = cfg->osd.logo_height;
-        if(cfg->stream0.osd_logo_rotation) {
-            uint8_t* imageData = static_cast<uint8_t*>(rgnAttr.data.picData.pData);
-            rotateBGRAImage(imageData, logo_width, 
-                logo_height, cfg->stream0.osd_logo_rotation, false);
-            rgnAttr.data.picData.pData = imageData;
-        }
+        //Verify OSD logo size vs dimensions
+        if ((cfg->osd.logo_width*cfg->osd.logo_height*4) == imageSize) {
 
-        set_pos(&rgnAttr, cfg->stream0.osd_pos_logo_x, 
-            cfg->stream0.osd_pos_logo_y, logo_width, logo_height);        
+            rgnAttr.type = OSD_REG_PIC;
+            rgnAttr.fmt = PIX_FMT_BGRA;
+            rgnAttr.data.picData.pData = imageData.get();
+
+            //Logo rotation
+            int logo_width = cfg->osd.logo_width;
+            int logo_height = cfg->osd.logo_height;
+            if(cfg->stream0.osd_logo_rotation) {
+                uint8_t* imageData = static_cast<uint8_t*>(rgnAttr.data.picData.pData);
+                rotateBGRAImage(imageData, logo_width, 
+                    logo_height, cfg->stream0.osd_logo_rotation, false);
+                rgnAttr.data.picData.pData = imageData;
+            }
+
+            set_pos(&rgnAttr, cfg->stream0.osd_pos_logo_x, 
+                cfg->stream0.osd_pos_logo_y, logo_width, logo_height);
+        } else {
+
+            LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << cfg->osd.logo_width << "*" << 
+                cfg->osd.logo_height << "*4=" << (cfg->osd.logo_width*cfg->osd.logo_height*4));
+        }  
         IMP_OSD_SetRgnAttr(osdLogo.imp_rgn, &rgnAttr);
         
         IMPOSDGrpRgnAttr grpRgnAttr;
