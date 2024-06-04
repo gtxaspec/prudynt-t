@@ -12,13 +12,7 @@
 
 #include "version.hpp"
 
-template <class T> void start_component(T c) {
-    c.run();
-}
-
-//std::atomic<int> enc_thread_signal;
 auto main_thread_signal = std::make_shared<std::atomic<int>>(0);
-
 std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
 
 WS ws(cfg, main_thread_signal);
@@ -119,9 +113,8 @@ int main(int argc, const char *argv[]) {
     std::thread ws_thread;
     std::thread enc_thread;
     std::thread rtsp_thread;
-    //std::thread motion_thread;
 
-    if (Logger::init()) {
+    if (Logger::init(cfg->general.loglevel)) {
         LOG_ERROR("Logger initialization failed.");
         return 1;
     }
@@ -135,18 +128,6 @@ int main(int argc, const char *argv[]) {
     ws_thread = std::thread(&WS::run, ws);
     enc_thread = std::thread(&Encoder::run, &enc);
     rtsp_thread = std::thread(&RTSP::run, rtsp);
-
-    /*
-    if (cfg->motion.enabled) {
-        LOG_DEBUG("Motion detection enabled");
-        while((cfg->encoder_thread_signal.load() & 2) != 2) {
-            LOG_DEBUG("Wait for encoder bekomes ready.");
-             usleep(1000*1000);
-        }
-        
-        motion_thread = std::thread(&Motion::run, &motion);
-    }
-    */
 
     while(1) {
 

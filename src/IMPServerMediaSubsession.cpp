@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include "IMPServerMediaSubsession.hpp"
 #include "IMPDeviceSource.hpp"
 #include "H264VideoRTPSink.hh"
@@ -7,6 +8,8 @@
 #include "H265VideoStreamDiscreteFramer.hh"
 #include "GroupsockHelper.hh"
 #include "Config.hpp"
+
+std::shared_ptr<CFG> IMPServerMediaSubsession::cfg = nullptr;
 
 // Modify method to accept pointers for the NAL units
 IMPServerMediaSubsession* IMPServerMediaSubsession::createNew(
@@ -39,12 +42,12 @@ FramedSource* IMPServerMediaSubsession::createNewStreamSource(
     unsigned clientSessionId,
     unsigned& estBitrate
 ) {
-    LOG_DEBUG("Create Stream Source.");
-    estBitrate = Config::singleton()->rtspEstBitRate; // The expected bitrate?
+    LOG_DEBUG("Create Stream Source. " << cfg->rtsp.est_bitrate);
+    estBitrate = cfg->rtsp.est_bitrate; // The expected bitrate?
 
     IMPDeviceSource* imp = IMPDeviceSource::createNew(envir());
     // Here we need to decide based on the format whether to use H264 or H265 framer
-    if (Config::singleton()->stream0format == "H265") {
+    if (cfg->stream0.format == "H265") {
         return H265VideoStreamDiscreteFramer::createNew(envir(), imp, false, false);
     } else { // Lets assume the default is H264 if not H265
         return H264VideoStreamDiscreteFramer::createNew(envir(), imp, false, false);
@@ -57,9 +60,9 @@ RTPSink* IMPServerMediaSubsession::createNewRTPSink(
     unsigned char rtpPayloadTypeIfDynamic,
     FramedSource* fs
 ) {
-    increaseSendBufferTo(envir(), rtpGroupsock->socketNum(), Config::singleton()->rtspSendBufferSize);
+    increaseSendBufferTo(envir(), rtpGroupsock->socketNum(), cfg->rtsp.send_buffer_size);
     // Use VPS only if it's available (non-nullptr and we are in H265 mode)
-    if (Config::singleton()->stream0format == "H265" && vps) {
+    if (cfg->stream0.format == "H265" && vps) {
         return H265VideoRTPSink::createNew(
             envir(),
             rtpGroupsock,

@@ -7,13 +7,11 @@
 
 #define MODULE "ENCODER"
 
-#define OSDPoolSize 131072*4
+#define OSDPoolSize 1920*1080
 
 std::mutex Encoder::sinks_lock;
 std::map<uint32_t, EncoderSink> Encoder::sinks;
 uint32_t Encoder::sink_id = 0;
-
-//Encoder::Encoder() {}
 
 IMPSensorInfo Encoder::create_sensor_info(std::string sensor)
 {
@@ -244,7 +242,6 @@ int Encoder::framesource_init()
     LOG_DEBUG("IMP_FrameSource_SetChnAttr set");
 
     IMPFSChnFifoAttr fifo;
-
     ret = IMP_FrameSource_GetChnFifoAttr(0, &fifo);
     if (ret < 0)
     {

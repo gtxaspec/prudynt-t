@@ -256,7 +256,7 @@ signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
                 Logger::setLevel(ctx->buf);
             }
             append_message(
-                "\"%s\"", Config::singleton()->logLevel.c_str());
+                "\"%s\"", u_ctx->ws->cfg->general.loglevel.c_str());
             break;
         case PNT_TEST:
             append_message(
@@ -297,14 +297,14 @@ signed char WS::rtsp_callback(struct lejp_ctx *ctx, char reason)
             {
             }
             append_message(
-                "%d", Config::singleton()->rtspPort);
+                "%d", u_ctx->ws->cfg->rtsp.port);
             break;
         case PNT_RTSP_NAME:
             if (reason != LEJPCB_VAL_NULL)
             {
             }
             append_message(
-                "\"%s\"", Config::singleton()->rtspName.c_str());
+                "\"%s\"", u_ctx->ws->cfg->rtsp.name.c_str());
             break;
         }
 
@@ -337,7 +337,7 @@ signed char WS::sensor_callback(struct lejp_ctx *ctx, char reason)
             {
             }
             append_message(
-                "\"%s\"", Config::singleton()->sensorModel.c_str());
+                "\"%s\"", u_ctx->ws->cfg->sensor.model.c_str());
             break;
         }
 
@@ -504,7 +504,7 @@ signed char WS::stream1_callback(struct lejp_ctx *ctx, char reason)
             {
             }
             append_message(
-                "%s", Config::singleton()->stream1jpegEnable ? "true" : "false");
+                "%s", u_ctx->ws->cfg->stream1.jpeg_enabled ? "true" : "false");
             break;
         }
 
@@ -537,7 +537,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
             {
             }
             append_message(
-                "%s", Config::singleton()->OSDEnable ? "true" : "false");
+                "%s", u_ctx->ws->cfg->osd.enabled ? "true" : "false");
             break;
         }
 
@@ -570,7 +570,7 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
             {
             }
             append_message(
-                "%s", Config::singleton()->motionEnable ? "true" : "false");
+                "%s", u_ctx->ws->cfg->motion.enabled ? "true" : "false");
             break;
         }
 

@@ -5,9 +5,14 @@
 #include "ServerMediaSession.hh"
 #include "OnDemandServerMediaSubsession.hh"
 #include "Encoder.hpp"
+#include "Config.hpp"
 
 class IMPServerMediaSubsession: public OnDemandServerMediaSubsession {
 public:
+    static void init(const std::shared_ptr<CFG>& _cfg) { 
+        cfg = _cfg; 
+    };
+    
     static IMPServerMediaSubsession* createNew(
         UsageEnvironment& env,
         H264NALUnit* vps,  // Change to pointer for optional VPS
@@ -39,6 +44,8 @@ private:
     StreamReplicator* replicator;
     H264NALUnit* vps; // Change to pointer for optional VPS
     H264NALUnit sps, pps;
+    static std::shared_ptr<CFG> cfg;
+    
 };
 
 #endif // IMPServerMediaSubsession_hpp

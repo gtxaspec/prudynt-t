@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <syslog.h>
+#include <memory>
 
 // Undefine conflicting macros from syslog.h
 #undef LOG_INFO
@@ -11,7 +12,6 @@
 #define MODULE "LOGGER"
 
 #include "Logger.hpp"
-#include "Config.hpp"
 
 const char* text_levels[] = {
     "EMERGENCY",
@@ -37,14 +37,14 @@ Logger::Level stringToLogLevel(const std::string& levelStr) {
     return Logger::INFO; // or any default level you prefer
 }
 
-Logger::Level Logger::level = stringToLogLevel(Config::singleton()->logLevel);
+Logger::Level Logger::level = Logger::INFO;
 
 std::mutex Logger::log_mtx;
 
-bool Logger::init() {
+bool Logger::init(std::string logLevel) {
     // Initialize the syslog
     openlog("prudynt", LOG_PID | LOG_NDELAY, LOG_USER);
-
+    Logger::level = stringToLogLevel(logLevel);
     LOG_DEBUG("Logger Init.");
     return false;
 }

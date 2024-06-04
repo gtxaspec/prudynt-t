@@ -211,7 +211,7 @@ int OSD::freetype_init() {
 
     error = FT_New_Face(
         freetype,
-        Config::singleton()->OSDFontPath.c_str(),
+        cfg->osd.font_path.c_str(),
         0,
         &fontface
     );
@@ -240,17 +240,17 @@ int OSD::freetype_init() {
 
     FT_Stroker_Set(
         stroker,
-        Config::singleton()->OSDFontStrokeSize,
+        cfg->osd.font_stroke_size,
         FT_STROKER_LINECAP_SQUARE,
         FT_STROKER_LINEJOIN_ROUND,
         0
     );
-    FT_Set_Char_Size(fontface, 0, 32*64, Config::singleton()->OSDFontSize, Config::singleton()->OSDFontSize);
+    FT_Set_Char_Size(fontface, 0, 32*64, cfg->osd.font_size , cfg->osd.font_size);
 
     //Prerender glyphs needed for displaying date & time.
     std::string prerender_list;
 
-    if (Config::singleton()->OSDUserTextEnable) {
+    if (cfg->osd.user_text_enabled) {
         prerender_list = "0123456789 /:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|;:'\",.<>?`~";
     } else {
         prerender_list = "0123456789 /APM:";

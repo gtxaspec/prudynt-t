@@ -44,7 +44,7 @@ public:
         DEBUG
     };
 
-    static bool init();
+    static bool init(std::string logLevel);
     static void log(Level level, std::string module, LogMsg msg);
 
     static void setLevel(std::string lvl);

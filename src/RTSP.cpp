@@ -9,6 +9,8 @@
 
 void RTSP::run() {
 
+    IMPServerMediaSubsession::init(cfg);
+
     LOG_DEBUG("RTSP :: " << cfg->rtsp_thread_signal);
     
     while((cfg->rtsp_thread_signal & 256) != 256) {
@@ -16,6 +18,7 @@ void RTSP::run() {
         if(cfg->rtsp_thread_signal == 0) {
                 
             nice(-20);
+
             TaskScheduler *scheduler = BasicTaskScheduler::createNew();
             UsageEnvironment *env = BasicUsageEnvironment::createNew(*scheduler);
 
