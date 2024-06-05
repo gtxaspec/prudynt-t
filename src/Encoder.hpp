@@ -14,6 +14,7 @@
 #include <imp/imp_encoder.h>
 #include <imp/imp_isp.h>
 #include <imp/imp_osd.h>
+#include <imp/imp_audio.h>
 
 #include "MsgChannel.hpp"
 #include "Logger.hpp"

@@ -14,6 +14,9 @@
 #define LOG_NOTICE(str)    Logger::log(Logger::NOTICE, __FILENAME__, LogMsg() << str)
 #define LOG_INFO(str)      Logger::log(Logger::INFO, __FILENAME__, LogMsg() << str)
 #define LOG_DEBUG(str)     Logger::log(Logger::DEBUG, __FILENAME__, LogMsg() << str)
+#define LOG_ERROR_OR_DEBUG(condition, str)  \
+    ((condition) == 0 ? Logger::log(Logger::DEBUG, __FILENAME__, LogMsg() << str) : \
+    Logger::log(Logger::ERROR, __FILENAME__, LogMsg() << str))
 
 struct LogMsg {
     LogMsg() {};

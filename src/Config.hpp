@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <set>
 #include <string>
 #include <atomic>
 #include <variant>
@@ -62,7 +63,45 @@ class CFG {
 			std::string model;
 			unsigned int i2c_address;
 		};
-		struct _stream0 {
+		struct _image {
+            int contrast;
+            int sharpness;
+            int saturation;
+            int brightness;
+            int hue;
+            int sinter_strength;
+            int temper_strength;
+            bool vflip;
+            bool hflip;
+            int running_mode;
+            int anti_flicker;
+            int ae_compensation;
+            int dpc_strength;
+            int defog_strength;
+            int drc_strength;
+            int highlight_depress;
+            int backlight_compensation;
+            int max_again;
+            int max_dgain;
+            int core_wb_mode;
+            int wb_rgain;
+            int wb_bgain;
+
+        };
+        struct _audio {
+            bool input_enabled;
+            int input_vol;
+            int input_gain;
+            int input_alc_gain;
+            bool output_enabled;            
+            int output_vol;
+            int output_gain;
+            int input_noise_suppression;            
+            bool input_echo_cancellation;
+            bool input_high_pass_filter;
+            bool output_high_pass_filter;
+        };
+        struct _stream0 {
 			int gop;
 			int max_gop;
 			int fps;
@@ -152,6 +191,8 @@ class CFG {
 		_general general;
 		_rtsp rtsp;
 		_sensor sensor;
+        _image image;
+        _audio audio;
 		_stream0 stream0;
 		_stream1 stream1;
 		_osd osd;
@@ -190,48 +231,52 @@ class CFG {
         }
 
         template <typename T>
-        void set(const std::string& key, const T& value) {
+        bool set(const std::string& key, const T& value) {
             auto it = settings.find(key);
             if (it == settings.end()) {
                 std::cout << "[ERROR:config.hpp] Key not found: " << key << std::endl;
-                return;
             }
 
             if constexpr (std::is_same_v<T, int>) {
                 auto& entry = std::get<intEntry>(it->second);
-                if (entry.isValid(value)) {
-                    entry.value = value;
+                if (entry.isValid(value) && entry.value != value) {
+                    entry.value = value; 
+                    return true;
                 } else {
                     std::cout << "[ERROR:config.hpp] Invalid int value for key: " << key << std::endl;
                 }
             } else if constexpr (std::is_same_v<T, bool>) {
                 auto& entry = std::get<bolEntry>(it->second);
-                if (entry.isValid(value)) {
+                if (entry.isValid(value) && entry.value != value) {
                     entry.value = value;
+                    return true;
                 } else {
                     std::cout << "[ERROR:config.hpp] Invalid bool value for key: " << key << std::endl;
                 }
             } else if constexpr (std::is_same_v<T, std::string>) {
                 auto& entry = std::get<strEntry>(it->second);
-                if (entry.isValid(value)) {
+                if (entry.isValid(value) && entry.value != value) {
                     entry.value = value;
+                    return true;
                 } else {
                     std::cout << "[ERROR:config.hpp] Invalid str value for key: " << key << std::endl;
                 }
             } else if constexpr (std::is_same_v<T, unsigned int>) {
                 auto& entry = std::get<uintEntry>(it->second);
-                if (entry.isValid(value)) {
+                if (entry.isValid(value) && entry.value != value) {
                     entry.value = value;
+                    return true;
                 } else {
                     std::cout << "[ERROR:config.hpp] Invalid uint value for key: " << key << std::endl;
                 }
             } else {
                 std::cout << "[ERROR:config.hpp] Unsupported type for key: " << key << std::endl;
             }
+            return false;
         }
         
         std::map<std::string, std::variant<intEntry, bolEntry, strEntry, uintEntry>> settings = {
-			{"general.loglevel",		strEntry{general.loglevel, "INFO", [](const std::string &v) { return !v.empty(); }, ""}},
+			{"general.loglevel",		strEntry{general.loglevel, "INFO", [](const std::string &v) { std::set<std::string> a = {"EMERGENCY", "ALERT", "CRITICAL", "ERROR", "WARN", "NOTICE", "INFO", "DEBUG"}; return a.count(v)==1; }, ""}},
 			
 			{"rtsp.port", 				intEntry{rtsp.port, 554, [](const int &v) { return v > 0 && v <= 65535; }, "RTSP port must be between 1 and 65535", ""}},
             {"rtsp.auth_required",      bolEntry{rtsp.auth_required, true, [](const bool &v) { return true; }, "RTSP authentication required flag. Must be either true or false.", ""}},
@@ -247,6 +292,41 @@ class CFG {
 			{"sensor.width", 			intEntry{sensor.width, 1920, [](const int &v) { return v > 0; }, "Width of the sensor's image in pixels", "/proc/jz/sensor/width"}},
 			{"sensor.height", 			intEntry{sensor.height, 1080, [](const int &v) { return v > 0; }, "Height of the sensor's image in pixels", "/proc/jz/sensor/height"}},
 			{"sensor.i2c_address", 		uintEntry{sensor.i2c_address, 0x37, [](const unsigned int &v) { return v <= 0x7F; }, "I2C address of the sensor. Must be between 0x00 and 0x7F.", "/proc/jz/sensor/i2c_addr"}},
+
+            {"image.brightness",		intEntry{image.brightness, 128, [](const int &v) { return v >= 0 && v <= 255; }, "Brightness must between 0 and 255", ""}},
+			{"image.contrast", 			intEntry{image.contrast, 128, [](const int &v) { return v >= 0 && v <= 255; }, "Contrast must between 0 and 255", ""}},
+			{"image.hue",   			intEntry{image.hue, 128, [](const int &v) { return v >= 0 && v <= 255; }, "Hue must between 0 and 255", ""}},
+			{"image.sharpness", 		intEntry{image.sharpness, 128, [](const int &v) { return v >= 0 && v <= 255; }, "Sharpness must between 0 and 255", "/"}},
+			{"image.saturation", 		intEntry{image.saturation, 128, [](const int &v) { return v >= 0 && v <= 255; }, "Saturation must between 0 and 255", ""}},
+			{"image.sinter_strength", 	intEntry{image.sinter_strength, 128, [](const int &v) { return v >= 0 && v <= 255; }, "Sinter strength must between 0 and 255", ""}},
+			{"image.temper_strength", 	intEntry{image.temper_strength, 128, [](const int &v) { return v >= 0 && v <= 255; }, "Temper strength must between 0 and 255", ""}},
+            {"image.vflip", 	        bolEntry{image.vflip, false, [](const bool &v) { return true; }, "vflip value can only be true or false", ""}},
+            {"image.hflip", 	        bolEntry{image.hflip, false, [](const bool &v) { return true; }, "hflip value can only be true or false", ""}},
+            {"image.running_mode",		intEntry{image.running_mode, 0, [](const int &v) { return v >= 0 && v <= 1; }, "Running mode must between 0 = day and 1 = night", ""}},
+            {"image.anti_flicker",   	intEntry{image.anti_flicker, 2, [](const int &v) { return v >= 0 && v <= 2; }, "Anti flicker must be 0 = disabled, 1 = 50Hz or 2 = 60Hz", ""}},
+            {"image.ae_compensation",	intEntry{image.ae_compensation, 128, [](const int &v) { return v >= 0 && v <= 255; }, "AE Compensation must between 0 and 255", ""}},
+            {"image.dpc_strength",   	intEntry{image.dpc_strength, 128, [](const int &v) { return v >= 0 && v <= 255; }, "DPC Strength must between 0 and 255", ""}},
+            {"image.defog_strength",    intEntry{image.defog_strength, 128, [](const int &v) { return v >= 0 && v <= 255; }, "defog_strength must between 0 and 255", ""}},
+            {"image.drc_strength",      intEntry{image.drc_strength, 128, [](const int &v) { return v >= 0 && v <= 255; }, "DRC strength must between 0 and 255", ""}},
+            {"image.highlight_depress", intEntry{image.highlight_depress, 0, [](const int &v) { return v >= 0 && v <= 255; }, "Highlight depress must between 0 and 10", ""}},
+            {"image.backlight_compensation", intEntry{image.backlight_compensation, 0, [](const int &v) { return v >= 0 && v <= 10; }, "Backlight compenstation must between 0 and 10", ""}},
+            {"image.max_again",         intEntry{image.max_again, 160, [](const int &v) { return v >= 0 && v <= 160; }, "AGAIN must between 0 and 160", ""}},
+            {"image.max_dgain",         intEntry{image.max_dgain, 80, [](const int &v) { return v >= 0 && v <= 160; }, "DGAIN must between 0 and 160", ""}},
+            {"image.core_wb_mode",      intEntry{image.core_wb_mode, 0, [](const int &v) { return v >= 0 && v <= 9; }, "WB (White Balance) must between 0 and 255", ""}},
+            {"image.wb_rgain",          intEntry{image.wb_rgain, 0, [](const int &v) { return v >= 0 && v <= 34464; }, "defog_strength must between 0 and 34464", ""}},
+            {"image.wb_bgain",          intEntry{image.wb_bgain, 0, [](const int &v) { return v >= 0 && v <= 34464; }, "defog_strength must between 0 and 34464", ""}},
+
+            {"audio.input_enabled",	    bolEntry{audio.input_enabled, false, [](const bool &v) { return true; }, "Audio input enabled must be true or false", ""}},
+            {"audio.input_vol",	        intEntry{audio.input_vol, 0, [](const int &v) { return v >= -30 && v <= 120; }, "Audio input volume must between -30 and 120", ""}},
+			{"audio.input_gain", 		intEntry{audio.input_gain, 0, [](const int &v) { return v >= 0 && v <= 31; }, "Audio input gain must between 0 and 30", ""}},
+			{"audio.input_alc_gain",   	intEntry{audio.input_alc_gain, 0, [](const int &v) { return v >= 0 && v <= 7; }, "Audio input alc gain between 0 and 7", ""}},
+            {"audio.output_enabled",	bolEntry{audio.output_enabled, false, [](const bool &v) { return true; }, "Audio output enabled must be true or false", ""}},
+			{"audio.output_vol", 		intEntry{audio.output_vol, 0, [](const int &v) { return v >= -30 && v <= 120; }, "Audio output volume must between -30 and 120", "/"}},
+			{"audio.output_gain", 		intEntry{audio.output_gain, 0, [](const int &v) { return v >= 0 && v <= 31; }, "Audio output gain must between 0 and 31", ""}},
+			{"audio.input_echo_cancellation", bolEntry{audio.input_echo_cancellation, false, [](const bool &v) { return true; }, "Audio echo cancellation can only be true or false", ""}},
+			{"audio.input_noise_suppression", intEntry{audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }, "Audio noise suppression must between 0 and 3", ""}},
+            {"audio.output_high_pass_filter", bolEntry{audio.input_high_pass_filter, false, [](const bool &v) { return true; }, "Audio input high pass filter can only be true or false", ""}},
+            {"audio.output_high_pass_filter", bolEntry{audio.output_high_pass_filter, false, [](const bool &v) { return true; }, "Audio output high pass filter can only be true or false", ""}},
 
 			{"stream0.rtsp_endpoint",   strEntry{stream0.rtsp_endpoint, "ch0", [](const std::string &v) { return !v.empty(); }, "RTSP endpoint cannot be empty.", ""}},
             {"stream0.scale_enabled",   bolEntry{stream0.scale_enabled, false, [](const bool &v) { return true; }, "Scaling for Stream0 enabled flag. Must be either true or false.", ""}},

@@ -35,6 +35,8 @@ class WS {
         static signed char general_callback(struct lejp_ctx *ctx, char reason);
         static signed char rtsp_callback(struct lejp_ctx *ctx, char reason);
         static signed char sensor_callback(struct lejp_ctx *ctx, char reason);
+        static signed char image_callback(struct lejp_ctx *ctx, char reason);
+        static signed char audio_callback(struct lejp_ctx *ctx, char reason);
         static signed char stream0_callback(struct lejp_ctx *ctx, char reason);
         static signed char stream1_callback(struct lejp_ctx *ctx, char reason);
         static signed char osd_callback(struct lejp_ctx *ctx, char reason);

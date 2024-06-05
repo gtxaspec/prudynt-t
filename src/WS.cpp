@@ -7,6 +7,8 @@
 #include "Config.hpp"
 #include "libwebsockets.h"
 #include <imp/imp_osd.h>
+#include <imp/imp_isp.h>
+#include <imp/imp_audio.h>
 #include "OSD.hpp"
 
 #define MODULE "WEBSOCKET"
@@ -19,6 +21,8 @@ enum
     PNT_GENERAL = 1,
     PNT_RTSP,
     PNT_SENSOR,
+    PNT_IMAGE,
+    PNT_AUDIO,
     PNT_STREAM0,
     PNT_STREAM1,
     PNT_OSD,
@@ -31,6 +35,8 @@ static const char *const root_keys[] = {
     "general",
     "rtsp",
     "sensor",
+    "image",
+    "audio",
     "stream0",
     "stream1",
     "osd",
@@ -55,21 +61,121 @@ static const char *const general_keys[] = {
 enum
 {
     PNT_RTSP_PORT = 1,
-    PNT_RTSP_NAME
+    PNT_RTSP_EST_BITRATE,
+    PNT_RTSP_OUT_BUFFER_SIZE,
+    PNT_RTSP_SEND_BUFFER_SIZE,
+    PNT_RTSP_AUTH_REQUIRED,
+    PNT_RTSP_NAME,
+    PNT_RTSP_USERNAME,
+    PNT_RTSP_PASSWORD
 };
 
 static const char *const rtsp_keys[] = {
     "port",
-    "name"};
+    "est_bitrate",
+    "out_buffer_size",
+    "send_buffer_size",
+    "auth_required",
+    "name"
+    "username",
+    "password"};
 
 /* SENSOR */
 enum
 {
-    PNT_SENSOR_MODEL = 1
+    PNT_SENSOR_MODEL = 1,
+    PNT_SENSOR_FPS,
+    PNT_SENSOR_WIDTH,
+    PNT_SENSOR_HEIGHT,
+    PNT_SENSOR_I2C_ADDRESS
 };
 
 static const char *const sensor_keys[] = {
-    "model"};
+    "model",
+    "fps",
+    "width",
+    "height",
+    "i2c_address"};
+
+/* IMAGE */
+enum
+{
+    PNT_IMAGE_BRIGHTNESS = 1,
+    PNT_IMAGE_CONTRAST,
+    PNT_IMAGE_HUE,
+    PNT_IMAGE_SHARPNESS,
+    PNT_IMAGE_SATURATION,
+    PNT_IMAGE_SINTER_STRENGTH,
+    PNT_IMAGE_TEMPER_STRENGTH,
+    PNT_IMAGE_VFLIP,
+    PNT_IMAGE_HFLIP,
+    PNT_IMAGE_ANTIFLICKER,
+    PNT_IMAGE_RUNNING_MODE,
+    PNT_IMAGE_AE_COMPENSATION,
+    PNT_IMAGE_DPC_STRENGTH,
+    PNT_IMAGE_DEFOG_STRENGTH,
+    PNT_IMAGE_DRC_STRENGTH,
+    PNT_IMAGE_HIGHLIGHT_DEPRESS,
+    PNT_IMAGE_BACKLIGHT_COMPENSTATION,
+    PNT_IMAGE_MAX_AGAIN,
+    PNT_IMAGE_MAX_DGAIN,
+    PNT_IMAGE_CORE_WB_MODE,
+    PNT_IMAGE_WB_RGAIN,
+    PNT_IMAGE_WB_BGAIN
+};
+
+static const char *const image_keys[] = {
+    "brightness",
+    "contrast",
+    "hue",
+    "sharpness",
+    "saturation",
+    "sinter_strength",
+    "temper_strength",
+    "vflip",
+    "hflip",
+    "anti_flicker",
+    "running_mode",
+    "ae_compensation",
+    "dpc_strength",
+    "defog_strength",
+    "drc_strength",
+    "highlight_depress",
+    "backlight_compensation",
+    "max_again",
+    "max_dgain",
+    "core_wb_mode",
+    "wb_rgain",
+    "wb_bgain"};
+
+/* AUDIO */
+enum
+{
+    PNT_AUDIO_INPUT_ENABLED = 1,
+    PNT_AUDIO_INPUT_VOL,
+    PNT_AUDIO_INPUT_GAIN,
+    PNT_AUDIO_INPUT_ALC_GAIN,
+    PNT_AUDIO_OUTPUT_ENABLED,
+    PNT_AUDIO_OUTPUT_VOL,
+    PNT_AUDIO_OUTPUT_GAIN,
+    PNT_AUDIO_INPUT_ECHO_CANCELLATION,
+    PNT_AUDIO_INPUT_NOISE_SUPPRESSION,
+    PNT_AUDIO_INPUT_HIGH_PASS_FILTER,
+    PNT_AUDIO_OUTPUT_HIGH_PASS_FILTER
+};
+
+static const char *const audio_keys[] = {
+    "input_enabled",
+    "input_vol",
+    "input_gain",
+    "input_alc_gain",
+    "output_enabled",
+    "output_vol",
+    "output_gain",
+    "input_echo_cancellation",
+    "input_noise_suppression",
+    "input_high_pass_filter",
+    "output_high_pass_filter"};
 
 /* STREAM0 */
 enum
@@ -183,14 +289,16 @@ enum
 enum
 {
     PNT_THREAD_RTSP = 1,
-    PNT_THREAD_ENCODER = 2
+    PNT_THREAD_ENCODER = 2,
+    PNT_THREAD_ACTION_STOP = 8,
+    PNT_THREAD_ACTION_START = 16,
+    PNT_THREAD_ACTION_RESTART = PNT_THREAD_ACTION_STOP | PNT_THREAD_ACTION_START
 };
 
 static const char *const action_keys[] = {
     "stop_thread",
     "start_thread",
-    "restart_thread"
-};
+    "restart_thread"};
 
 #pragma endregion keys_and_enums
 
@@ -249,22 +357,15 @@ signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
         switch (ctx->path_match)
         {
         case PNT_GENERAL_LOGLEVEL:
-            if (reason != LEJPCB_VAL_NULL)
+            if (reason == LEJPCB_VAL_STR_END)
             {
-                std::set<std::string> a = {"apple", "banana", "cherry"};
-                std::cout << a.count("apple") << std::endl;
-                Logger::setLevel(ctx->buf);
+                if (u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf))
+                {
+                    Logger::setLevel(ctx->buf);
+                }
             }
             append_message(
-                "\"%s\"", u_ctx->ws->cfg->general.loglevel.c_str());
-            break;
-        case PNT_TEST:
-            append_message(
-                "\"%s\"", "OK");
-            break;
-        case PNT_TEST2:
-            append_message(
-                "\"%s\"", "OK");
+                "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
             break;
         }
 
@@ -290,22 +391,59 @@ signed char WS::rtsp_callback(struct lejp_ctx *ctx, char reason)
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", rtsp_keys[ctx->path_match - 1]);
 
-        switch (ctx->path_match)
+        // int values
+        if (ctx->path_match >= PNT_RTSP_PORT && ctx->path_match <= PNT_RTSP_SEND_BUFFER_SIZE)
         {
-        case PNT_RTSP_PORT:
-            if (reason != LEJPCB_VAL_NULL)
+            if (reason == LEJPCB_VAL_NUM_INT)
             {
+                if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                {
+                    // better restart rtsp manually ?
+                    // u_ctx->signal = PNT_THREAD_RTSP | PNT_THREAD_ACTION_RESTART; // restart RTSP
+                }
             }
             append_message(
-                "%d", u_ctx->ws->cfg->rtsp.port);
-            break;
-        case PNT_RTSP_NAME:
-            if (reason != LEJPCB_VAL_NULL)
+                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+            // std::string values
+        }
+        else if (ctx->path_match >= PNT_RTSP_NAME && ctx->path_match <= PNT_RTSP_PASSWORD)
+        {
+            if (reason == LEJPCB_VAL_STR_END)
             {
+                if (u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf))
+                {
+                    // better restart rtsp manually ?
+                    // u_ctx->signal = PNT_THREAD_RTSP | PNT_THREAD_ACTION_RESTART;
+                }
             }
             append_message(
-                "\"%s\"", u_ctx->ws->cfg->rtsp.name.c_str());
-            break;
+                "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+        }
+        else
+        {
+            switch (ctx->path_match)
+            {
+            case PNT_RTSP_AUTH_REQUIRED:
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, true))
+                    {
+                        // better restart rtsp manually ?
+                        // u_ctx->signal = PNT_THREAD_RTSP | PNT_THREAD_ACTION_RESTART;
+                    }
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, false))
+                    {
+                        // better restart rtsp manually ?
+                        // u_ctx->signal = PNT_THREAD_RTSP | PNT_THREAD_ACTION_RESTART;
+                    }
+                }
+                append_message(
+                    "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                break;
+            }
         }
 
         u_ctx->s = 1;
@@ -330,17 +468,545 @@ signed char WS::sensor_callback(struct lejp_ctx *ctx, char reason)
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", sensor_keys[ctx->path_match - 1]);
 
-        switch (ctx->path_match)
+        // int values
+        if (ctx->path_match >= PNT_SENSOR_FPS && ctx->path_match <= PNT_SENSOR_HEIGHT)
         {
-        case PNT_SENSOR_MODEL:
-            if (reason != LEJPCB_VAL_NULL)
+            /* normally this cannot be set and is read from proc
+            if (reason == LEJPCB_VAL_NUM_INT)
             {
+                if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                {
+                    u_ctx->signal = PNT_THREAD_ENCODER | PNT_THREAD_ACTION_RESTART; //restart encoder
+                }
             }
+            */
             append_message(
-                "\"%s\"", u_ctx->ws->cfg->sensor.model.c_str());
-            break;
+                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+        }
+        else
+        {
+
+            switch (ctx->path_match)
+            {
+            case PNT_SENSOR_MODEL:
+                /* normally this cannot be set and is read from proc
+                if (reason == LEJPCB_VAL_STR_END)
+                {
+                    if (u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf))
+                    {
+                        u_ctx->signal = PNT_THREAD_ENCODER | PNT_THREAD_ACTION_RESTART; //restart encoder
+                    }
+                }
+                */
+                append_message(
+                    "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+                break;
+            case PNT_SENSOR_I2C_ADDRESS:
+                /* normally this cannot be set and is read from proc
+                if (reason == LEJPCB_VAL_STR_END)
+                {
+                    if (u_ctx->ws->cfg->set<unsigned int>(u_ctx->path, (unsigned int)strtol(ctx->buf, NULL, 16)))
+                    {
+                        u_ctx->signal = PNT_THREAD_ENCODER | PNT_THREAD_ACTION_RESTART; //restart encoder
+                    }
+                }
+                */
+                append_message(
+                    "\"%#x\"", u_ctx->ws->cfg->get<unsigned int>(u_ctx->path));
+                break;
+            }
         }
 
+        u_ctx->s = 1;
+    }
+    else if (reason == LEJPCB_OBJECT_END)
+    {
+        std::strcat(ws_send_msg, "}");
+        lejp_parser_pop(ctx);
+    }
+
+    return 0;
+}
+
+signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
+{
+    if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
+    {
+
+        struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
+        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+
+        append_message(
+            "%s\"%s\":", u_ctx->s ? "," : "", image_keys[ctx->path_match - 1]);
+
+        if (ctx->path_match == PNT_IMAGE_DEFOG_STRENGTH)
+        {
+            if (reason == LEJPCB_VAL_NUM_INT)
+            {
+                if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                {
+                    uint8_t t = static_cast<uint8_t>(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    IMP_ISP_Tuning_SetDefog_Strength(reinterpret_cast<uint8_t *>(&t));
+                }
+            }
+            append_message(
+                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+        }
+        else if (ctx->path_match >= PNT_IMAGE_CORE_WB_MODE && ctx->path_match <= PNT_IMAGE_WB_BGAIN)
+        {
+            if (reason == LEJPCB_VAL_NUM_INT)
+            {
+                if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                {
+                    IMPISPWB wb;
+                    memset(&wb, 0, sizeof(IMPISPWB));
+                    int ret = IMP_ISP_Tuning_GetWB(&wb);
+                    if (ret == 0)
+                    {
+                        wb.mode = (isp_core_wb_mode)u_ctx->ws->cfg->image.core_wb_mode;
+                        wb.rgain = u_ctx->ws->cfg->image.wb_rgain;
+                        wb.bgain = u_ctx->ws->cfg->image.wb_bgain;
+                        ret = IMP_ISP_Tuning_SetWB(&wb);
+                    }
+                }
+            }
+            append_message(
+                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+        }
+        else
+        {
+
+            switch (ctx->path_match)
+            {
+            case PNT_IMAGE_BRIGHTNESS:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetBrightness(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_CONTRAST:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetContrast(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_HUE:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetBcshHue(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_SATURATION:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetSaturation(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_SHARPNESS:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetSharpness(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_SINTER_STRENGTH:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetSinterStrength(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_TEMPER_STRENGTH:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetTemperStrength(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_VFLIP:
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, true))
+                    {
+                        IMP_ISP_Tuning_SetISPVflip(IMPISP_TUNING_OPS_MODE_ENABLE);
+                    }
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, false))
+                    {
+                        IMP_ISP_Tuning_SetISPVflip(IMPISP_TUNING_OPS_MODE_DISABLE);
+                    }
+                }
+                append_message(
+                    "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                break;
+            case PNT_IMAGE_HFLIP:
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, true))
+                    {
+                        IMP_ISP_Tuning_SetISPHflip(IMPISP_TUNING_OPS_MODE_ENABLE);
+                    }
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, false))
+                    {
+                        IMP_ISP_Tuning_SetISPHflip(IMPISP_TUNING_OPS_MODE_DISABLE);
+                    }
+                }
+                append_message(
+                    "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                break;
+            case PNT_IMAGE_ANTIFLICKER:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetAntiFlickerAttr((IMPISPAntiflickerAttr)u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_RUNNING_MODE:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetISPRunningMode((IMPISPRunningMode)u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_AE_COMPENSATION:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetAeComp(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_DPC_STRENGTH:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetDPC_Strength(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_DRC_STRENGTH:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetDRC_Strength(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_HIGHLIGHT_DEPRESS:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetHiLightDepress(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_BACKLIGHT_COMPENSTATION:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetBacklightComp(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_MAX_AGAIN:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetMaxAgain(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_IMAGE_MAX_DGAIN:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_ISP_Tuning_SetMaxDgain(u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            }
+        }
+
+        u_ctx->s = 1;
+    }
+    else if (reason == LEJPCB_OBJECT_END)
+    {
+        std::strcat(ws_send_msg, "}");
+        lejp_parser_pop(ctx);
+    }
+
+    return 0;
+}
+
+signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
+{
+    if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
+    {
+
+        struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
+        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+
+        append_message(
+            "%s\"%s\":", u_ctx->s ? "," : "", audio_keys[ctx->path_match - 1]);
+
+        if (ctx->path_match == PNT_AUDIO_OUTPUT_HIGH_PASS_FILTER)
+        {
+            IMPAudioIOAttr ioattr;
+            int ret = IMP_AO_GetPubAttr(0, &ioattr);
+            if (ret == 0)
+            {
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, true))
+                    {
+                        ret = IMP_AO_EnableHpf(&ioattr);
+                    }
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, false))
+                    {
+                        ret = IMP_AO_DisableHpf();
+                    }
+                }
+            }
+            append_message(
+                "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+        }
+        else if (ctx->path_match == PNT_AUDIO_INPUT_HIGH_PASS_FILTER)
+        {
+            IMPAudioIOAttr ioattr;
+            int ret = IMP_AI_GetPubAttr(0, &ioattr);
+            if (ret == 0)
+            {
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, true))
+                    {
+                        ret = IMP_AI_EnableHpf(&ioattr);
+                    }
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, false))
+                    {
+                        ret = IMP_AI_DisableHpf();
+                    }
+                }
+            }
+            append_message(
+                "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+        }
+        else if (ctx->path_match == PNT_AUDIO_INPUT_NOISE_SUPPRESSION)
+        {
+            IMPAudioIOAttr ioattr;
+            int ret = IMP_AI_GetPubAttr(0, &ioattr);
+            if (ret == 0)
+            {
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    int ns = atoi(ctx->buf);
+                    if (ns)
+                    {
+                        if (u_ctx->ws->cfg->set<int>(u_ctx->path, ns))
+                        {
+                            ret = IMP_AI_EnableNs(&ioattr, u_ctx->ws->cfg->get<int>(u_ctx->path));
+                        }
+                    }
+                    else
+                    {
+                        if (u_ctx->ws->cfg->set<int>(u_ctx->path, ns))
+                        {
+                            ret = IMP_AI_DisableNs();
+                        }
+                    }
+                }
+            }
+            append_message(
+                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+        }
+        else
+        {
+
+            switch (ctx->path_match)
+            {
+            case PNT_AUDIO_INPUT_ENABLED:
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, true))
+                    {
+                        IMP_AI_Enable(0);
+                    }
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, false))
+                    {
+                        IMP_AI_Disable(0);
+                    }
+                }
+                append_message(
+                    "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                break;
+            case PNT_AUDIO_INPUT_VOL:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_AI_SetVol(0, 0, u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_AUDIO_INPUT_GAIN:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_AI_SetGain(0, 0, u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_AUDIO_INPUT_ALC_GAIN:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_AI_SetAlcGain(0, 0, u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_AUDIO_OUTPUT_ENABLED:
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, true))
+                    {
+                        IMP_AO_Enable(0);
+                    }
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, false))
+                    {
+                        IMP_AO_Disable(0);
+                    }
+                }
+                append_message(
+                    "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                break;
+            case PNT_AUDIO_OUTPUT_VOL:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_AO_SetVol(0, 0, u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_AUDIO_OUTPUT_GAIN:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                    {
+                        IMP_AO_SetGain(0, 0, u_ctx->ws->cfg->get<int>(u_ctx->path));
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_AUDIO_INPUT_ECHO_CANCELLATION:
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, true))
+                    {
+                        IMP_AI_EnableAec(0, 0, 0, 0);
+                    }
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    if (u_ctx->ws->cfg->set<bool>(u_ctx->path, false))
+                    {
+                        IMP_AI_DisableAec(0, 0);
+                    }
+                }
+                append_message(
+                    "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                break;
+            }
+        }
         u_ctx->s = 1;
     }
     else if (reason == LEJPCB_OBJECT_END)
@@ -365,8 +1031,53 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", stream0_keys[ctx->path_match - 1]);
 
-        if (ctx->path_match >= PNT_STREAM0_GOP && ctx->path_match <= PNT_STREAM0_OSD_UPTIME_ROTATION)
-        { // integer values
+        if (ctx->path_match >= PNT_STREAM0_OSD_TIME_TRANSPARENCY ||
+            ctx->path_match <= PNT_STREAM0_OSD_USER_TEXT_TRANSPARENCY ||
+            ctx->path_match <= PNT_STREAM0_OSD_UPTIME_TRANSPARENCY ||
+            ctx->path_match <= PNT_STREAM0_OSD_LOGO_TRANSPARENCY)
+        {
+            int hnd;
+            if (reason == LEJPCB_VAL_NUM_INT)
+            {
+
+                if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                {
+
+                    if (ctx->path_match == PNT_STREAM0_OSD_TIME_TRANSPARENCY)
+                    {
+                        hnd = 0;
+                    }
+                    else if (ctx->path_match == PNT_STREAM0_OSD_USER_TEXT_TRANSPARENCY)
+                    {
+                        hnd = 1;
+                    }
+                    else if (ctx->path_match == PNT_STREAM0_OSD_UPTIME_TRANSPARENCY)
+                    {
+                        hnd = 2;
+                    }
+                    else if (ctx->path_match == PNT_STREAM0_OSD_LOGO_TRANSPARENCY)
+                    {
+                        hnd = 3;
+                    }
+
+                    IMPOSDGrpRgnAttr grpRgnAttr;
+                    int ret = IMP_OSD_GetGrpRgnAttr(hnd, 0, &grpRgnAttr);
+                    if (ret == 0)
+                    {
+                        memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
+                        grpRgnAttr.show = 1;
+                        grpRgnAttr.gAlphaEn = 1;
+                        grpRgnAttr.fgAlhpa = u_ctx->ws->cfg->get<int>(u_ctx->path);
+                        IMP_OSD_SetGrpRgnAttr(hnd, 0, &grpRgnAttr);
+                    }
+                };
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+            }
+        }
+        else if ((ctx->path_match >= PNT_STREAM0_GOP && ctx->path_match <= PNT_STREAM0_OSD_UPTIME_ROTATION) || 
+                (ctx->path_match >= PNT_STREAM0_ROTATION && ctx->path_match <= PNT_STREAM0_SCALE_HEIGHT))
+        {   // integer values
             if (reason == LEJPCB_VAL_NUM_INT)
                 u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
             append_message(
@@ -374,16 +1085,25 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
         }
         else
         {
-
             switch (ctx->path_match)
             {
             case PNT_STREAM0_RTSP_ENDPOINT:
-                if (reason == LEJPCB_VAL_STR_START)
+                if (reason == LEJPCB_VAL_STR_END)
                     u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf);
                 append_message(
                     "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
                 break;
             case PNT_STREAM0_SCALE_ENABLED:
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    u_ctx->ws->cfg->set<bool>(u_ctx->path, true);
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    u_ctx->ws->cfg->set<bool>(u_ctx->path, false);
+                }
+                append_message(
+                    "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
                 break;
             case PNT_STREAM0_FORMAT:
                 break;
@@ -457,21 +1177,25 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
                 append_message(
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
                 break;
+            /*
             case PNT_STREAM0_OSD_LOGO_TRANSPARENCY:
                 break;
+            */
             case PNT_STREAM0_OSD_LOGO_ROTATION:
+                // encoder restart required
                 if (reason == LEJPCB_VAL_NUM_INT)
                     u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
-                u_ctx->signal = 1; // restart encoder
                 append_message(
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
                 break;
+            /*
             case PNT_STREAM0_ROTATION:
                 break;
             case PNT_STREAM0_SCALE_WIDTH:
                 break;
             case PNT_STREAM0_SCALE_HEIGHT:
                 break;
+            */
             };
         }
 
@@ -639,30 +1363,33 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
         switch (ctx->path_match)
         {
         case PNT_STOP_THREAD:
-            if (reason == LEJPCB_VAL_NUM_INT) {
-                u_ctx->signal = atoi(ctx->buf); // stop targets 
-                u_ctx->signal |= 8; // stop action
+            if (reason == LEJPCB_VAL_NUM_INT)
+            {
+                u_ctx->signal = atoi(ctx->buf);          // stop targets
+                u_ctx->signal |= PNT_THREAD_ACTION_STOP; // stop action
             }
             append_message(
                 "\"%s\"", "initiated");
             break;
         case PNT_START_THREAD:
-            if (reason == LEJPCB_VAL_NUM_INT) {
-                u_ctx->signal = atoi(ctx->buf); // start targets
-                u_ctx->signal |= 16; // start action
+            if (reason == LEJPCB_VAL_NUM_INT)
+            {
+                u_ctx->signal = atoi(ctx->buf);           // start targets
+                u_ctx->signal |= PNT_THREAD_ACTION_START; // start action
             }
             append_message(
                 "\"%s\"", "initiated");
-            break;            
+            break;
         case PNT_RESTART_THREAD:
-            if (reason == LEJPCB_VAL_NUM_INT) {
-                u_ctx->signal = atoi(ctx->buf); // restart targets
-                u_ctx->signal |= 24; // restart action
+            if (reason == LEJPCB_VAL_NUM_INT)
+            {
+                u_ctx->signal = atoi(ctx->buf);             // restart targets
+                u_ctx->signal |= PNT_THREAD_ACTION_RESTART; // restart action
             }
             append_message(
                 "\"%s\"", "initiated");
-            break;            
-        }        
+            break;
+        }
 
         u_ctx->s = 1;
     }
@@ -704,6 +1431,14 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
         case PNT_SENSOR:
             lejp_parser_push(ctx, u_ctx,
                              sensor_keys, LWS_ARRAY_SIZE(sensor_keys), sensor_callback);
+            break;
+        case PNT_IMAGE:
+            lejp_parser_push(ctx, u_ctx,
+                             image_keys, LWS_ARRAY_SIZE(image_keys), image_callback);
+            break;
+        case PNT_AUDIO:
+            lejp_parser_push(ctx, u_ctx,
+                             audio_keys, LWS_ARRAY_SIZE(audio_keys), audio_callback);
             break;
         case PNT_STREAM0:
             lejp_parser_push(ctx, &u_ctx,

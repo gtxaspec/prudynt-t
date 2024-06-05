@@ -50,6 +50,7 @@ bool Logger::init(std::string logLevel) {
 }
 
 void Logger::setLevel(std::string lvl) {
+    LOG_DEBUG("set loglevel to " << lvl);
     Logger::level = stringToLogLevel(lvl);
 }
 

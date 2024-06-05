@@ -7,7 +7,7 @@
 
 #define MODULE "ENCODER"
 
-#define OSDPoolSize 1920*1080
+#define OSDPoolSize 1920 * 1080
 
 std::mutex Encoder::sinks_lock;
 std::map<uint32_t, EncoderSink> Encoder::sinks;
@@ -44,7 +44,7 @@ IMPFSChnAttr Encoder::create_fs_attr()
     out.crop.top = 0;
     out.crop.left = 0;
     out.crop.width = cfg->stream0.width;
-    out.crop.height =cfg->stream0.height;
+    out.crop.height = cfg->stream0.height;
     out.scaler.enable = cfg->stream0.scale_enabled;
     out.scaler.outwidth = cfg->stream0.scale_width;
     out.scaler.outheight = cfg->stream0.scale_width;
@@ -64,7 +64,10 @@ int Encoder::channel_init(int chn_nr, int grp_nr, IMPEncoderCHNAttr *chn_attr)
         LOG_ERROR("IMP_Encoder_CreateChn(" << chn_nr << ") == " << ret);
         return 0;
     }
-    LOG_DEBUG("Encoder JPEG Channel " << chn_nr << " created");
+    else
+    {
+        LOG_DEBUG("Encoder JPEG Channel " << chn_nr << " created");
+    }
 
     ret = IMP_Encoder_RegisterChn(grp_nr, chn_nr);
     if (ret < 0)
@@ -72,8 +75,10 @@ int Encoder::channel_init(int chn_nr, int grp_nr, IMPEncoderCHNAttr *chn_attr)
         LOG_ERROR("IMP_Encoder_RegisterChn(" << chn_nr << ") == " << ret);
         return 0;
     }
-    LOG_DEBUG("Encoder Channel " << chn_nr << " registered");
-
+    else
+    {
+        LOG_DEBUG("Encoder Channel " << chn_nr << " registered");
+    }
     return 1;
 }
 
@@ -88,7 +93,10 @@ int Encoder::channel_deinit(int chn_nr)
         LOG_ERROR("IMP_Encoder_UnRegisterChn(" << chn_nr << ") == " << ret);
         return 0;
     }
-    LOG_DEBUG("Encoder Channel " << chn_nr << " unregistered");
+    else
+    {
+        LOG_DEBUG("Encoder Channel " << chn_nr << " unregistered");
+    }
 
     ret = IMP_Encoder_DestroyChn(chn_nr);
     if (ret < 0)
@@ -96,7 +104,10 @@ int Encoder::channel_deinit(int chn_nr)
         LOG_ERROR("IMP_Encoder_DestroyChn(" << chn_nr << ") == " << ret);
         return 0;
     }
-    LOG_DEBUG("Encoder Channel " << chn_nr << " destroyed");
+    else
+    {
+        LOG_DEBUG("Encoder Channel " << chn_nr << " destroyed");
+    }
 
     return 1;
 }
@@ -126,7 +137,10 @@ int Encoder::system_init()
         LOG_DEBUG("Error: IMP_OSD_SetPoolSize == " + std::to_string(ret));
         return ret;
     }
-    LOG_DEBUG("IMP_OSD_SetPoolSize == " + std::to_string(OSDPoolSize));
+    else
+    {
+        LOG_DEBUG("IMP_OSD_SetPoolSize == " + std::to_string(OSDPoolSize));
+    }
 
     ret = IMP_ISP_Open();
     if (ret < 0)
@@ -134,7 +148,10 @@ int Encoder::system_init()
         LOG_DEBUG("Error: IMP_ISP_Open() == " + std::to_string(ret));
         return ret;
     }
-    LOG_DEBUG("ISP Opened!");
+    else
+    {
+        LOG_DEBUG("ISP Opened!");
+    }
 
     sinfo = create_sensor_info(cfg->sensor.model.c_str());
     ret = IMP_ISP_AddSensor(&sinfo);
@@ -143,7 +160,10 @@ int Encoder::system_init()
         LOG_DEBUG("Error: IMP_ISP_AddSensor() == " + std::to_string(ret));
         return ret;
     }
-    LOG_DEBUG("Sensor Added");
+    else
+    {
+        LOG_DEBUG("Sensor Added");
+    }
 
     ret = IMP_ISP_EnableSensor();
     if (ret < 0)
@@ -151,7 +171,10 @@ int Encoder::system_init()
         LOG_DEBUG("Error: IMP_ISP_EnableSensor() == " + std::to_string(ret));
         return ret;
     }
-    LOG_DEBUG("Sensor Enabled");
+    else
+    {
+        LOG_DEBUG("Sensor Enabled");
+    }
 
     ret = IMP_System_Init();
     if (ret < 0)
@@ -159,7 +182,10 @@ int Encoder::system_init()
         LOG_DEBUG("Error: IMP_System_Init() == " + std::to_string(ret));
         return ret;
     }
-    LOG_DEBUG("IMP System Initialized");
+    else
+    {
+        LOG_DEBUG("IMP System Initialized");
+    }
 
     // Enable tuning.
     // This is necessary to customize the sensor's image output.
@@ -170,15 +196,206 @@ int Encoder::system_init()
         LOG_DEBUG("ERROR: IMP_ISP_EnableTuning() == " + std::to_string(ret));
         return ret;
     }
-    LOG_DEBUG("IMP_ISP_EnableTuning enabled");
+    else
+    {
+        LOG_DEBUG("IMP_ISP_EnableTuning enabled");
+    }
 
-    /* Set tuning defaults; on some SoC platforms, if we don't do this, the stream will be dark until manually set */
-    IMP_ISP_Tuning_SetContrast(128);
-    IMP_ISP_Tuning_SetSharpness(128);
-    IMP_ISP_Tuning_SetSaturation(128);
-    IMP_ISP_Tuning_SetBrightness(128);
-    IMP_ISP_Tuning_SetISPBypass(IMPISP_TUNING_OPS_MODE_ENABLE);
-    IMP_ISP_Tuning_SetAntiFlickerAttr(IMPISP_ANTIFLICKER_60HZ);
+    /* Image tuning */
+    ret = IMP_ISP_Tuning_SetContrast(cfg->image.contrast);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
+
+    ret = IMP_ISP_Tuning_SetSharpness(cfg->image.sharpness);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetSharpness(" << cfg->image.sharpness << ")");
+
+    ret = IMP_ISP_Tuning_SetSaturation(cfg->image.saturation);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
+
+    ret = IMP_ISP_Tuning_SetBrightness(cfg->image.brightness);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetBrightness(" << cfg->image.brightness << ")");
+
+    ret = IMP_ISP_Tuning_SetSinterStrength(cfg->image.sinter_strength);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
+
+    ret = IMP_ISP_Tuning_SetTemperStrength(cfg->image.temper_strength);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetTemperStrength(" << cfg->image.temper_strength << ")");
+
+    ret = IMP_ISP_Tuning_SetISPHflip((IMPISPTuningOpsMode)cfg->image.hflip);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetISPHflip(" << cfg->image.hflip << ")");
+
+    ret = IMP_ISP_Tuning_SetISPVflip((IMPISPTuningOpsMode)cfg->image.vflip);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetISPVflip(" << cfg->image.vflip << ")");
+
+    ret = IMP_ISP_Tuning_SetISPRunningMode((IMPISPRunningMode)cfg->image.running_mode);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetISPRunningMode(" << cfg->image.running_mode << ")");
+
+    ret = IMP_ISP_Tuning_SetISPBypass(IMPISP_TUNING_OPS_MODE_ENABLE);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetISPBypass(" << IMPISP_TUNING_OPS_MODE_ENABLE << ")");
+
+    ret = IMP_ISP_Tuning_SetAntiFlickerAttr((IMPISPAntiflickerAttr)cfg->image.anti_flicker);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetAntiFlickerAttr(" << cfg->image.anti_flicker << ")");
+
+    ret = IMP_ISP_Tuning_SetDPC_Strength(cfg->image.dpc_strength);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDPC_Strength(" << cfg->image.dpc_strength << ")");
+
+    ret = IMP_ISP_Tuning_SetDRC_Strength(cfg->image.dpc_strength);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << cfg->image.drc_strength << ")");
+
+    ret = IMP_ISP_Tuning_SetAeComp(cfg->image.ae_compensation);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetAeComp(" << cfg->image.ae_compensation << ")");
+
+    uint8_t _defog_strength = static_cast<uint8_t>(cfg->image.defog_strength);
+    ret = IMP_ISP_Tuning_SetDefog_Strength(reinterpret_cast<uint8_t *>(&_defog_strength));
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDefog_Strength(" << cfg->image.defog_strength << ")");
+
+    ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
+
+    ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
+
+    ret = IMP_ISP_Tuning_SetMaxAgain(cfg->image.max_again);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetMaxAgain(" << cfg->image.max_again << ")");
+
+    ret = IMP_ISP_Tuning_SetMaxDgain(cfg->image.max_dgain);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetMaxDgain(" << cfg->image.max_dgain << ")");
+
+    IMPISPWB wb;
+    memset(&wb, 0, sizeof(IMPISPWB));
+    ret = IMP_ISP_Tuning_GetWB(&wb);
+    if (ret == 0)
+    {
+        wb.mode = (isp_core_wb_mode)cfg->image.core_wb_mode;
+        wb.rgain = cfg->image.wb_rgain;
+        wb.bgain = cfg->image.wb_bgain;
+        ret = IMP_ISP_Tuning_SetWB(&wb);
+        if (ret != 0)
+        {
+            LOG_ERROR("Unable to set white balance. Mode: " << cfg->image.core_wb_mode << ", rgain: "
+                                                            << cfg->image.wb_rgain << ", bgain: " << cfg->image.wb_bgain);
+        }
+        else
+        {
+            LOG_DEBUG("Set white balance. Mode: " << cfg->image.core_wb_mode << ", rgain: "
+                                                  << cfg->image.wb_rgain << ", bgain: " << cfg->image.wb_bgain);
+        }
+    }
+
+    /* Audio tuning */
+    /*     input    */
+    if (cfg->audio.input_enabled)
+    {
+        ret = IMP_AI_Enable(0);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_Enable(0)");
+
+        ret = IMP_AI_EnableChn(0, 0);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_EnableChn(0, 0)");
+
+        ret = IMP_AI_SetVol(0, 0, cfg->audio.input_vol);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_SetVol(0, 0, " << cfg->audio.input_vol << ")");
+
+        ret = IMP_AI_SetGain(0, 0, cfg->audio.input_gain);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_SetGain(0, 0, " << cfg->audio.input_gain << ")");
+
+        ret = IMP_AI_SetAlcGain(0, 0, cfg->audio.input_alc_gain);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_SetAlcGain(0, 0, " << cfg->audio.input_alc_gain << ")");
+
+        if (cfg->audio.input_echo_cancellation)
+        {
+            ret = IMP_AI_EnableAec(0, 0, 0, 0);
+            LOG_ERROR_OR_DEBUG(ret, "IMP_AI_EnableAec(0)");
+        }
+        else
+        {
+            ret = IMP_AI_DisableAec(0, 0);
+            LOG_ERROR_OR_DEBUG(ret, "IMP_AI_DisableAec(0)");
+        }
+
+        IMPAudioIOAttr ioattr;
+        ret = IMP_AI_GetPubAttr(0, &ioattr);
+        if (ret == 0)
+        {
+            if (cfg->audio.input_noise_suppression)
+            {
+                ret = IMP_AI_EnableNs(&ioattr, cfg->audio.input_noise_suppression);
+                LOG_ERROR_OR_DEBUG(ret, "IMP_AI_EnableNs(" << cfg->audio.input_noise_suppression << ")");
+            }
+            else
+            {
+                ret = IMP_AI_DisableNs();
+                LOG_ERROR_OR_DEBUG(ret, "IMP_AI_DisableNs(0)");
+            }
+            if (cfg->audio.output_high_pass_filter)
+            {
+                ret = IMP_AI_EnableHpf(&ioattr);
+                LOG_ERROR_OR_DEBUG(ret, "IMP_AI_EnableHpf(0)");
+            }
+            else
+            {
+                ret = IMP_AI_DisableHpf();
+                LOG_ERROR_OR_DEBUG(ret, "IMP_AI_DisableHpf(0)");
+            }
+        }
+        else
+        {
+            LOG_ERROR("IMP_AI_GetPubAttr failed.");
+        }
+    }
+    else
+    {
+
+        ret = IMP_AI_DisableChn(0, 0);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_DisableChn(0)"); 
+
+        ret = IMP_AI_Disable(0);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_Disable(0)");
+    }
+
+    /*    output    */
+    if (cfg->audio.output_enabled)
+    {
+        ret = IMP_AO_Enable(0);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_Enable(0)");
+
+        ret = IMP_AO_EnableChn(0, 0);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_EnableChn(0, 0)"); 
+
+        ret = IMP_AO_SetVol(0, 0, cfg->audio.output_vol);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_SetVol(0, 0, " << cfg->audio.output_vol << ")");
+
+        ret = IMP_AO_SetGain(0, 0, cfg->audio.output_gain);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_SetGain(0, 0, " << cfg->audio.output_gain << ")");
+
+        IMPAudioIOAttr ioattr;
+        ret = IMP_AO_GetPubAttr(0, &ioattr);
+        if (ret == 0)
+        {     
+            if (cfg->audio.output_high_pass_filter)
+            {
+                ret = IMP_AO_EnableHpf(&ioattr);
+                LOG_ERROR_OR_DEBUG(ret, "IMP_AO_EnableHpf(0)");
+            }
+            else
+            {
+                ret = IMP_AO_DisableHpf();
+                LOG_ERROR_OR_DEBUG(ret, "IMP_AO_DisableHpf(0)");
+            }
+        }
+        else
+        {
+            LOG_ERROR("IMP_AO_GetPubAttr failed.");
+        }               
+    }
+    else
+    {
+
+        ret = IMP_AO_DisableChn(0, 0);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_DisableChn(0, 0)"); 
+
+        ret = IMP_AO_Disable(0);
+        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_Disable(0)");
+    }
+
     LOG_DEBUG("ISP Tuning Defaults set");
 
     ret = IMP_ISP_Tuning_SetSensorFPS(cfg->sensor.fps, 1);
@@ -501,7 +718,8 @@ bool Encoder::init()
     }
     LOG_DEBUG("Frame Source Channel 0 enabled");
 
-    if(cfg->motion.enabled) {
+    if (cfg->motion.enabled)
+    {
 
         LOG_DEBUG("Motion enabled");
         motionInitialized = true;
@@ -560,11 +778,13 @@ void Encoder::exit()
     ret = IMP_Encoder_DestroyGroup(0);
     LOG_DEBUG("IMP_Encoder_DestroyGroup(" << i << ") error: " << ret);
 
-    if(osdInitialized)
+    if (osdInitialized)
         osd.exit();
 
-    if(motionInitialized) {
-        if(!motion.exit()) {
+    if (motionInitialized)
+    {
+        if (!motion.exit())
+        {
             LOG_ERROR("Exit motion detection failed.");
         }
     }
@@ -594,7 +814,7 @@ void Encoder::exit()
     LOG_DEBUG("IMP_ISP_Close");
 
     cfg->encoder_thread_signal.fetch_xor(4); // remove stopping
-    cfg->encoder_thread_signal.fetch_or(8); // set stopped
+    cfg->encoder_thread_signal.fetch_or(8);  // set stopped
 }
 
 static int save_jpeg_stream(int fd, IMPEncoderStream *stream)
@@ -676,7 +896,7 @@ void MakeTables(int q, uint8_t *lqt, uint8_t *cqt)
     }
 }
 
-void Encoder::jpeg_snap(std::shared_ptr<CFG>& cfg)
+void Encoder::jpeg_snap(std::shared_ptr<CFG> &cfg)
 {
     nice(-18);
 
@@ -686,7 +906,7 @@ void Encoder::jpeg_snap(std::shared_ptr<CFG>& cfg)
 
     // memset(&channel_attr_jpg, 0, sizeof(IMPEncoderCHNAttr));
     // rc_attr = &channel_attr_jpg.rcAttr;
-    
+
     while ((cfg->jpg_thread_signal.load() & 256) != 256)
     {
         // init
@@ -723,7 +943,7 @@ void Encoder::jpeg_snap(std::shared_ptr<CFG>& cfg)
 
         // running
         while (cfg->jpg_thread_signal.load() & 2)
-        { 
+        {
 
 #if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
             IMPEncoderJpegeQl pstJpegeQl;
@@ -736,8 +956,8 @@ void Encoder::jpeg_snap(std::shared_ptr<CFG>& cfg)
 
             IMPEncoderStream stream_jpeg;
             if (IMP_Encoder_GetStream(1, &stream_jpeg, 1) == 0)
-            {                                                                 // Check for success
-                std::string tempPath = "/tmp/snapshot.tmp";                   // Temporary path
+            {                                                   // Check for success
+                std::string tempPath = "/tmp/snapshot.tmp";     // Temporary path
                 std::string finalPath = cfg->stream1.jpeg_path; // Final path for the JPEG snapshot
 
                 // Open and create temporary file with read and write permissions
@@ -815,7 +1035,7 @@ void Encoder::run()
         //  or nearly 300,000 years. I think it's okay if we don't
         //  handle timestamp overflows. :)
         last_nal_ts = 0;
-        
+
         // 1 = init and start
         if (cfg->encoder_thread_signal.load() & 1)
         {
@@ -831,7 +1051,7 @@ void Encoder::run()
             {
 
                 LOG_DEBUG("JPEG support enabled");
-                cfg->jpg_thread_signal.fetch_xor(8); //remove stopped bit
+                cfg->jpg_thread_signal.fetch_xor(8); // remove stopped bit
                 if (jpeg_thread.joinable())
                 {
                     cfg->jpg_thread_signal.fetch_or(1);
@@ -975,7 +1195,8 @@ void Encoder::run()
         }
 
         // 4 = Stop thread
-        if(cfg->encoder_thread_signal.load() & 4) {
+        if (cfg->encoder_thread_signal.load() & 4)
+        {
             exit();
         }
 
