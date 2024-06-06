@@ -611,6 +611,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
 
         if (ctx->path_match == PNT_IMAGE_DEFOG_STRENGTH)
         {
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)        
             if (reason == LEJPCB_VAL_NUM_INT)
             {
                 if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -621,6 +622,10 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
             }
             append_message(
                 "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+#else
+            append_message(
+                "%s", "null");
+#endif
         }
         else if (ctx->path_match >= PNT_IMAGE_CORE_WB_MODE && ctx->path_match <= PNT_IMAGE_WB_BGAIN)
         {
@@ -671,6 +676,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
                 break;
             case PNT_IMAGE_HUE:
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)   
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
                     if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -680,6 +686,10 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                 }
                 append_message(
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+#else
+                append_message(
+                    "%s", "null");
+#endif
                 break;
             case PNT_IMAGE_SATURATION:
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -784,6 +794,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
                 break;
             case PNT_IMAGE_AE_COMPENSATION:
+#if !defined(PLATFORM_T21)
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
                     if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -794,7 +805,12 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                 append_message(
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
                 break;
+#else
+                append_message(
+                    "%s", "null");
+#endif
             case PNT_IMAGE_DPC_STRENGTH:
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
                     if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -804,8 +820,13 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                 }
                 append_message(
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+#else
+                append_message(
+                    "%s", "null");
+#endif
                 break;
             case PNT_IMAGE_DRC_STRENGTH:
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
                     if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -815,6 +836,10 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                 }
                 append_message(
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+#else
+                append_message(
+                    "%s", "null");
+#endif
                 break;
             case PNT_IMAGE_HIGHLIGHT_DEPRESS:
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -828,6 +853,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
                 break;
             case PNT_IMAGE_BACKLIGHT_COMPENSTATION:
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
                     if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -837,6 +863,10 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                 }
                 append_message(
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+#else
+                append_message(
+                    "%s", "null");
+#endif
                 break;
             case PNT_IMAGE_MAX_AGAIN:
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -1007,6 +1037,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
                 break;
             case PNT_AUDIO_INPUT_ALC_GAIN:
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
                     if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -1016,6 +1047,10 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                 }
                 append_message(
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+#else
+                append_message(
+                    "%s", "null");
+#endif
                 break;
             case PNT_AUDIO_OUTPUT_ENABLED:
                 if (reason == LEJPCB_VAL_TRUE)

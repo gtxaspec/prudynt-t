@@ -9,6 +9,11 @@
 
 #define OSDPoolSize 1920 * 1080
 
+#if defined(PLATFORM_T31)
+	#define IMPEncoderCHNAttr IMPEncoderChnAttr
+	#define IMPEncoderCHNStat IMPEncoderChnStat
+#endif
+
 std::mutex Encoder::sinks_lock;
 std::map<uint32_t, EncoderSink> Encoder::sinks;
 uint32_t Encoder::sink_id = 0;
@@ -235,24 +240,13 @@ int Encoder::system_init()
     ret = IMP_ISP_Tuning_SetAntiFlickerAttr((IMPISPAntiflickerAttr)cfg->image.anti_flicker);
     LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetAntiFlickerAttr(" << cfg->image.anti_flicker << ")");
 
-    ret = IMP_ISP_Tuning_SetDPC_Strength(cfg->image.dpc_strength);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDPC_Strength(" << cfg->image.dpc_strength << ")");
-
-    ret = IMP_ISP_Tuning_SetDRC_Strength(cfg->image.dpc_strength);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << cfg->image.drc_strength << ")");
-
+#if !defined(PLATFORM_T21)
     ret = IMP_ISP_Tuning_SetAeComp(cfg->image.ae_compensation);
     LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetAeComp(" << cfg->image.ae_compensation << ")");
-
-    uint8_t _defog_strength = static_cast<uint8_t>(cfg->image.defog_strength);
-    ret = IMP_ISP_Tuning_SetDefog_Strength(reinterpret_cast<uint8_t *>(&_defog_strength));
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDefog_Strength(" << cfg->image.defog_strength << ")");
+#endif
 
     ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
     LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
-
-    ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
 
     ret = IMP_ISP_Tuning_SetMaxAgain(cfg->image.max_again);
     LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetMaxAgain(" << cfg->image.max_again << ")");
@@ -281,6 +275,27 @@ int Encoder::system_init()
         }
     }
 
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+    ret = IMP_ISP_Tuning_SetBcshHue(cfg->image.hue);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetBcshHue(" << cfg->image.hue << ")");
+#endif
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+    uint8_t _defog_strength = static_cast<uint8_t>(cfg->image.defog_strength);
+    ret = IMP_ISP_Tuning_SetDefog_Strength(reinterpret_cast<uint8_t *>(&_defog_strength));
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDefog_Strength(" << cfg->image.defog_strength << ")");
+#endif
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+    ret = IMP_ISP_Tuning_SetDPC_Strength(cfg->image.dpc_strength);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDPC_Strength(" << cfg->image.dpc_strength << ")");
+#endif
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+    ret = IMP_ISP_Tuning_SetDRC_Strength(cfg->image.dpc_strength);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << cfg->image.drc_strength << ")");
+#endif
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+    ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
+#endif
     /* Audio tuning */
     /*     input    */
     if (cfg->audio.input_enabled)
@@ -297,9 +312,12 @@ int Encoder::system_init()
         ret = IMP_AI_SetGain(0, 0, cfg->audio.input_gain);
         LOG_ERROR_OR_DEBUG(ret, "IMP_AI_SetGain(0, 0, " << cfg->audio.input_gain << ")");
 
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+
         ret = IMP_AI_SetAlcGain(0, 0, cfg->audio.input_alc_gain);
         LOG_ERROR_OR_DEBUG(ret, "IMP_AI_SetAlcGain(0, 0, " << cfg->audio.input_alc_gain << ")");
 
+#endif
         if (cfg->audio.input_echo_cancellation)
         {
             ret = IMP_AI_EnableAec(0, 0, 0, 0);
@@ -739,7 +757,7 @@ void Encoder::exit()
 {
 
     int ret = 0, i = 0, chnNum = 0;
-    IMPEncoderChnStat chn_stat;
+    IMPEncoderCHNStat chn_stat;
 
     if (cfg->stream1.jpeg_enabled)
     {
@@ -757,7 +775,7 @@ void Encoder::exit()
     ret = IMP_System_UnBind(&osd_cell, &enc);
     LOG_DEBUG("IMP_System_UnBind 2 error: " << ret);
 
-    memset(&chn_stat, 0, sizeof(IMPEncoderChnStat));
+    memset(&chn_stat, 0, sizeof(IMPEncoderCHNStat));
 
     for (int i = 1; i >= 0; i--)
     {

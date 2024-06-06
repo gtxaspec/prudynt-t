@@ -17,10 +17,13 @@
 #include <arpa/inet.h>
 
 #if defined(PLATFORM_T31)
-	#define picWidth uWidth
-	#define picHeight uHeight
 	#define IMPEncoderCHNAttr IMPEncoderChnAttr
 	#define IMPEncoderCHNStat IMPEncoderChnStat    
+#endif
+
+#if defined(PLATFORM_T31)
+	#define picWidth uWidth
+	#define picHeight uHeight 
 #endif
 /*
 void OSD::rotateBGRAImage(uint8_t*& inputImage, int& width, int& height, int angle, bool del = true) {
