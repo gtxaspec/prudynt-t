@@ -139,7 +139,6 @@ class CFG {
 			int jpeg_refresh;
 			bool jpeg_enabled;
 			std::string jpeg_path;
-
 		};
 		struct _osd {
 			int font_size;
@@ -147,11 +146,11 @@ class CFG {
 			int logo_height;
 			int logo_width;
 			bool enabled;
-			bool logo_enabled;
 			bool time_enabled;
 			bool user_text_enabled;
-			bool font_stroke_enabled;
 			bool uptime_enabled;
+            bool logo_enabled;
+			bool font_stroke_enabled;            
 			std::string font_path;
 			std::string time_format;
 			std::string uptime_format;
@@ -178,10 +177,17 @@ class CFG {
 			bool enabled;
 			std::string script_path;
 		};
-
+        struct _websocket {
+            bool enabled;
+            bool secured;
+            int port;
+            int loglevel;
+            std::string name;
+        };
         bool config_loaded = false;
         libconfig::Config lc;
-
+        std::string filePath;
+        
     public:
 
 		CFG();
@@ -197,6 +203,7 @@ class CFG {
 		_stream1 stream1;
 		_osd osd;
 		_motion motion;
+        _websocket websocket;
 
         std::atomic<int> main_thread_signal{1};
 
@@ -397,5 +404,12 @@ class CFG {
 			{"motion.roi_1_x", 			intEntry{motion.roi_1_x, 1920, [](const int &v) { return v >= 0; }, "Motion ROI 1 X position should be non-negative", ""}},
 			{"motion.roi_1_y", 			intEntry{motion.roi_1_y, 1080, [](const int &v) { return v >= 0; }, "Motion ROI 1 Y position should be non-negative", ""}},
 			{"motion.roi_count", 		intEntry{motion.roi_count, 1, [](const int &v) { return v >= 1 && v <= 52; }, "Motion ROI count should be between 1 and 52", ""}},						
+
+			{"websocket.enabled",       bolEntry{websocket.enabled, true, [](const bool &v) { return true; }, "Websocket enabled flag. Must be either true or false.", ""}},
+            {"websocket.secured",       bolEntry{websocket.secured, false, [](const bool &v) { return true; }, "Websocket security flag. Must be either true or false.", ""}},
+            {"websocket.port", 			intEntry{websocket.port, 8089, [](const int &v) { return v > 0 && v <= 65535; }, "Websocket port must be between 1 and 65535", ""}},
+            {"websocket.loglevel", 		intEntry{websocket.loglevel, 4096, [](const int &v) { return v > 0 && v <= 1024; }, "Websocket loglevel must be between 1 and 12", ""}},
+			{"websocket.name", 	        strEntry{websocket.name, "wss prudynt", [](const std::string &v) { return !v.empty(); }, "Websocket name cannot be empty.", ""}},
+
 		};
 };

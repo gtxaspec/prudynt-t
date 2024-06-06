@@ -245,29 +245,97 @@ static const char *const stream0_keys[] = {
 /* STREAM1 */
 enum
 {
-    PNT_STREAM1_JPEG_ENABLED = 1
+    PNT_STREAM1_JPEG_ENABLED = 1,
+    PNT_STREAM1_JPEG_PATH,
+    PNT_STREAM1_JPEG_QUALITY,
+    PNT_STREAM1_JPEG_REFRESH
 };
 
 static const char *const stream1_keys[] = {
-    "jpeg_enabled"};
+    "jpeg_enabled",
+    "jpeg_path",
+    "jpeg_quality",
+    "jpeg_refresh"};
 
 /* OSD */
 enum
 {
-    PNT_OSD_ENABLED = 1
+    PNT_OSD_FONT_SIZE = 1,
+    PNT_OSD_FONT_STROKE_SIZE,
+    PNT_OSD_LOGO_HEIGHT,
+    PNT_OSD_LOGO_WIDTH,
+    PNT_OSD_ENABLED,
+    PNT_OSD_TIME_ENABLED,
+    PNT_OSD_USER_TEXT_ENABLED,
+    PNT_OSD_UPTIME_ENABLED,
+    PNT_OSD_LOGO_ENABLED,
+    PNT_OSD_FONT_STROKE_ENABLED,
+    PNT_OSD_FONT_PATH,
+    PNT_OSD_TIME_FORMAT,
+    PNT_OSD_UPTIME_FORMAT,
+    PNT_OSD_USER_TEXT_FORMAT,
+    PNT_OSD_LOGO_PATH,
+    PNT_OSD_FONT_COLOR,
+    PNT_OSD_FONT_STROKE_COLOR
 };
 
 static const char *const osd_keys[] = {
-    "enabled"};
+    "font_size",
+    "font_stroke_size",
+    "logo_height",
+    "logo_width",
+    "enabled",
+    "time_enabled",
+    "user_text_enabled",
+    "uptime_enabled",
+    "logo_enabled",
+    "font_stroke_enabled",
+    "font_path",
+    "time_format",
+    "uptime_format",
+    "user_text_format",
+    "logo_path",
+    "font_color",
+    "font_stroke_color"};
 
 /* MOTION */
 enum
 {
-    PNT_MOTION_ENABLED = 1
+    PNT_MOTION_DEBOUNCE_TIME = 1,
+    PNT_MOTION_POST_TIME,
+    PNT_MOTION_COOLDOWN_TIME,
+    PNT_MOTION_INIT_TIME,
+    PNT_MOTION_THREAD_WAIT,
+    PNT_MOTION_SENSITIVITY,
+    PNT_MOTION_SKIP_FRAME_COUNT,
+    PNT_MOTION_FRAME_WIDTH,
+    PNT_MOTION_FRAME_HEIGHT,
+    PNT_MOTION_ROI_0_X,
+    PNT_MOTION_ROI_0_Y,
+    PNT_MOTION_ROI_1_X,
+    PNT_MOTION_ROI_1_Y,
+    PNT_MOTION_ROI_COUNT,
+    PNT_MOTION_ENABLED,
+    PNT_MOTION_SCRIPT_PATH
 };
 
 static const char *const motion_keys[] = {
-    "enabled"};
+    "debounce_time",
+    "post_time",
+    "cooldown_time",
+    "init_time",
+    "thread_wait",
+    "sensitivity",
+    "skip_frame_count",
+    "frame_width",
+    "frame_height",
+    "roi_0_x",
+    "roi_0_x",
+    "roi_1_x",
+    "roi_1_y",
+    "roi_count",
+    "enabled",
+    "script_path"};
 
 /* INFO */
 enum
@@ -284,6 +352,7 @@ enum
     PNT_STOP_THREAD = 1,
     PNT_START_THREAD,
     PNT_RESTART_THREAD,
+    PNT_SAVE_CONFIG
 };
 
 enum
@@ -298,7 +367,8 @@ enum
 static const char *const action_keys[] = {
     "stop_thread",
     "start_thread",
-    "restart_thread"};
+    "restart_thread",
+    "save_config"};
 
 #pragma endregion keys_and_enums
 
@@ -1071,13 +1141,13 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
                         IMP_OSD_SetGrpRgnAttr(hnd, 0, &grpRgnAttr);
                     }
                 };
-                append_message(
-                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
             }
+            append_message(
+                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
         }
-        else if ((ctx->path_match >= PNT_STREAM0_GOP && ctx->path_match <= PNT_STREAM0_OSD_UPTIME_ROTATION) || 
-                (ctx->path_match >= PNT_STREAM0_ROTATION && ctx->path_match <= PNT_STREAM0_SCALE_HEIGHT))
-        {   // integer values
+        else if ((ctx->path_match >= PNT_STREAM0_GOP && ctx->path_match <= PNT_STREAM0_OSD_UPTIME_ROTATION) ||
+                 (ctx->path_match >= PNT_STREAM0_ROTATION && ctx->path_match <= PNT_STREAM0_SCALE_HEIGHT))
+        { // integer values
             if (reason == LEJPCB_VAL_NUM_INT)
                 u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
             append_message(
@@ -1188,14 +1258,14 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
                 append_message(
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
                 break;
-            /*
-            case PNT_STREAM0_ROTATION:
-                break;
-            case PNT_STREAM0_SCALE_WIDTH:
-                break;
-            case PNT_STREAM0_SCALE_HEIGHT:
-                break;
-            */
+                /*
+                case PNT_STREAM0_ROTATION:
+                    break;
+                case PNT_STREAM0_SCALE_WIDTH:
+                    break;
+                case PNT_STREAM0_SCALE_HEIGHT:
+                    break;
+                */
             };
         }
 
@@ -1224,11 +1294,46 @@ signed char WS::stream1_callback(struct lejp_ctx *ctx, char reason)
         switch (ctx->path_match)
         {
         case PNT_STREAM1_JPEG_ENABLED:
-            if (reason != LEJPCB_VAL_NULL)
+            if (reason == LEJPCB_VAL_TRUE)
             {
+                u_ctx->ws->cfg->set<bool>(u_ctx->path, true);
+            }
+            else if (reason == LEJPCB_VAL_FALSE)
+            {
+                u_ctx->ws->cfg->set<bool>(u_ctx->path, false);
             }
             append_message(
-                "%s", u_ctx->ws->cfg->stream1.jpeg_enabled ? "true" : "false");
+                "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+            break;
+        case PNT_STREAM1_JPEG_PATH:
+            if (reason == LEJPCB_VAL_STR_END)
+            {
+                if (u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf))
+                {
+                }
+            }
+            append_message(
+                "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+            break;
+        case PNT_STREAM1_JPEG_QUALITY:
+            if (reason == LEJPCB_VAL_NUM_INT)
+            {
+                if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                {
+                }
+            }
+            append_message(
+                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+            break;
+        case PNT_STREAM1_JPEG_REFRESH:
+            if (reason == LEJPCB_VAL_NUM_INT)
+            {
+                if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                {
+                }
+            }
+            append_message(
+                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
             break;
         }
 
@@ -1254,15 +1359,53 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", osd_keys[ctx->path_match - 1]);
 
-        switch (ctx->path_match)
+        // integer
+        if (ctx->path_match >= PNT_OSD_FONT_SIZE && ctx->path_match <= PNT_OSD_LOGO_WIDTH)
         {
-        case PNT_OSD_ENABLED:
-            if (reason != LEJPCB_VAL_NULL)
+            if (reason == LEJPCB_VAL_NUM_INT)
             {
+                u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
             }
             append_message(
-                "%s", u_ctx->ws->cfg->osd.enabled ? "true" : "false");
-            break;
+                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+            // bool
+        }
+        else if (ctx->path_match >= PNT_OSD_ENABLED && ctx->path_match <= PNT_OSD_FONT_STROKE_ENABLED)
+        {
+            if (reason == LEJPCB_VAL_TRUE)
+            {
+                u_ctx->ws->cfg->set<bool>(u_ctx->path, true);
+            }
+            else if (reason == LEJPCB_VAL_FALSE)
+            {
+                u_ctx->ws->cfg->set<bool>(u_ctx->path, false);
+            }
+            append_message(
+                "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+            // std::string
+        }
+        else if (ctx->path_match >= PNT_OSD_FONT_PATH && ctx->path_match <= PNT_OSD_LOGO_PATH)
+        {
+            if (reason == LEJPCB_VAL_STR_END)
+            {
+                if (u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf))
+                {
+                }
+            }
+            append_message(
+                "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+            // unsigned int
+        }
+        else if (ctx->path_match >= PNT_OSD_FONT_COLOR && ctx->path_match <= PNT_OSD_FONT_STROKE_COLOR)
+        {
+            if (reason == LEJPCB_VAL_STR_END)
+            {
+                if (u_ctx->ws->cfg->set<unsigned int>(u_ctx->path, (unsigned int)strtoll(ctx->buf, NULL, 16)))
+                {
+                }
+            }
+            append_message(
+                "\"%#x\"", u_ctx->ws->cfg->get<unsigned int>(u_ctx->path));
         }
 
         u_ctx->s = 1;
@@ -1285,17 +1428,43 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
         append_message(
-            "%s\"%s\":", u_ctx->s ? "," : "", general_keys[ctx->path_match - 1]);
+            "%s\"%s\":", u_ctx->s ? "," : "", motion_keys[ctx->path_match - 1]);
 
-        switch (ctx->path_match)
+        // integer
+        if (ctx->path_match >= PNT_MOTION_DEBOUNCE_TIME && ctx->path_match <= PNT_MOTION_ROI_COUNT)
         {
-        case PNT_MOTION_ENABLED:
-            if (reason != LEJPCB_VAL_NULL)
+            if (reason == LEJPCB_VAL_NUM_INT)
             {
+                u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
             }
             append_message(
-                "%s", u_ctx->ws->cfg->motion.enabled ? "true" : "false");
-            break;
+                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+            // bool
+        }
+        else if (ctx->path_match == PNT_MOTION_ENABLED)
+        {
+            if (reason == LEJPCB_VAL_TRUE)
+            {
+                u_ctx->ws->cfg->set<bool>(u_ctx->path, true);
+            }
+            else if (reason == LEJPCB_VAL_FALSE)
+            {
+                u_ctx->ws->cfg->set<bool>(u_ctx->path, false);
+            }
+            append_message(
+                "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+            // std::string
+        }
+        else if (ctx->path_match == PNT_MOTION_SCRIPT_PATH)
+        {
+            if (reason == LEJPCB_VAL_STR_END)
+            {
+                if (u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf))
+                {
+                }
+            }
+            append_message(
+                "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
         }
 
         u_ctx->s = 1;
@@ -1389,6 +1558,11 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
             append_message(
                 "\"%s\"", "initiated");
             break;
+        case PNT_SAVE_CONFIG:
+            u_ctx->ws->cfg->updateConfig();
+            append_message(
+                "\"%s\"", "initiated");
+            break;            
         }
 
         u_ctx->s = 1;
@@ -1410,8 +1584,6 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
         u_ctx->path.clear();
         u_ctx->root = ctx->path;
-
-        LOG_DEBUG("root_callback: " << (char *)ctx->path);
 
         append_message(
             "%s\"%s\":{", u_ctx->s ? "," : "", root_keys[ctx->path_match - 1]);
@@ -1478,6 +1650,9 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
     user_ctx *u_ctx = (user_ctx *)lws_context_user(lws_get_context(wsi));
     u_ctx->s = 0;
 
+    char client_ip[128];
+    lws_get_peer_simple(wsi, client_ip, sizeof(client_ip));
+
     int ws_send_msg_length, url_length;
     char url_token[128];
     memset(url_token, 0, 128);
@@ -1486,31 +1661,33 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
     switch (reason)
     {
-
     case LWS_CALLBACK_ESTABLISHED:
-        LOG_DEBUG("LWS_CALLBACK_ESTABLISHED");
+        LOG_DEBUG("LWS_CALLBACK_ESTABLISHED " << client_ip);
         url_length = lws_get_urlarg_by_name_safe(wsi, "token", url_token, sizeof(url_token));
         if (url_length != WEBSOCKET_TOKEN_LENGTH || strcmp(token, url_token) != 0)
         {
-            LOG_DEBUG("Unauthenticated websocket connect.");
-            // return -1;
+            LOG_DEBUG("Unauthenticated websocket connect" );
+            if (u_ctx->ws->cfg->websocket.secured)
+            {
+                LOG_DEBUG("Connection refused.");
+                return -1;
+            }
         }
         break;
-
     case LWS_CALLBACK_SERVER_WRITEABLE:
         LOG_DEBUG("LWS_CALLBACK_SERVER_WRITEABLE");
 
         ws_send_msg_length = strlen(ws_send_msg);
         if (ws_send_msg_length)
         {
-            std::cout << "SEND MESSAGE: " << ws_send_msg << std::endl;
+            LOG_DEBUG("TO " << client_ip << ":  " << ws_send_msg);
             lws_write(wsi, (unsigned char *)ws_send_msg, ws_send_msg_length, LWS_WRITE_TEXT);
             memset(ws_send_msg, 0, sizeof(ws_send_msg));
         }
         break;
 
     case LWS_CALLBACK_RECEIVE:
-        LOG_DEBUG("LWS_CALLBACK_RECEIVE");
+        LOG_DEBUG("LWS_CALLBACK_RECEIVE " << client_ip);
 
         std::strcat(ws_send_msg, "{"); // start response json
 
@@ -1524,18 +1701,20 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         {
             u_ctx->ws->cfg->main_thread_signal.store(u_ctx->signal);
             u_ctx->ws->cfg->main_thread_signal.notify_one();
+            u_ctx->signal = 0;
         }
 
         lws_callback_on_writable(wsi);
         break;
 
     case LWS_CALLBACK_CLOSED:
-        LOG_DEBUG("LWS_CALLBACK_CLOSED");
+        LOG_DEBUG("LWS_CALLBACK_CLOSED " << client_ip);
         break;
 
     default:
         break;
     }
+
     return 0;
 }
 
@@ -1544,7 +1723,6 @@ void WS::run()
 
     int opt;
     char *ip = NULL;
-    int port = 8089;
 
     // create websocket authentication token and write it into /run/
     // only websocket connect with token parameter accepted
@@ -1556,13 +1734,15 @@ void WS::run()
 
     LOG_DEBUG("WS TOKEN::" << token);
 
-    protocols.name = "WSS prudynt";
+    lws_set_log_level(cfg->websocket.loglevel, lwsl_emit_stderr);
+
+    protocols.name = cfg->websocket.name.c_str();
     protocols.callback = ws_callback;
     protocols.per_session_data_size = sizeof(user_ctx);
     protocols.rx_buffer_size = 65536;
 
     memset(&info, 0, sizeof(info));
-    info.port = port;
+    info.port = cfg->websocket.port;
     info.iface = ip;
     info.protocols = &protocols;
     info.gid = -1;
@@ -1581,7 +1761,7 @@ void WS::run()
         LOG_ERROR("lws init failed");
     }
 
-    LOG_INFO("Server started on port " << port);
+    LOG_INFO("Server started on port " << cfg->websocket.port);
 
     while (1)
     {

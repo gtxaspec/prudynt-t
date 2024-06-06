@@ -32,6 +32,7 @@ bool CFG::readConfig() {
     // Construct the path to the configuration file in the same directory as the program binary
     fs::path binaryPath = fs::read_symlink("/proc/self/exe").parent_path();
     fs::path cfgFilePath = binaryPath / "prudynt.cfg";
+    filePath = cfgFilePath;
 
     // Try to load the configuration file from the specified paths
     try {
@@ -40,6 +41,7 @@ bool CFG::readConfig() {
     } catch (const libconfig::FileIOException &) {
         LOG_DEBUG("Failed to load prudynt configuration file from binary directory. Trying /etc...");
         fs::path etcPath = "/etc/prudynt.cfg";
+        filePath = etcPath;
         try {
             lc.readFile(etcPath.c_str());
             LOG_INFO("Loaded configuration from " + etcPath.string());
@@ -55,13 +57,100 @@ bool CFG::readConfig() {
     return 1;
 }
 
- bool CFG::updateConfig() {
+bool CFG::updateConfig() {
+
+    config_loaded = readConfig();
 
     if( config_loaded ) {
 
+        libconfig::Setting &root = lc.getRoot();
+
+        for (auto &item : settings) {
+            
+            std::string path = item.first;
+
+            size_t pos = path.find('.');
+            std::string sect = path.substr(0, pos);
+            std::string entr = path.substr(pos + 1);
+
+            if (!root.exists(sect)) {
+                root.add(sect, libconfig::Setting::TypeGroup);
+            }
+            
+            std::visit([&path,&root,&sect,&entr,this](const auto& e) {
+
+                using T = std::decay_t<decltype(e.value)>;
+                using U = std::decay_t<decltype(e)>;
+
+               std::string line;
+               int state = 0;
+
+                if (!state && !e.procPath.empty()) 
+                    state |= read_proc(e.procPath, line)?2:0;
+
+                if constexpr (std::is_same_v<U, bolEntry>) {
+                    if constexpr (std::is_same_v<T, bool>) {
+                        bool value = e.defaultValue;
+                        state |= lc.lookupValue(path, value);                   
+                        if(value != e.value && e.value != e.defaultValue && state != 2) {
+                            if(state) {
+                                libconfig::Setting &setting = lc.lookup(path);
+                                setting = e.value;
+                            } else {
+                                root.lookup(sect).add(entr, libconfig::Setting::TypeBoolean) = e.value;
+                            }
+                        }
+                    }
+                } else if constexpr (std::is_same_v<U, intEntry>) {
+                    if constexpr (std::is_same_v<T, int>) {
+                        int value = e.defaultValue;
+                        state |= lc.lookupValue(path, value);                          
+                        if(value != e.value && e.value != e.defaultValue && state != 2) {
+                            if(state) {
+                                libconfig::Setting &setting = lc.lookup(path);
+                                setting = e.value;
+                            } else {
+                                root.lookup(sect).add(entr, libconfig::Setting::TypeInt) = e.value;
+                            }
+                        }
+                    }
+                } else if constexpr (std::is_same_v<U, strEntry>) {
+                    if constexpr (std::is_same_v<T, std::string>) {
+                        std::string value = e.defaultValue;
+                        state |= lc.lookupValue(path, value);                         
+                        if(value != e.value && e.value != e.defaultValue && state != 2) {
+                            if(state) {
+                                libconfig::Setting &setting = lc.lookup(path);
+                                setting = e.value;
+                            } else {
+                                root.lookup(sect).add(entr, libconfig::Setting::TypeString) = e.value;
+                            }
+                        }
+                    }
+                }else if constexpr (std::is_same_v<U, uintEntry>) {
+                    if constexpr (std::is_same_v<T, unsigned int>) {
+                        unsigned int value = e.defaultValue;
+                        state |= lc.lookupValue(path, value);                                               
+                        if(value != e.value && e.value != e.defaultValue && state != 2) {
+                            if(state) {
+                                libconfig::Setting &setting = lc.lookup(path);
+                                setting = (long)e.value;
+                            } else {
+                                root.lookup(sect).add(entr, libconfig::Setting::TypeString) = (long)e.value;
+                            }
+                        }
+                    }
+                }
+            }, item.second);
+        }
     }
-    return 1;
+
+    lc.writeFile(filePath);
+    LOG_DEBUG("Config is written to " << filePath);
+    
+    return true;
 }
+
 
 CFG::CFG() {
     
@@ -159,4 +248,5 @@ CFG::CFG() {
             }, item.second);
         }
     }
+    updateConfig();
 }
