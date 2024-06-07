@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <regex>
 #include <functional>
 #include <libconfig.h++>
 #include <variant>
@@ -39,7 +40,6 @@ bool CFG::readConfig() {
         lc.readFile(cfgFilePath.c_str());
         LOG_INFO("Loaded configuration from " + cfgFilePath.string());
     } catch (const libconfig::FileIOException &) {
-        LOG_DEBUG("Failed to load prudynt configuration file from binary directory. Trying /etc...");
         fs::path etcPath = "/etc/prudynt.cfg";
         filePath = etcPath;
         try {
@@ -143,11 +143,25 @@ bool CFG::updateConfig() {
                 }
             }, item.second);
         }
+
+        if(root.exists("rois"))
+            root.remove("rois");
+
+        libconfig::Setting &rois = root.add("rois", libconfig::Setting::TypeGroup);
+
+        for (int i=0; i<motion.roi_count; i++) {
+
+            libconfig::Setting &entry = rois.add("roi_" + std::to_string(i), libconfig::Setting::TypeArray);
+            entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p0_x;
+            entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p0_y;
+            entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p1_x;
+            entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p1_y; 
+        }             
     }
 
     lc.writeFile(filePath);
     LOG_DEBUG("Config is written to " << filePath);
-    
+
     return true;
 }
 
@@ -247,6 +261,25 @@ CFG::CFG() {
                 }
             }, item.second);
         }
+
+        libconfig::Setting &root = lc.getRoot();
+
+        if(root.exists("rois")) {
+
+            libconfig::Setting &rois = root.lookup("rois");
+
+            for (int i=0; i<motion.roi_count; i++) {
+
+                int n = atoi(std::regex_replace(rois[i].getName(),
+                            std::regex("[^0-9]*([0-9]+).*"), std::string("$1")).c_str());
+
+                if(rois[i].getLength() == 4) {
+                    motion.rois[n].p0_x = rois[i][0];
+                    motion.rois[n].p0_y = rois[i][1];
+                    motion.rois[n].p1_x = rois[i][2];
+                    motion.rois[n].p1_y = rois[i][3];
+                }
+            }
+        }
     }
-    updateConfig();
 }

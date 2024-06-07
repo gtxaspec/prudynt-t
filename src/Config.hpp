@@ -9,6 +9,13 @@
 #include <functional>
 #include <libconfig.h++>
 
+struct roi{
+    int p0_x;
+    int p0_y;
+    int p1_x;
+    int p1_y;
+};
+
 struct intEntry {
 	int& value;
     int defaultValue;
@@ -176,6 +183,7 @@ class CFG {
 			int roi_count;
 			bool enabled;
 			std::string script_path;
+            std::array<roi, 52> rois;
 		};
         struct _websocket {
             bool enabled;

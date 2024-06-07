@@ -316,7 +316,8 @@ enum
     PNT_MOTION_ROI_1_Y,
     PNT_MOTION_ROI_COUNT,
     PNT_MOTION_ENABLED,
-    PNT_MOTION_SCRIPT_PATH
+    PNT_MOTION_SCRIPT_PATH,
+    PNT_MOTION_ROIS,
 };
 
 static const char *const motion_keys[] = {
@@ -335,7 +336,8 @@ static const char *const motion_keys[] = {
     "roi_1_y",
     "roi_count",
     "enabled",
-    "script_path"};
+    "script_path",
+    "rois"};
 
 /* INFO */
 enum
@@ -382,6 +384,10 @@ struct user_ctx
     std::string root;
     std::string path;
     int signal;
+    roi region;
+    int flag;
+    int midx;
+    int vidx;
 };
 
 std::string generateToken(int length)
@@ -1456,11 +1462,12 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
 
 signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
 {
+
+    struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
+    u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+        
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-
-        struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
-        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", motion_keys[ctx->path_match - 1]);
@@ -1501,15 +1508,119 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
             append_message(
                 "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
         }
+        else if (ctx->path_match == PNT_MOTION_ROIS)
+        {
+            if (reason == LEJPCB_VAL_NULL)
+            {
+                for (int i=0; i<u_ctx->ws->cfg->motion.roi_count; i++) {
+                    std::cout << u_ctx->ws->cfg->motion.rois[i].p0_x << std::endl;
+                }
+            }
+            append_message(
+                "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+        }
 
         u_ctx->s = 1;
     }
+    else if (reason == LECPCB_PAIR_NAME && ctx->path_match == PNT_MOTION_ROIS)
+    {
+        append_message(
+            "%s\"%s\":", u_ctx->s ? "," : "", motion_keys[ctx->path_match - 1]);
+
+        u_ctx->flag = 0;
+        lejp_parser_push(ctx, u_ctx,
+            motion_keys, LWS_ARRAY_SIZE(motion_keys), motion_roi_callback);            
+
+        u_ctx->s = 1;              
+    }    
     else if (reason == LEJPCB_OBJECT_END)
     {
         std::strcat(ws_send_msg, "}");
         lejp_parser_pop(ctx);
-    }
+    }        
 
+    return 0;
+}
+
+signed char WS::motion_roi_callback(struct lejp_ctx *ctx, char reason)
+{
+    struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
+    u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+    
+    if (reason & LEJP_FLAG_CB_IS_VALUE) {
+        if (reason == LEJPCB_VAL_NULL)
+        {
+            std::strcat(ws_send_msg, "[");
+            for (int i=0; i<u_ctx->ws->cfg->motion.roi_count; i++) {
+                if((u_ctx->flag & 4))
+                    std::strcat(ws_send_msg, ",");        
+                append_message(
+                    "[%d,%d,%d,%d]", u_ctx->ws->cfg->motion.rois[i].p0_x, u_ctx->ws->cfg->motion.rois[i].p0_x, u_ctx->region.p0_y, 
+                        u_ctx->ws->cfg->motion.rois[i].p1_x, u_ctx->ws->cfg->motion.rois[i].p1_y);
+                u_ctx->flag |= 4;  
+            }
+            std::strcat(ws_send_msg, "]");
+        }
+        lejp_parser_pop(ctx);  
+    }
+    else
+    {
+        switch (reason)
+        {
+            case LEJPCB_ARRAY_START:
+                if((u_ctx->flag & 4)) {
+                    std::strcat(ws_send_msg, ",");
+                }
+                if((u_ctx->flag & 1) != 1) {
+                    u_ctx->flag |= 1; //main array
+                    u_ctx->midx = 0;  //main array index                
+                    std::strcat(ws_send_msg, "[");
+                }else {
+                    u_ctx->flag |= 2; //entry array
+                    u_ctx->vidx = 0;  //entry array index
+                    std::strcat(ws_send_msg, "[");
+                }
+                break;
+
+            case LEJPCB_VAL_NUM_INT:
+                if(u_ctx->flag & 2) {
+                    u_ctx->vidx++;
+                    if(u_ctx->vidx == 1) {
+                        u_ctx->region.p0_x = atoi(ctx->buf);
+                    } else if(u_ctx->vidx == 2) {
+                        u_ctx->region.p0_y = atoi(ctx->buf);
+                    } else if(u_ctx->vidx == 3) {
+                        u_ctx->region.p1_x = atoi(ctx->buf);
+                    } else if(u_ctx->vidx == 4) {
+                        u_ctx->region.p1_y = atoi(ctx->buf);
+                    }
+                }
+                break;
+
+            case LEJPCB_ARRAY_END:
+                if(u_ctx->flag & 2) {
+                    u_ctx->flag ^= 2;
+                    if(u_ctx->vidx >= 4) {
+                        append_message(
+                            "%d,%d,%d,%d", u_ctx->region.p0_x, u_ctx->region.p0_y, u_ctx->region.p1_x, u_ctx->region.p1_y);                    
+                    }
+                    std::strcat(ws_send_msg, "]");
+                    u_ctx->flag |= 4;
+                    if(u_ctx->midx <= 52) {  
+                        std::cout << "ADD " << u_ctx->midx << std::endl;
+                        u_ctx->ws->cfg->motion.rois[u_ctx->midx] = 
+                            {u_ctx->region.p0_x, u_ctx->region.p0_y, u_ctx->region.p1_x, u_ctx->region.p1_y};
+                        u_ctx->midx++;
+                    }
+                } else if(u_ctx->flag & 1) {
+                    u_ctx->flag ^= 1;
+                    u_ctx->ws->cfg->motion.roi_count = u_ctx->midx;
+                    std::strcat(ws_send_msg, "]");
+                    lejp_parser_pop(ctx);
+                }
+                break;
+        }
+    }
     return 0;
 }
 
