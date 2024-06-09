@@ -9,6 +9,9 @@
 #include <functional>
 #include <libconfig.h++>
 
+//#define AUDIO_SUPPORT    //saves ~10k
+//#define ENABLE_LOG_DEBUG //saves ~60k 
+
 struct roi{
     int p0_x;
     int p0_y;
@@ -95,6 +98,8 @@ class CFG {
             int wb_bgain;
 
         };
+
+#if defined(AUDIO_SUPPORT)        
         struct _audio {
             bool input_enabled;
             int input_vol;
@@ -108,6 +113,7 @@ class CFG {
             bool input_high_pass_filter;
             bool output_high_pass_filter;
         };
+#endif
         struct _stream0 {
 			int gop;
 			int max_gop;
@@ -206,7 +212,10 @@ class CFG {
 		_rtsp rtsp;
 		_sensor sensor;
         _image image;
+
+#if defined(AUDIO_SUPPORT)        
         _audio audio;
+#endif        
 		_stream0 stream0;
 		_stream1 stream1;
 		_osd osd;
@@ -331,6 +340,7 @@ class CFG {
             {"image.wb_rgain",          intEntry{image.wb_rgain, 0, [](const int &v) { return v >= 0 && v <= 34464; }, "defog_strength must between 0 and 34464", ""}},
             {"image.wb_bgain",          intEntry{image.wb_bgain, 0, [](const int &v) { return v >= 0 && v <= 34464; }, "defog_strength must between 0 and 34464", ""}},
 
+#if defined(AUDIO_SUPPORT)
             {"audio.input_enabled",	    bolEntry{audio.input_enabled, false, [](const bool &v) { return true; }, "Audio input enabled must be true or false", ""}},
             {"audio.input_vol",	        intEntry{audio.input_vol, 0, [](const int &v) { return v >= -30 && v <= 120; }, "Audio input volume must between -30 and 120", ""}},
 			{"audio.input_gain", 		intEntry{audio.input_gain, 0, [](const int &v) { return v >= 0 && v <= 31; }, "Audio input gain must between 0 and 30", ""}},
@@ -342,6 +352,7 @@ class CFG {
 			{"audio.input_noise_suppression", intEntry{audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }, "Audio noise suppression must between 0 and 3", ""}},
             {"audio.output_high_pass_filter", bolEntry{audio.input_high_pass_filter, false, [](const bool &v) { return true; }, "Audio input high pass filter can only be true or false", ""}},
             {"audio.output_high_pass_filter", bolEntry{audio.output_high_pass_filter, false, [](const bool &v) { return true; }, "Audio output high pass filter can only be true or false", ""}},
+#endif
 
 			{"stream0.rtsp_endpoint",   strEntry{stream0.rtsp_endpoint, "ch0", [](const std::string &v) { return !v.empty(); }, "RTSP endpoint cannot be empty.", ""}},
             {"stream0.scale_enabled",   bolEntry{stream0.scale_enabled, false, [](const bool &v) { return true; }, "Scaling for Stream0 enabled flag. Must be either true or false.", ""}},

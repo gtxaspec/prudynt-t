@@ -3,11 +3,11 @@
 #include <ctime>
 #include <fstream>
 #include "Encoder.hpp"
-#include "Config.hpp"
+//#include "Config.hpp"
 
 #define MODULE "ENCODER"
 
-#define OSDPoolSize 1920 * 1080
+#define OSDPoolSize 200000
 
 #if defined(PLATFORM_T31)
 	#define IMPEncoderCHNAttr IMPEncoderChnAttr
@@ -296,6 +296,8 @@ int Encoder::system_init()
     ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
     LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
 #endif
+
+#if defined(AUDIO_SUPPORT)
     /* Audio tuning */
     /*     input    */
     if (cfg->audio.input_enabled)
@@ -413,6 +415,7 @@ int Encoder::system_init()
         ret = IMP_AO_Disable(0);
         LOG_ERROR_OR_DEBUG(ret, "IMP_AO_Disable(0)");
     }
+#endif
 
     LOG_DEBUG("ISP Tuning Defaults set");
 

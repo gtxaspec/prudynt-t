@@ -1,18 +1,11 @@
 #include <filesystem>
 #include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
-#include <map>
 #include <regex>
-#include <functional>
-#include <libconfig.h++>
-#include <variant>
-
 #include "Config.hpp"
 #include "Logger.hpp"
 
 #define MODULE "CONFIG"
+
 
 namespace fs = std::filesystem;
 
@@ -167,6 +160,8 @@ bool CFG::updateConfig() {
 
 
 CFG::CFG() {
+    
+    std::cout << "CFG::CFG()" << std::endl;
     
     config_loaded = readConfig();
 
