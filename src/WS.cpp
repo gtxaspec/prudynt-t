@@ -1141,8 +1141,6 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
-        LOG_DEBUG("stream0_callback: " << u_ctx->path << " = " << (char *)ctx->buf);
-
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", stream0_keys[ctx->path_match - 1]);
 
@@ -1151,6 +1149,7 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
             ctx->path_match <= PNT_STREAM0_OSD_UPTIME_TRANSPARENCY ||
             ctx->path_match <= PNT_STREAM0_OSD_LOGO_TRANSPARENCY)
         {
+            std::cout << "TRANSPARENCY " << ctx->path_match << std::endl;
             int hnd;
             if (reason == LEJPCB_VAL_NUM_INT)
             {
@@ -1193,6 +1192,7 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
         else if ((ctx->path_match >= PNT_STREAM0_GOP && ctx->path_match <= PNT_STREAM0_OSD_UPTIME_ROTATION) ||
                  (ctx->path_match >= PNT_STREAM0_ROTATION && ctx->path_match <= PNT_STREAM0_SCALE_HEIGHT))
         { // integer values
+            std::cout << "INT " << ctx->path_match << std::endl;
             if (reason == LEJPCB_VAL_NUM_INT)
                 u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
             append_message(
@@ -1730,10 +1730,12 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
 {
     if ((reason & LEJPCB_OBJECT_START) && ctx->path_match)
     {
-
+                
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
         u_ctx->path.clear();
         u_ctx->root = ctx->path;
+
+        std::cout << ctx->path << std::endl;
 
         append_message(
             "%s\"%s\":{", u_ctx->s ? "," : "", root_keys[ctx->path_match - 1]);
@@ -1844,7 +1846,6 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         LOG_DEBUG("LWS_CALLBACK_RECEIVE " << client_ip);
 
         std::strcat(ws_send_msg, "{"); // start response json
-
         lejp_construct(&ctx, root_callback, u_ctx, root_keys, LWS_ARRAY_SIZE(root_keys));
         lejp_parse(&ctx, (uint8_t *)json_data.c_str(), json_data.length());
         lejp_destruct(&ctx);

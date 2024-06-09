@@ -50,6 +50,67 @@ bool CFG::readConfig() {
     return 1;
 }
 
+
+#if defined(SIMPLE_CONFIG)
+
+template<typename T>
+void handleConfigItem(libconfig::Config &lc, ConfigItem<T> &item, std::vector<std::string> &missingConfigs) {
+    bool readFromConfig = lc.lookupValue(item.path, item.value);
+    bool readFromProc = false;
+
+    if (!readFromConfig && !item.procPath.empty()) { // If not read from config and procPath is set
+        // Attempt to read from the proc filesystem
+        std::ifstream procFile(item.procPath);
+        if (procFile) {
+            T value;
+            std::string line;
+            if (std::getline(procFile, line)) {
+                if constexpr (std::is_same_v<T, std::string>) { // Check if T is std::string
+                    value = line;
+                    readFromProc = true;
+                } else if constexpr (std::is_same_v<T, unsigned int>) { // Check if T is unsigned int
+                    std::istringstream iss(line);
+                    if (line.find("0x") == 0) { // Check if the line starts with "0x"
+                        iss >> std::hex >> value; // Read as hexadecimal
+                    } else {
+                        iss >> value; // Read as decimal
+                    }
+                    readFromProc = true;
+                } else { // For other types, just read directly if possible
+                    std::istringstream iss(line);
+                    if (iss >> value) {
+                        readFromProc = true;
+                    }
+                }
+            }
+            if (readFromProc) {
+                item.value = value; // Assign the value read from proc
+            }
+        }
+    }
+
+    if (!readFromConfig && !readFromProc) {
+        item.value = item.defaultValue; // Assign default value if not found anywhere
+        missingConfigs.push_back(item.path); // Record missing config
+        LOG_WARN("Missing configuration for " + item.path + ", using default.");
+    } else if (!item.validate(item.value)) {
+        //LOG_ERROR(item.errorMessage); // Log validation error
+        item.value = item.defaultValue; // Revert to default if validation fails
+    }
+}
+
+bool CFG::updateConfig() { return false;};
+
+CFG::CFG() {
+    
+    // Process all configuration items
+    for (auto &item : boolItems) handleConfigItem(lc, item, missingConfigs);
+    for (auto &item : stringItems) handleConfigItem(lc, item, missingConfigs);
+    for (auto &item : intItems) handleConfigItem(lc, item, missingConfigs);
+    for (auto &item : uintItems) handleConfigItem(lc, item, missingConfigs);
+}
+#else
+
 bool CFG::updateConfig() {
 
     config_loaded = readConfig();
@@ -157,7 +218,6 @@ bool CFG::updateConfig() {
 
     return true;
 }
-
 
 CFG::CFG() {
     
@@ -278,3 +338,4 @@ CFG::CFG() {
         }
     }
 }
+#endif
