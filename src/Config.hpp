@@ -10,8 +10,7 @@
 #include <libconfig.h++>
 
 //#define AUDIO_SUPPORT    //saves ~10k
-#define ENABLE_LOG_DEBUG //saves ~60k 
-//#define SIMPLE_CONFIG
+//#define ENABLE_LOG_DEBUG //saves ~60k 
 
 struct roi{
     int p0_x;
@@ -20,16 +19,6 @@ struct roi{
     int p1_y;
 };
 
-#if defined(SIMPLE_CONFIG)
-template<typename T>
-struct ConfigItem {
-    std::string path;
-    T& value;
-    T defaultValue;
-    std::function<bool(const T&)> validate;
-    std::string procPath;
-};
-#else
 struct intEntry {
 	int& value;
     int defaultValue;
@@ -62,7 +51,6 @@ struct uintEntry {
 	std::string procPath;
 };
 
-#endif
 class CFG {
 	private:
 		struct _general {
@@ -244,196 +232,6 @@ class CFG {
         char volatile rtsp_thread_signal{0};
         // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
         std::atomic<int> motion_thread_signal{1};
-
-#if defined(SIMPLE_CONFIG)
-
-    template <typename T>
-    T get(const std::string &name) {
-        T result;
-        std::vector<ConfigItem<T>> *items = nullptr;
-        if constexpr (std::is_same_v<T, bool>) {
-            items = &boolItems;
-        } else if constexpr (std::is_same_v<T, std::string>) {
-            items = &stringItems;
-        } else if constexpr (std::is_same_v<T, int>) {
-            items = &intItems;
-        } else if constexpr (std::is_same_v<T, unsigned int>) {
-            items = &uintItems;
-        } else {
-            return result; // Unsupported type
-        }
-        for (auto &item : *items) {
-            if (item.path == name) {
-                return item.value;
-            }
-        }
-        return result; // Wenn nicht gefunden
-    }
-
-    template <typename T>
-    bool set(const std::string &name, T value) {
-        std::vector<ConfigItem<T>> *items = nullptr;
-        if constexpr (std::is_same_v<T, bool>) {
-            items = &boolItems;
-        } else if constexpr (std::is_same_v<T, std::string>) {
-            items = &stringItems;
-        } else if constexpr (std::is_same_v<T, int>) {
-            items = &intItems;
-        } else if constexpr (std::is_same_v<T, unsigned int>) {
-            items = &uintItems;
-        } else {
-            return false; // Unsupported type
-        }
-        for (auto &item : *items) {
-            if (item.path == name) {
-                if (item.validate(value)) {
-                    item.value = value;
-                    return true; // Wert erfolgreich aktualisiert
-                } else {
-                    return false; // Wert nicht gültig
-                }
-            }
-        }
-        return false;
-    }
-
-        std::vector<std::string> missingConfigs;
-
-        std::vector<ConfigItem<bool>> boolItems = {
-            {"rtsp.auth_required",      rtsp.auth_required, true, [](const bool &v) { return true; }, ""},
-            {"image.vflip", 	        image.vflip, false, [](const bool &v) { return true; }, ""},
-            {"image.hflip", 	        image.hflip, false, [](const bool &v) { return true; }, ""},
-#if defined(WITH_AUDIO)            
-            {"audio.input_enabled",	    audio.input_enabled, false, [](const bool &v) { return true; }, ""},
-            {"audio.output_enabled",	audio.output_enabled, false, [](const bool &v) { return true; }, ""},
-			{"audio.input_echo_cancellation", audio.input_echo_cancellation, false, [](const bool &v) { return true; }, ""},
-            {"audio.output_high_pass_filter", audio.input_high_pass_filter, false, [](const bool &v) { return true; }, ""},
-            {"audio.output_high_pass_filter", audio.output_high_pass_filter, false, [](const bool &v) { return true; }, +""},
-#endif
-            {"stream0.scale_enabled",   stream0.scale_enabled, false, [](const bool &v) { return true; }, ""},
-			{"stream1.jpeg_enabled",    stream1.jpeg_enabled, true, [](const bool &v) { return true; }, ""},
-			{"osd.enabled",             osd.enabled, true, [](const bool &v) { return true; }, ""},
-            {"osd.logo_enabled",        osd.logo_enabled, true, [](const bool &v) { return true; }, ""},
-            {"osd.time_enabled",        osd.time_enabled, true, [](const bool &v) { return true; }, ""},
-            {"osd.user_text_enabled",   osd.user_text_enabled, true, [](const bool &v) { return true; }, ""},
-            {"osd.font_stroke_enabled", osd.font_stroke_enabled, true, [](const bool &v) { return true; }, ""},
-            {"osd.uptime_enabled",      osd.uptime_enabled, true, [](const bool &v) { return true; }, ""},
-            {"motion.enabled",          motion.enabled, false, [](const bool &v) { return true; }, ""},
-			{"websocket.enabled",       websocket.enabled, true, [](const bool &v) { return true; }, ""},
-            {"websocket.secured",       websocket.secured, false, [](const bool &v) { return true; }, ""},
-        };
-        
-        std::vector<ConfigItem<std::string>> stringItems = {
-			{"general.loglevel",		general.loglevel, "INFO", [](const std::string &v) { std::set<std::string> a = {"EMERGENCY", "ALERT", "CRITICAL", "ERROR", "WARN", "NOTICE", "INFO", "DEBUG"}; return a.count(v)==1; }, ""},
-            {"rtsp.username",           rtsp.username, "thingino", [](const std::string &v) { return !v.empty(); },""},
-            {"rtsp.password",           rtsp.password, "thingino", [](const std::string &v) { return !v.empty(); }, ""},
-			{"rtsp.name", 				rtsp.name, "thingino prudynt", [](const std::string &v) { return !v.empty(); },""},
-            {"sensor.model",			sensor.model, "gc2053", [](const std::string &v) { return !v.empty(); }, "/proc/jz/sensor/name"},
-			{"stream0.rtsp_endpoint",   stream0.rtsp_endpoint, "ch0", [](const std::string &v) { return !v.empty(); }, ""},
-            {"stream0.format",          stream0.format, "H264", [](const std::string &v) { return v == "H264" || v == "H265"; },""},
-            {"stream1.jpeg_path",		stream1.jpeg_path, "/tmp/snapshot.jpg", [](const std::string &v) { return !v.empty(); }, ""},
-            {"osd.font_path",           osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", [](const std::string &v) { return !v.empty(); }, ""},
-            {"osd.time_format",         osd.time_format, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, ""},
-            {"osd.uptime_format",       osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", [](const std::string &v) { return !v.empty(); }, ""},
-            {"osd.user_text_format",    osd.user_text_format, "thingino", [](const std::string &v) { return true; },  ""},
-            {"osd.logo_path",           osd.logo_path, "/usr/share/thingino_logo_1.bgra", [](const std::string &v) { return !v.empty(); }, ""},
-            {"motion.script_path",      motion.script_path, "/usr/sbin/motion", [](const std::string &v) { return !v.empty(); },""},
-			{"websocket.name", 	        websocket.name, "wss prudynt", [](const std::string &v) { return !v.empty(); },  ""},
-        };
-
-        std::vector<ConfigItem<int>> intItems = {
-			{"rtsp.port", 				rtsp.port, 554, [](const int &v) { return v > 0 && v <= 65535; }, ""},
-			{"rtsp.est_bitrate", 		rtsp.est_bitrate, 5000, [](const int &v) { return v > 0; }, ""},
-			{"rtsp.out_buffer_size", 	rtsp.out_buffer_size, 500000, [](const int &v) { return v > 0; },  ""},
-			{"rtsp.send_buffer_size", 	rtsp.send_buffer_size, 307200, [](const int &v) { return v > 0; },  ""}, 
-			{"sensor.fps", 				sensor.fps, 24, [](const int &v) { return v > 0 && v <= 60; },"/proc/jz/sensor/max_fps"},
-			{"sensor.width", 			sensor.width, 1920, [](const int &v) { return v > 0; },  "/proc/jz/sensor/width"},
-			{"sensor.height", 			sensor.height, 1080, [](const int &v) { return v > 0; },"/proc/jz/sensor/height"},
-            {"image.brightness",		image.brightness, 128, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-			{"image.contrast", 			image.contrast, 128, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-			{"image.hue",   			image.hue, 128, [](const int &v) { return v >= 0 && v <= 255; },  ""},
-			{"image.sharpness", 		image.sharpness, 128, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-			{"image.saturation", 		image.saturation, 128, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-			{"image.sinter_strength", 	image.sinter_strength, 128, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-			{"image.temper_strength", 	image.temper_strength, 128, [](const int &v) { return v >= 0 && v <= 255; },""},
-            {"image.running_mode",		image.running_mode, 0, [](const int &v) { return v >= 0 && v <= 1; },  ""},
-            {"image.anti_flicker",   	image.anti_flicker, 2, [](const int &v) { return v >= 0 && v <= 2; }, ""},
-            {"image.ae_compensation",	image.ae_compensation, 128, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-            {"image.dpc_strength",   	image.dpc_strength, 128, [](const int &v) { return v >= 0 && v <= 255; },  ""},
-            {"image.defog_strength",    image.defog_strength, 128, [](const int &v) { return v >= 0 && v <= 255; },""},
-            {"image.drc_strength",      image.drc_strength, 128, [](const int &v) { return v >= 0 && v <= 255; },  ""},
-            {"image.highlight_depress", image.highlight_depress, 0, [](const int &v) { return v >= 0 && v <= 255; },  ""},
-            {"image.backlight_compensation", image.backlight_compensation, 0, [](const int &v) { return v >= 0 && v <= 10; },  ""},
-            {"image.max_again",         image.max_again, 160, [](const int &v) { return v >= 0 && v <= 160; }, ""},
-            {"image.max_dgain",         image.max_dgain, 80, [](const int &v) { return v >= 0 && v <= 160; },""},
-            {"image.core_wb_mode",      image.core_wb_mode, 0, [](const int &v) { return v >= 0 && v <= 9; },  ""},
-            {"image.wb_rgain",          image.wb_rgain, 0, [](const int &v) { return v >= 0 && v <= 34464; },""},
-            {"image.wb_bgain",          image.wb_bgain, 0, [](const int &v) { return v >= 0 && v <= 34464; },""},
-#if defined(WITH_AUDIO)            
-            {"audio.input_vol",	        audio.input_vol, 0, [](const int &v) { return v >= -30 && v <= 120; },""},
-			{"audio.input_gain", 		audio.input_gain, 0, [](const int &v) { return v >= 0 && v <= 31; }, ""},
-			{"audio.input_alc_gain",   	audio.input_alc_gain, 0, [](const int &v) { return v >= 0 && v <= 7; }, ""},
-			{"audio.output_vol", 		audio.output_vol, 0, [](const int &v) { return v >= -30 && v <= 120; },  ""},
-			{"audio.output_gain", 		audio.output_gain, 0, [](const int &v) { return v >= 0 && v <= 31; },  ""},
-			{"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }, ""},
-#endif            
-			{"stream0.gop", 			stream0.gop, 0, [](const int &v) { return v > 0; }, ""},
-			{"stream0.max_gop", 		stream0.max_gop, 60, [](const int &v) { return v > 0; }, ""},
-			{"stream0.fps", 			stream0.fps, 24, [](const int &v) { return v > 0 && v <= 60; }, ""},
-			{"stream0.buffers", 		stream0.buffers, 2, [](const int &v) { return v > 0 && v <= 32; }, ""},
-			{"stream0.width", 			stream0.width, 1920, [](const int &v) { return v > 0; },  "/proc/jz/sensor/width"},
-			{"stream0.height", 			stream0.height, 1080, [](const int &v) { return v > 0; },"/proc/jz/sensor/height"},
-			{"stream0.bitrate", 		stream0.bitrate, 1000, [](const int &v) { return v > 0; }, ""},
-			{"stream0.osd_pos_time_x", 	stream0.osd_pos_time_x, 15, [](const int &v) { return v >= -15360 && v <= 15360; },""},
-			{"stream0.osd_pos_time_y", 	stream0.osd_pos_time_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; }, ""},
-			{"stream0.osd_time_transparency", stream0.osd_time_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-            {"stream0.osd_time_rotation", stream0.osd_time_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},
-			{"stream0.osd_pos_user_text_x", stream0.osd_pos_user_text_x, 0, [](const int &v) { return v >= -15360 && v <= 15360; }, ""},
-			{"stream0.osd_pos_user_text_y", stream0.osd_pos_user_text_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
-			{"stream0.osd_user_text_transparency", stream0.osd_user_text_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; },  ""},
-            {"stream0.osd_user_text_rotation", stream0.osd_user_text_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},            
-			{"stream0.osd_pos_uptime_x", stream0.osd_pos_uptime_x, -15, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
-			{"stream0.osd_pos_uptime_y", stream0.osd_pos_uptime_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
-			{"stream0.osd_uptime_transparency", stream0.osd_uptime_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-            {"stream0.osd_uptime_rotation", stream0.osd_uptime_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},            
-			{"stream0.osd_pos_logo_x", 	stream0.osd_pos_logo_x, -15, [](const int &v) { return v >= -15360 && v <= 15360; },""},
-			{"stream0.osd_pos_logo_y", 	stream0.osd_pos_logo_y, -10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
-			{"stream0.osd_logo_transparency", stream0.osd_logo_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-            {"stream0.osd_logo_rotation", stream0.osd_logo_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; }, ""},            
-			{"stream0.rotation", 		stream0.rotation, 0, [](const int &v) { return v >= 0 && v <= 2; }, ""},
-			{"stream0.scale_width", 	stream0.scale_width, 640, [](const int &v) { return v > 0; }, ""},
-			{"stream0.scale_height", 	stream0.scale_height, 360, [](const int &v) { return v > 0; },""},
-			{"stream1.jpeg_quality", 	stream1.jpeg_quality, 75, [](const int &v) { return v > 0 && v <= 100; }, ""},
-			{"stream1.jpeg_refresh", 	stream1.jpeg_refresh, 1000, [](const int &v) { return v > 0; }, ""},
-			{"osd.font_size", 			osd.font_size, 64, [](const int &v) { return v > 0; }, ""},
-			{"osd.font_stroke_size", 	osd.font_stroke_size, 64, [](const int &v) { return v >= 0; },""},
-			{"osd.logo_height", 		osd.logo_height, 30, [](const int &v) { return v > 0; },  ""},
-			{"osd.logo_width", 			osd.logo_width, 100, [](const int &v) { return v > 0; },""},
-			{"motion.debounce_time", 	motion.debounce_time, 0, [](const int &v) { return v >= 0; },""},
-			{"motion.post_time", 		motion.post_time, 0, [](const int &v) { return v >= 0; },""},
-            {"motion.thread_wait", 		motion.thread_wait, 5000, [](const int &v) { return v >= 1000 && v <= 10000; }, ""},
-			{"motion.cooldown_time", 	motion.cooldown_time, 5, [](const int &v) { return v >= 0; },  ""},
-			{"motion.init_time", 		motion.init_time, 5, [](const int &v) { return v >= 0; },  ""},
-			{"motion.sensitivity", 		motion.sensitivity, 1, [](const int &v) { return v >= 0; }, ""},
-			{"motion.skip_frame_count", motion.skip_frame_count, 5, [](const int &v) { return v >= 0; }, ""},
-			{"motion.frame_width", 		motion.frame_width, 1920, [](const int &v) { return v > 0; },  ""},
-			{"motion.frame_height", 	motion.frame_height, 1080, [](const int &v) { return v > 0; },  ""},
-			{"motion.roi_0_x", 			motion.roi_0_x, 0, [](const int &v) { return v >= 0; }, ""},
-			{"motion.roi_0_y", 			motion.roi_0_y, 0, [](const int &v) { return v >= 0; },""},
-			{"motion.roi_1_x", 			motion.roi_1_x, 1920, [](const int &v) { return v >= 0; },""},
-			{"motion.roi_1_y", 			motion.roi_1_y, 1080, [](const int &v) { return v >= 0; },  ""},
-			{"motion.roi_count", 		motion.roi_count, 1, [](const int &v) { return v >= 1 && v <= 52; },""},						
-            {"websocket.port", 			websocket.port, 8089, [](const int &v) { return v > 0 && v <= 65535; },""},
-            {"websocket.loglevel", 		websocket.loglevel, 4096, [](const int &v) { return v > 0 && v <= 1024; }, ""},
-        };
-
-        std::vector<ConfigItem<unsigned int>> uintItems = {
-			{"sensor.i2c_address", 		sensor.i2c_address, 0x37, [](const unsigned int &v) { return v <= 0x7F; },  "/proc/jz/sensor/i2c_addr"},
-			{"osd.font_color", 			osd.font_color, 0xFFFFFFFF, [](const unsigned int &v) { return true; }, ""},
-			{"osd.font_stroke_color", 	osd.font_stroke_color, 0xFF000000, [](const unsigned int &v) { return true; },""},
-        };
-
-#else
 
         template <typename T>
         T get(const std::string& key) {
@@ -633,5 +431,4 @@ class CFG {
 			{"websocket.name", 	        strEntry{websocket.name, "wss prudynt", [](const std::string &v) { return !v.empty(); }, "Websocket name cannot be empty.", ""}},
 
 		};
-#endif
 };
