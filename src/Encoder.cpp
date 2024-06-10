@@ -296,6 +296,8 @@ int Encoder::system_init()
     ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
     LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
 #endif
+
+#if defined(AUDIO_SUPPORT)   
     /* Audio tuning */
     /*     input    */
     if (cfg->audio.input_enabled)
@@ -413,6 +415,7 @@ int Encoder::system_init()
         ret = IMP_AO_Disable(0);
         LOG_ERROR_OR_DEBUG(ret, "IMP_AO_Disable(0)");
     }
+#endif //#if defined(AUDIO_SUPPORT)   
 
     LOG_DEBUG("ISP Tuning Defaults set");
 
@@ -435,6 +438,7 @@ int Encoder::system_init()
 
     return ret;
 }
+
 
 int Encoder::framesource_init()
 {

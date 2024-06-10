@@ -1,7 +1,6 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
-
 #include "MsgChannel.hpp"
 #include "Encoder.hpp"
 #include "RTSP.hpp"
@@ -9,7 +8,6 @@
 #include "Config.hpp"
 #include "Motion.hpp"
 #include "WS.hpp"
-
 #include "version.hpp"
 
 auto main_thread_signal = std::make_shared<std::atomic<int>>(0);
