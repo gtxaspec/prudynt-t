@@ -10,13 +10,16 @@
 #include <libconfig.h++>
 
 //~65k
-//#define ENABLE_LOG_DEBUG
+#define ENABLE_LOG_DEBUG
 
 //~10k
 //#define AUDIO_SUPPORT
 
 //~13k
 #define OLD_CONFIG
+
+//testing second stream as lowres
+#define LOW_STREAM
 
 struct roi{
     int p0_x;

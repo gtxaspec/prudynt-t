@@ -123,6 +123,8 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
+    cfg->rtsp_thread_signal = 2;
+
     ws_thread = std::thread(&WS::run, ws);
     enc_thread = std::thread(&Encoder::run, &enc);
     rtsp_thread = std::thread(&RTSP::run, rtsp);

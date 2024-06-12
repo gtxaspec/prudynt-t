@@ -29,6 +29,7 @@
 	#define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
 
+
 static const std::array<int, 64> jpeg_chroma_quantizer = {{
 	17, 18, 24, 47, 99, 99, 99, 99,
 	18, 21, 26, 66, 99, 99, 99, 99,
@@ -62,6 +63,7 @@ struct EncoderSink {
 	std::shared_ptr<MsgChannel<H264NALUnit>> chn;
 	bool IDR;
 	std::string name;
+	int encChn;
 };
 
 class Encoder {
@@ -70,27 +72,44 @@ class Encoder {
 
 		void run();
 
-		static void flush() {
-			IMP_Encoder_RequestIDR(0);
-			IMP_Encoder_FlushStream(0);
+		static void flush(int encChn) {
+			IMP_Encoder_RequestIDR(encChn);
+			IMP_Encoder_FlushStream(encChn);
 		}
 
-		template <class T> static uint32_t connect_sink(T *c, std::string name = "Unnamed") {
-			LOG_DEBUG("Create Sink: " << Encoder::sink_id);
+		template <class T> static uint32_t connect_sink(T *c, std::string name, int encChn) {
+			LOG_DEBUG("Create Sink: " << Encoder::sink_id << ", encChn:" << encChn);
 			std::shared_ptr<MsgChannel<H264NALUnit>> chn = std::make_shared<MsgChannel<H264NALUnit>>(20);
 			std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-			Encoder::sinks.insert(std::pair<uint32_t,EncoderSink>(Encoder::sink_id, {chn, false, name}));
+			Encoder::sinks.insert(std::pair<uint32_t,EncoderSink>(Encoder::sink_id, {chn, false, name, encChn}));
 			c->set_framesource(chn);
-			Encoder::flush();
+			Encoder::flush(encChn);
 			return Encoder::sink_id++;
 		}
 
 		static void remove_sink(uint32_t sinkid) {
-			LOG_DEBUG("Destroy Sink: " << sinkid);
+			LOG_DEBUG("Destroy Sink: " << sinkid << " type: " << Encoder::sinks[sinkid].encChn);
 			std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
 			Encoder::sinks.erase(sinkid);
 		}
-		static const int FRAME_RATE;
+
+		template <class T> static uint32_t connect_low_sink(T *c, std::string name, int encChn) {
+			LOG_DEBUG("Create Sink: " << Encoder::low_sink_id << ", encChn:" << encChn);
+			std::shared_ptr<MsgChannel<H264NALUnit>> chn = std::make_shared<MsgChannel<H264NALUnit>>(20);
+			std::unique_lock<std::mutex> lck(Encoder::low_sinks_lock);
+			Encoder::low_sinks.insert(std::pair<uint32_t,EncoderSink>(Encoder::low_sink_id, {chn, false, name, encChn}));
+			c->set_framesource(chn);
+			Encoder::flush(encChn);
+			return Encoder::low_sink_id++;
+		}
+
+		static void remove_low_sink(uint32_t sinkid) {
+			LOG_DEBUG("Destroy Sink: " << sinkid << " type: " << Encoder::low_sinks[sinkid].encChn);
+			std::unique_lock<std::mutex> lck(Encoder::low_sinks_lock);
+			Encoder::low_sinks.erase(sinkid);
+		}
+
+		//static const int FRAME_RATE;
 
 	private:
 		std::shared_ptr<CFG> cfg;
@@ -99,6 +118,8 @@ class Encoder {
 
 		bool init();
 		void exit();
+
+
 
 		int system_init();
 		int framesource_init();
@@ -109,15 +130,29 @@ class Encoder {
 		static std::mutex sinks_lock;
 		static uint32_t sink_id;
 		static std::map<uint32_t, EncoderSink> sinks;
+
+		static std::mutex low_sinks_lock;
+		static uint32_t low_sink_id;
+		static std::map<uint32_t, EncoderSink> low_sinks;
+
 		struct timeval imp_time_base;
+		struct timeval low_imp_time_base;
+
 		IMPFSChnAttr create_fs_attr();
 		IMPSensorInfo create_sensor_info(std::string sensor);
 		
-		IMPCell fs = { DEV_ID_FS, 0, 0 };
-		IMPCell osd_cell = { DEV_ID_OSD, 0, 0 };
-		IMPCell enc = { DEV_ID_ENC, 0, 0 };    
+		IMPCell high_fs = { DEV_ID_FS, 0, 0 };
+		IMPCell high_osd_cell = { DEV_ID_OSD, 0, 0 };
+		IMPCell high_enc = { DEV_ID_ENC, 0, 0 }; 
+
+		IMPCell low_fs = { DEV_ID_FS, 1, 0};
+		IMPCell low_osd_cell = { DEV_ID_OSD, 1, 0 };
+		IMPCell low_enc = { DEV_ID_ENC, 1, 0 };  		   
 		IMPSensorInfo sinfo;
 		
+		std::thread stream1_thread;		
+		void stream1(std::shared_ptr<CFG>& cfg);		
+
 		std::thread jpeg_thread;
 		void jpeg_snap(std::shared_ptr<CFG>& cfg);
 

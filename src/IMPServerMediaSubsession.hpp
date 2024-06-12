@@ -17,7 +17,8 @@ public:
         UsageEnvironment& env,
         H264NALUnit* vps,  // Change to pointer for optional VPS
         H264NALUnit sps,
-        H264NALUnit pps
+        H264NALUnit pps,
+        int encChn
     );
 protected:
     // Constructor with VPS as a pointer for optional usage
@@ -25,7 +26,8 @@ protected:
         UsageEnvironment& env,
         H264NALUnit* vps,  // Change to pointer for optional VPS
         H264NALUnit sps,
-        H264NALUnit pps
+        H264NALUnit pps,
+        int encChn
     );
     virtual ~IMPServerMediaSubsession();
 
@@ -45,6 +47,7 @@ private:
     H264NALUnit* vps; // Change to pointer for optional VPS
     H264NALUnit sps, pps;
     static std::shared_ptr<CFG> cfg;
+    int encChn;
     
 };
 

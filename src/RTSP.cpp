@@ -39,64 +39,123 @@ void RTSP::run() {
             }
             OutPacketBuffer::maxSize = cfg->rtsp.out_buffer_size;
 
-            int sink_id = Encoder::connect_sink(this, "SPSPPS");
-            H264NALUnit sps, pps; // Declare outside the loop!
-            H264NALUnit* vps = nullptr; // Use a pointer for VPS
-            bool have_pps = false, have_sps = false, have_vps = false;
-            // Read from the stream until we capture the SPS and PPS. Only capture VPS if needed.
-            while (!have_pps || !have_sps || (cfg->stream0.format == "H265" && !have_vps)) {
-                H264NALUnit unit = encoder->wait_read();
-                if (cfg->stream0.format == "H265") {
-                    uint8_t nalType = (unit.data[0] & 0x7E) >> 1; // H265 NAL unit type extraction
-                    if (nalType == 33) { // SPS for H265
-                        LOG_DEBUG("Got SPS (H265)");
-                        sps = unit;
-                        have_sps = true;
-                    } else if (nalType == 34) { // PPS for H265
-                        LOG_DEBUG("Got PPS (H265)");
-                        pps = unit;
-                        have_pps = true;
-                    } else if (nalType == 32) { // VPS, only for H265
-                        LOG_DEBUG("Got VPS");
-                        if (!vps) vps = new H264NALUnit(unit); // Allocate and store VPS
-                        have_vps = true;
+            if(1) {
+                LOG_DEBUG("identify stream 0");
+                int sink_id = Encoder::connect_sink(this, "high_sink", 0);
+                H264NALUnit sps, pps; // Declare outside the loop!
+                H264NALUnit* vps = nullptr; // Use a pointer for VPS
+                bool have_pps = false, have_sps = false, have_vps = false;
+                // Read from the stream until we capture the SPS and PPS. Only capture VPS if needed.
+                while (!have_pps || !have_sps || (cfg->stream0.format == "H265" && !have_vps)) {
+                    H264NALUnit unit = encoder->wait_read();
+                    if (cfg->stream0.format == "H265") {
+                        uint8_t nalType = (unit.data[0] & 0x7E) >> 1; // H265 NAL unit type extraction
+                        if (nalType == 33) { // SPS for H265
+                            LOG_DEBUG("Got SPS (H265)");
+                            sps = unit;
+                            have_sps = true;
+                        } else if (nalType == 34) { // PPS for H265
+                            LOG_DEBUG("Got PPS (H265)");
+                            pps = unit;
+                            have_pps = true;
+                        } else if (nalType == 32) { // VPS, only for H265
+                            LOG_DEBUG("Got VPS");
+                            if (!vps) vps = new H264NALUnit(unit); // Allocate and store VPS
+                            have_vps = true;
+                        }
+                    } else { // Assuming H264 if not H265
+                        uint8_t nalType = (unit.data[0] & 0x1F); // H264 NAL unit type extraction
+                        if (nalType == 7) { // SPS for H264
+                            LOG_DEBUG("Got SPS (H264)");
+                            sps = unit;
+                            have_sps = true;
+                        } else if (nalType == 8) { // PPS for H264
+                            LOG_DEBUG("Got PPS (H264)");
+                            pps = unit;
+                            have_pps = true;
+                        }
+                        // No VPS in H264, so no need to check for it
                     }
-                } else { // Assuming H264 if not H265
-                    uint8_t nalType = (unit.data[0] & 0x1F); // H264 NAL unit type extraction
-                    if (nalType == 7) { // SPS for H264
-                        LOG_DEBUG("Got SPS (H264)");
-                        sps = unit;
-                        have_sps = true;
-                    } else if (nalType == 8) { // PPS for H264
-                        LOG_DEBUG("Got PPS (H264)");
-                        pps = unit;
-                        have_pps = true;
-                    }
-                    // No VPS in H264, so no need to check for it
                 }
+                Encoder::remove_sink(sink_id);
+                LOG_DEBUG("Got necessary NAL Units.");
+
+                ServerMediaSession *sms = ServerMediaSession::createNew(
+                    *env, cfg->stream0.rtsp_endpoint.c_str(), "Main", cfg->rtsp.name.c_str()
+                );
+                IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
+                    *env, (cfg->stream0.format == "H265" ? vps : nullptr), sps, pps, 0 // Conditional VPS
+                );
+                sms->addSubsession(sub);
+                rtspServer->addServerMediaSession(sms);
+                
+                char* url = rtspServer->rtspURL(sms);
+                LOG_INFO("stream 0 available at: " << url);
             }
-            Encoder::remove_sink(sink_id);
-            LOG_DEBUG("Got necessary NAL Units.");
 
-            ServerMediaSession *sms = ServerMediaSession::createNew(
-                *env, cfg->stream0.rtsp_endpoint.c_str(), "Main", cfg->rtsp.name.c_str()
-            );
-            IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
-                *env, (cfg->stream0.format == "H265" ? vps : nullptr), sps, pps // Conditional VPS
-            );
-            sms->addSubsession(sub);
-            rtspServer->addServerMediaSession(sms);
+            if(1) {
+                LOG_DEBUG("identify stream 1");
+                int sink_id = Encoder::connect_low_sink(this, "low_sink", 1);
+                H264NALUnit sps, pps; // Declare outside the loop!
+                H264NALUnit* vps = nullptr; // Use a pointer for VPS
+                bool have_pps = false, have_sps = false, have_vps = false;
+                // Read from the stream until we capture the SPS and PPS. Only capture VPS if needed.
+                while (!have_pps || !have_sps || (cfg->stream0.format == "H265" && !have_vps)) {
+                    H264NALUnit unit = encoder->wait_read();
+                    if (cfg->stream0.format == "H265") {
+                        uint8_t nalType = (unit.data[0] & 0x7E) >> 1; // H265 NAL unit type extraction
+                        if (nalType == 33) { // SPS for H265
+                            LOG_DEBUG("Got SPS (H265)");
+                            sps = unit;
+                            have_sps = true;
+                        } else if (nalType == 34) { // PPS for H265
+                            LOG_DEBUG("Got PPS (H265)");
+                            pps = unit;
+                            have_pps = true;
+                        } else if (nalType == 32) { // VPS, only for H265
+                            LOG_DEBUG("Got VPS");
+                            if (!vps) vps = new H264NALUnit(unit); // Allocate and store VPS
+                            have_vps = true;
+                        }
+                    } else { // Assuming H264 if not H265
+                        uint8_t nalType = (unit.data[0] & 0x1F); // H264 NAL unit type extraction
+                        if (nalType == 7) { // SPS for H264
+                            LOG_DEBUG("Got SPS (H264)");
+                            sps = unit;
+                            have_sps = true;
+                        } else if (nalType == 8) { // PPS for H264
+                            LOG_DEBUG("Got PPS (H264)");
+                            pps = unit;
+                            have_pps = true;
+                        }
+                        // No VPS in H264, so no need to check for it
+                    }
+                }
+                Encoder::remove_low_sink(sink_id);
+                LOG_DEBUG("Got necessary NAL Units.");
+
+                ServerMediaSession *sms = ServerMediaSession::createNew(
+                    *env, "ch1", "ch1", "ch1"
+                );
+                IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
+                    *env, (cfg->stream0.format == "H265" ? vps : nullptr), sps, pps, 1 // Conditional VPS
+                );
+                sms->addSubsession(sub);
+                rtspServer->addServerMediaSession(sms);
+                
+                char* url = rtspServer->rtspURL(sms);
+                LOG_INFO("stream 0 available at: " << url);
+            }
             
-            char* url = rtspServer->rtspURL(sms);
-            LOG_INFO("stream 0 available at: " << url);
-
             env->taskScheduler().doEventLoop(&cfg->rtsp_thread_signal);
 
             // Clean up VPS if it was allocated
+            /*
             if (vps) {
                 delete vps;
                 vps = nullptr;
             }
+            */
 
             LOG_DEBUG("Stop RTSP Server.");
             cfg->rtsp_thread_signal = 2;

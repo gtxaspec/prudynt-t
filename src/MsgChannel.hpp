@@ -16,8 +16,8 @@ public:
     }
 
     bool write(T msg) {
-        if (can_write()) {
-            std::unique_lock<std::mutex> lck(cv_mtx);
+        std::unique_lock<std::mutex> lck(cv_mtx);
+        if (can_write()||1==1) {
             msg_buffer[write_ptr] = msg;
             increment_write();
             write_cv.notify_all();

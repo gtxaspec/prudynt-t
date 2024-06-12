@@ -20,9 +20,19 @@
     #define LOG_ERROR_OR_DEBUG(condition, str)  \
         ((condition) == 0 ? Logger::log(Logger::DEBUG, __FILENAME__, LogMsg() << str) : \
         Logger::log(Logger::ERROR, __FILENAME__, LogMsg() << str))
+    #define LOG_ERROR_OR_DEBUG_EXIT(condition, str) \
+        if ((condition) == 0) { \
+            Logger::log(Logger::DEBUG, __FILENAME__, LogMsg() << str); \
+        } else { \
+            Logger::log(Logger::ERROR, __FILENAME__, LogMsg() << str << " returns " << condition); \
+            return condition; \
+        }
 #else
     #define LOG_DEBUG(str) ((void)0)
-    #define LOG_ERROR_OR_DEBUG(condition, str) ((void)0)
+    #define LOG_ERROR_OR_DEBUG(condition, str)  \
+        ((condition) == 0 ? (void)0 : \
+        Logger::log(Logger::ERROR, __FILENAME__, LogMsg() << str))
+    #define LOG_ERROR_OR_DEBUG_EXIT(condition, str) ((void)0)
 #endif
 
 struct LogMsg {

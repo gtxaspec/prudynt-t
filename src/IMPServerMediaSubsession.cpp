@@ -16,10 +16,11 @@ IMPServerMediaSubsession* IMPServerMediaSubsession::createNew(
     UsageEnvironment& env,
     H264NALUnit* vps,  // Change to pointer to make optional
     H264NALUnit sps,
-    H264NALUnit pps
+    H264NALUnit pps,
+    int encChn
 ) {
     // Pass along the pointers; they may be nullptr
-    return new IMPServerMediaSubsession(env, vps, sps, pps);
+    return new IMPServerMediaSubsession(env, vps, sps, pps, encChn);
 }
 
 // Modify the constructor accordingly
@@ -27,10 +28,11 @@ IMPServerMediaSubsession::IMPServerMediaSubsession(
     UsageEnvironment& env,
     H264NALUnit* vps,  // Change to pointer to make optional
     H264NALUnit sps,
-    H264NALUnit pps)
+    H264NALUnit pps,
+    int encChn)
     : OnDemandServerMediaSubsession(env, false),
       vps(vps ? new H264NALUnit(*vps) : nullptr),  // Copy if not nullptr
-      sps(sps), pps(pps) {
+      sps(sps), pps(pps), encChn(encChn) {
 }
 
 // Destructor - we should delete the VPS if it was allocated
@@ -45,7 +47,7 @@ FramedSource* IMPServerMediaSubsession::createNewStreamSource(
     LOG_DEBUG("Create Stream Source. " << cfg->rtsp.est_bitrate);
     estBitrate = cfg->rtsp.est_bitrate; // The expected bitrate?
 
-    IMPDeviceSource* imp = IMPDeviceSource::createNew(envir());
+    IMPDeviceSource* imp = IMPDeviceSource::createNew(envir(), encChn);
     // Here we need to decide based on the format whether to use H264 or H265 framer
     if (cfg->stream0.format == "H265") {
         return H265VideoStreamDiscreteFramer::createNew(envir(), imp, false, false);
