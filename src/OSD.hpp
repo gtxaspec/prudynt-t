@@ -23,14 +23,17 @@ struct OSDItem {
 
 class OSD {
     public:
-        //OSD(std::shared_ptr<CFG> &_cfg) : cfg(&_cfg) {}
-        bool init(std::shared_ptr<CFG> _cfg);
+        static OSD* createNew(std::shared_ptr<CFG> cfg,int osdGrp, int encChn);
+        OSD(std::shared_ptr<CFG> cfg, int osdGrp, int encChn) : cfg(cfg), osdGrp(osdGrp), encChn(encChn) {
+            init();
+        }
+        void init();
         bool exit();
         void update();
         void updateDisplayEverySecond();
         
-        static void rotateBGRAImage(uint8_t*& inputImage, int& width, int& height, int angle, bool del);
-        static void set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width = 0, int height = 0);
+        void rotateBGRAImage(uint8_t*& inputImage, int& width, int& height, int angle, bool del);
+        static void set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width = 0, int height = 0, int encChn = 0);
         static int get_abs_pos(int max, int size, int pos);            
     private:
         std::shared_ptr<CFG> cfg;
@@ -61,6 +64,8 @@ class OSD {
         std::map<char,FT_Vector> advances;
 
         bool initialized{0};
+        int osdGrp;
+        int encChn;
 };
 
 #endif

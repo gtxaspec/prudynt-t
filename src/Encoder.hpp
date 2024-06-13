@@ -68,7 +68,7 @@ struct EncoderSink {
 
 class Encoder {
 	public:
-		Encoder(std::shared_ptr<CFG> _cfg) : cfg(_cfg) {};
+		Encoder(std::shared_ptr<CFG> cfg) : cfg(cfg) {};
 
 		void run();
 
@@ -83,6 +83,12 @@ class Encoder {
 			std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
 			Encoder::sinks.insert(std::pair<uint32_t,EncoderSink>(Encoder::sink_id, {chn, false, name, encChn}));
 			c->set_framesource(chn);
+
+			// Register the callback
+			chn->set_data_available_callback([c]() {
+				c->on_data_available();
+			});
+						
 			Encoder::flush(encChn);
 			return Encoder::sink_id++;
 		}
@@ -93,27 +99,12 @@ class Encoder {
 			Encoder::sinks.erase(sinkid);
 		}
 
-		template <class T> static uint32_t connect_low_sink(T *c, std::string name, int encChn) {
-			LOG_DEBUG("Create Sink: " << Encoder::low_sink_id << ", encChn:" << encChn);
-			std::shared_ptr<MsgChannel<H264NALUnit>> chn = std::make_shared<MsgChannel<H264NALUnit>>(20);
-			std::unique_lock<std::mutex> lck(Encoder::low_sinks_lock);
-			Encoder::low_sinks.insert(std::pair<uint32_t,EncoderSink>(Encoder::low_sink_id, {chn, false, name, encChn}));
-			c->set_framesource(chn);
-			Encoder::flush(encChn);
-			return Encoder::low_sink_id++;
-		}
-
-		static void remove_low_sink(uint32_t sinkid) {
-			LOG_DEBUG("Destroy Sink: " << sinkid << " type: " << Encoder::low_sinks[sinkid].encChn);
-			std::unique_lock<std::mutex> lck(Encoder::low_sinks_lock);
-			Encoder::low_sinks.erase(sinkid);
-		}
-
 		//static const int FRAME_RATE;
 
 	private:
 		std::shared_ptr<CFG> cfg;
-		OSD osd;
+		OSD *stream0_osd;
+		OSD *stream1_osd;
 		Motion motion;
 
 		bool init();

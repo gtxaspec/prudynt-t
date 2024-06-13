@@ -122,7 +122,7 @@ int main(int argc, const char *argv[]) {
         LOG_ERROR("Time is not synchronized.");
         return 1;
     }
-
+    
     cfg->rtsp_thread_signal = 2;
 
     ws_thread = std::thread(&WS::run, ws);

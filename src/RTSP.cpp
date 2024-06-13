@@ -95,7 +95,7 @@ void RTSP::run() {
 
             if(1) {
                 LOG_DEBUG("identify stream 1");
-                int sink_id = Encoder::connect_low_sink(this, "low_sink", 1);
+                int sink_id = Encoder::connect_sink(this, "low_sink", 1);
                 H264NALUnit sps, pps; // Declare outside the loop!
                 H264NALUnit* vps = nullptr; // Use a pointer for VPS
                 bool have_pps = false, have_sps = false, have_vps = false;
@@ -131,7 +131,7 @@ void RTSP::run() {
                         // No VPS in H264, so no need to check for it
                     }
                 }
-                Encoder::remove_low_sink(sink_id);
+                Encoder::remove_sink(sink_id);
                 LOG_DEBUG("Got necessary NAL Units.");
 
                 ServerMediaSession *sms = ServerMediaSession::createNew(
@@ -140,6 +140,7 @@ void RTSP::run() {
                 IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
                     *env, (cfg->stream0.format == "H265" ? vps : nullptr), sps, pps, 1 // Conditional VPS
                 );
+                
                 sms->addSubsession(sub);
                 rtspServer->addServerMediaSession(sms);
                 

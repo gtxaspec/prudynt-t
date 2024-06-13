@@ -14,7 +14,7 @@ public:
     }
 
 public:
-    static EventTriggerId eventTriggerId;
+    void on_data_available();
 
 protected:
     IMPDeviceSource(UsageEnvironment& env, int encChn);
@@ -22,9 +22,16 @@ protected:
 
 private:
     virtual void doGetNextFrame();
+
+    static void afterGetting(void* clientData) {
+        ((IMPDeviceSource*)clientData)->doGetNextFrame();
+    }
+        
     std::shared_ptr<MsgChannel<H264NALUnit>> encoder;
     uint32_t sink_id;
     int encChn;
+
+    H264NALUnit nal;    
 };
 
 #endif

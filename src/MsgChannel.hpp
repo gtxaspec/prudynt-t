@@ -7,28 +7,31 @@
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+#include <functional>
 
 template <class T> class MsgChannel {
 public:
-    MsgChannel(unsigned int bsize) : write_ptr(0), read_ptr(0) {
+    MsgChannel(unsigned int bsize) : write_ptr(0), read_ptr(0), data_available_callback(nullptr) {
         msg_buffer.resize(bsize);
         buffer_size = bsize;
     }
 
-    bool write(T msg) {
+        bool write(T msg) {
         std::unique_lock<std::mutex> lck(cv_mtx);
-        if (can_write()||1==1) {
+        if (can_write()) {
             msg_buffer[write_ptr] = msg;
             increment_write();
             write_cv.notify_all();
+            if (data_available_callback) {
+                data_available_callback();
+            }
             return true;
         }
-        else {
-            return false;
-        }
+        return false;
     }
 
-    bool read(T *out) {
+    bool read(T* out) {
+        std::unique_lock<std::mutex> lck(cv_mtx);
         if (can_read()) {
             *out = msg_buffer[read_ptr];
             msg_buffer[read_ptr] = T();
@@ -40,37 +43,24 @@ public:
 
     T wait_read() {
         std::unique_lock<std::mutex> lck(cv_mtx);
-        while (!can_read()) {
-            write_cv.wait(lck);
-        };
+        write_cv.wait(lck, [this] { return can_read(); });
         T val = msg_buffer[read_ptr];
         msg_buffer[read_ptr] = T();
         increment_read();
         return val;
     }
 
-private:
-    bool can_read() {
-        //write pointer is never less than read pointer,
-        //unless it has overflown and the read pointer hasn't.
-        //read pointer cannot overflow before write pointer
-        if (write_ptr < read_ptr) {
-            //Write pointer overflow. We can read.
-            return true;
-        }
-        else if (write_ptr > read_ptr) {
-            return true;
-        }
-        else {
-            return false;
-        }
+    void set_data_available_callback(std::function<void()> callback) {
+        data_available_callback = callback;
     }
 
-    bool can_write() {
-        if (((write_ptr + 1) % buffer_size) == read_ptr) {
-            return false;
-        }
-        return true;
+private:
+    bool can_read() const {
+        return write_ptr != read_ptr;
+    }
+
+    bool can_write() const {
+        return (write_ptr + 1) % buffer_size != read_ptr;
     }
 
     void increment_read() {
@@ -87,6 +77,7 @@ private:
     std::mutex cv_mtx;
     std::condition_variable write_cv;
     unsigned int buffer_size;
+    std::function<void()> data_available_callback;
 };
 
 #endif

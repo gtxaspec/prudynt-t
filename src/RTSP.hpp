@@ -15,6 +15,11 @@ public:
     void set_framesource(std::shared_ptr<MsgChannel<H264NALUnit>> chn) {
         encoder = chn;
     }
+
+    void on_data_available() {
+        // Schedule the next frame
+        
+    }    
 private:
     std::shared_ptr<CFG> cfg;
     std::shared_ptr<MsgChannel<H264NALUnit>> encoder;

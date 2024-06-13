@@ -25,51 +25,11 @@
 	#define picWidth uWidth
 	#define picHeight uHeight 
 #endif
-/*
+
 void OSD::rotateBGRAImage(uint8_t*& inputImage, int& width, int& height, int angle, bool del = true) {
 
     double angleRad = angle * (M_PI / 180.0);
 
-    int newWidth = static_cast<int>(std::abs(width * std::cos(angleRad)) + std::abs(height * std::sin(angleRad))) * 1.02;
-    int newHeight = static_cast<int>(std::abs(width * std::sin(angleRad)) + std::abs(height * std::cos(angleRad))) * 1.02;
-
-    int centerX = width / 2;
-    int centerY = height / 2;
-
-    int newCenterX = newWidth / 2;
-    int newCenterY = newHeight / 2;
-
-    uint8_t* rotatedImage = new uint8_t[newWidth * newHeight * 4]();
-
-    for (int y = 0; y < newHeight; ++y) {
-        for (int x = 0; x < newWidth; ++x) {
-
-            int newX = x - newCenterX;
-            int newY = y - newCenterY;
-
-            int origX = static_cast<int>(newX * std::cos(angleRad) + newY * std::sin(angleRad)) + centerX;
-            int origY = static_cast<int>(-newX * std::sin(angleRad) + newY * std::cos(angleRad)) + centerY;
-
-            if (origX >= 0 && origX < width && origY >= 0 && origY < height) {
-
-                for (int c = 0; c < 4; ++c) {
-                    rotatedImage[(y * newWidth + x) * 4 + c] = inputImage[(origY * width + origX) * 4 + c];
-                }
-            }
-        }
-    }
-
-    if(del) delete[] inputImage;
-    inputImage = rotatedImage;
-    width = newWidth;
-    height = newHeight;
-}
-*/
-void OSD::rotateBGRAImage(uint8_t*& inputImage, int& width, int& height, int angle, bool del = true) {
-    // Convert angle to radians
-    double angleRad = angle * (M_PI / 180.0);
-
-    // Calculate the bounding box for the rotated image
     int originalCorners[4][2] = {
         {0, 0},
         {width, 0},
@@ -95,18 +55,14 @@ void OSD::rotateBGRAImage(uint8_t*& inputImage, int& width, int& height, int ang
     int newWidth = maxX - minX + 1;
     int newHeight = maxY - minY + 1;
 
-    // Center of the original image
     int centerX = width / 2;
     int centerY = height / 2;
 
-    // Center of the new image
     int newCenterX = newWidth / 2;
     int newCenterY = newHeight / 2;
 
-    // Initialize new image
     uint8_t* rotatedImage = new uint8_t[newWidth * newHeight * 4]();
 
-    // Iterate over the new image
     for (int y = 0; y < newHeight; ++y) {
         for (int x = 0; x < newWidth; ++x) {
             int newX = x - newCenterX;
@@ -136,10 +92,10 @@ int OSD::get_abs_pos(int max, int size, int pos) {
     return pos;
 }
 
-void OSD::set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width, int height) {
+void OSD::set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width, int height, int encChn) {
     //picWidth, picHeight cpp macro !!
     IMPEncoderCHNAttr chnAttr;
-    IMP_Encoder_GetChnAttr(0, &chnAttr);
+    IMP_Encoder_GetChnAttr(encChn, &chnAttr);
 
     if(width == 0 || height == 0) {
         width = rgnAttr->rect.p1.x - rgnAttr->rect.p0.x + 1;
@@ -397,7 +353,7 @@ void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, std::string text, i
         rotateBGRAImage(osdItem->data, item_width, item_height, angle);
     }
 
-    set_pos(rgnAttr, posX, posY, item_width, item_height);
+    set_pos(rgnAttr, posX, posY, item_width, item_height, encChn);
     rgnAttr->data.picData.pData = osdItem->data;
 }
 
@@ -424,39 +380,44 @@ std::unique_ptr<unsigned char[]> loadBGRAImage(const std::string& filepath, size
     return data;
 }
 
-bool OSD::init(std::shared_ptr<CFG> _cfg) {
-    int ret;
-    LOG_DEBUG("OSD init begin");
+OSD* OSD::createNew(
+    std::shared_ptr<CFG> cfg,
+    int osdGrp,
+    int encChn
+) {
+    return new OSD(cfg, osdGrp, encChn);
+}
 
-    cfg = _cfg;
+void OSD::init() {
+
+    int ret;
+    LOG_DEBUG("OSD init for  begin");
+
+    //cfg = _cfg;
     last_updated_second = -1;
     
     if (freetype_init()) {
         LOG_DEBUG("FREETYPE init failed.");
-        return true;
+        //return true;
     }
 
-    ret = IMP_Encoder_GetChnAttr(0, &channelAttributes);
+    ret = IMP_Encoder_GetChnAttr(osdGrp, &channelAttributes);
     if (ret < 0) {
         LOG_DEBUG("IMP_Encoder_GetChnAttr() == " + std::to_string(ret));
-        return true;
+        //return true;
     }
      //picWidth, picHeight cpp macro !!
     LOG_DEBUG("IMP_Encoder_GetChnAttr read. Stream resolution: " << channelAttributes.encAttr.picWidth << "x" << channelAttributes.encAttr.picHeight);
 
-    ret = IMP_OSD_CreateGroup(0);
-    if (ret < 0) {
-        LOG_DEBUG("IMP_OSD_CreateGroup() == " + std::to_string(ret));
-        return true;
-    }
-    LOG_DEBUG("IMP_OSD_CreateGroup group 0 created");
+    ret = IMP_OSD_CreateGroup(osdGrp);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_OSD_CreateGroup(" << osdGrp << ")");
 
     if (cfg->osd.time_enabled) {
 
         /* OSD Time */
         osdTime.data = NULL;
         osdTime.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(osdTime.imp_rgn, 0, NULL);
+        IMP_OSD_RegisterRgn(osdTime.imp_rgn, osdGrp, NULL);
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
@@ -472,7 +433,7 @@ bool OSD::init(std::shared_ptr<CFG> _cfg) {
         grpRgnAttr.layer = 1;
         grpRgnAttr.gAlphaEn = 0;
         grpRgnAttr.fgAlhpa = cfg->stream0.osd_time_transparency;
-        IMP_OSD_SetGrpRgnAttr(osdTime.imp_rgn, 0, &grpRgnAttr);
+        IMP_OSD_SetGrpRgnAttr(osdTime.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
     if (cfg->osd.user_text_enabled) {
@@ -480,7 +441,7 @@ bool OSD::init(std::shared_ptr<CFG> _cfg) {
         /* OSD Usertext */
         osdUser.data = NULL;
         osdUser.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(osdUser.imp_rgn, 0, NULL);
+        IMP_OSD_RegisterRgn(osdUser.imp_rgn, osdGrp, NULL);
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
@@ -496,7 +457,7 @@ bool OSD::init(std::shared_ptr<CFG> _cfg) {
         grpRgnAttr.layer = 2;        
         grpRgnAttr.gAlphaEn = 1;
         grpRgnAttr.fgAlhpa = cfg->stream0.osd_time_transparency;
-        IMP_OSD_SetGrpRgnAttr(osdUser.imp_rgn, 0, &grpRgnAttr);
+        IMP_OSD_SetGrpRgnAttr(osdUser.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
     if (cfg->osd.uptime_enabled) {
@@ -504,7 +465,7 @@ bool OSD::init(std::shared_ptr<CFG> _cfg) {
         /* OSD Uptime */
         osdUptm.data = NULL;
         osdUptm.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(osdUptm.imp_rgn, 0, NULL);
+        IMP_OSD_RegisterRgn(osdUptm.imp_rgn, osdGrp, NULL);
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
@@ -520,7 +481,7 @@ bool OSD::init(std::shared_ptr<CFG> _cfg) {
         grpRgnAttr.layer = 3;       
         grpRgnAttr.gAlphaEn = 1;
         grpRgnAttr.fgAlhpa = cfg->stream0.osd_time_transparency;
-        IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, 0, &grpRgnAttr);
+        IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
    if (cfg->osd.logo_enabled) {
@@ -532,7 +493,7 @@ bool OSD::init(std::shared_ptr<CFG> _cfg) {
 
         osdLogo.data = NULL;
         osdLogo.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(osdLogo.imp_rgn, 0, NULL);
+        IMP_OSD_RegisterRgn(osdLogo.imp_rgn, osdGrp, NULL);
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
@@ -555,7 +516,7 @@ bool OSD::init(std::shared_ptr<CFG> _cfg) {
             }
 
             set_pos(&rgnAttr, cfg->stream0.osd_pos_logo_x, 
-                cfg->stream0.osd_pos_logo_y, logo_width, logo_height);
+                cfg->stream0.osd_pos_logo_y, logo_width, logo_height, encChn);
         } else {
 
             LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << cfg->osd.logo_width << "*" << 
@@ -563,69 +524,63 @@ bool OSD::init(std::shared_ptr<CFG> _cfg) {
         }  
         IMP_OSD_SetRgnAttr(osdLogo.imp_rgn, &rgnAttr);
         
+        LOG_DEBUG(rgnAttr.rect.p0.x << " x " << rgnAttr.rect.p0.y);
+
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 4;       
         grpRgnAttr.gAlphaEn = 1;
         grpRgnAttr.fgAlhpa = cfg->stream0.osd_logo_transparency;
-        IMP_OSD_SetGrpRgnAttr(osdLogo.imp_rgn, 0, &grpRgnAttr);     
+        IMP_OSD_SetGrpRgnAttr(osdLogo.imp_rgn, osdGrp, &grpRgnAttr);     
     }
 
-    ret = IMP_OSD_Start(0);
-    if (ret < 0) {
-        LOG_DEBUG("IMP_OSD_Start() == " + std::to_string(ret));
-        return true;
-    }
-    LOG_DEBUG("IMP_OSD_Start succeed");
-
-    LOG_DEBUG("OSD init completed");
+    ret = IMP_OSD_Start(osdGrp);
+    LOG_ERROR_OR_DEBUG(ret, "IMP_OSD_Start(" << osdGrp << ")");
 
     initialized = true;
-
-    return false;
 }
 
 bool OSD::exit() {
 
     int ret;
 
-    ret = IMP_OSD_ShowRgn(osdTime.imp_rgn, 0, 0);
+    ret = IMP_OSD_ShowRgn(osdTime.imp_rgn, osdGrp, 0);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_ShowRgn close timeStamp error");
     }
 
-    ret = IMP_OSD_ShowRgn(osdUser.imp_rgn, 0, 0);
+    ret = IMP_OSD_ShowRgn(osdUser.imp_rgn, osdGrp, 0);
     if (ret < 0) {
         LOG_ERROR( "IMP_OSD_ShowRgn close user text error");
     }
 
-    ret = IMP_OSD_ShowRgn(osdUptm.imp_rgn, 0, 0);
+    ret = IMP_OSD_ShowRgn(osdUptm.imp_rgn, osdGrp, 0);
     if (ret < 0) {
         LOG_ERROR( "IMP_OSD_ShowRgn close uptime error");
     }
 
-    ret = IMP_OSD_ShowRgn(osdLogo.imp_rgn, 0, 0);
+    ret = IMP_OSD_ShowRgn(osdLogo.imp_rgn, osdGrp, 0);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_ShowRgn close Rect error");
     }
 
-    ret = IMP_OSD_UnRegisterRgn(osdTime.imp_rgn, 0);
+    ret = IMP_OSD_UnRegisterRgn(osdTime.imp_rgn, osdGrp);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_UnRegisterRgn timeStamp error");
     }
 
-    ret = IMP_OSD_UnRegisterRgn(osdUser.imp_rgn, 0);
+    ret = IMP_OSD_UnRegisterRgn(osdUser.imp_rgn, osdGrp);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_UnRegisterRgn user text error");
     }
 
-    ret = IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, 0);
+    ret = IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, osdGrp);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_UnRegisterRgn Cover error");
     }
 
-    ret = IMP_OSD_UnRegisterRgn(osdLogo.imp_rgn, 0);
+    ret = IMP_OSD_UnRegisterRgn(osdLogo.imp_rgn, osdGrp);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_UnRegisterRgn Rect error");
     }
@@ -635,7 +590,7 @@ bool OSD::exit() {
     IMP_OSD_DestroyRgn(osdUptm.imp_rgn);
     IMP_OSD_DestroyRgn(osdLogo.imp_rgn);
 
-    ret = IMP_OSD_DestroyGroup(0);
+    ret = IMP_OSD_DestroyGroup(osdGrp);
     if (ret < 0) {
         LOG_ERROR("IMP_OSD_DestroyGroup(0) error");
         return -1;
