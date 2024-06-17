@@ -41,13 +41,15 @@ void RTSP::run() {
 
             if(1) {
                 LOG_DEBUG("identify stream 0");
-                int sink_id = Encoder::connect_sink(this, "high_sink", 0);
+                IMPDeviceSource* deviceSource = IMPDeviceSource::createNew(*env, 0);
                 H264NALUnit sps, pps; // Declare outside the loop!
                 H264NALUnit* vps = nullptr; // Use a pointer for VPS
                 bool have_pps = false, have_sps = false, have_vps = false;
                 // Read from the stream until we capture the SPS and PPS. Only capture VPS if needed.
                 while (!have_pps || !have_sps || (cfg->stream0.format == "H265" && !have_vps)) {
-                    H264NALUnit unit = encoder->wait_read();
+                    LOG_DEBUG("wait_read");
+                    H264NALUnit unit = deviceSource->wait_read();
+                    LOG_DEBUG("wait_read");
                     if (cfg->stream0.format == "H265") {
                         uint8_t nalType = (unit.data[0] & 0x7E) >> 1; // H265 NAL unit type extraction
                         if (nalType == 33) { // SPS for H265
@@ -77,7 +79,7 @@ void RTSP::run() {
                         // No VPS in H264, so no need to check for it
                     }
                 }
-                Encoder::remove_sink(sink_id);
+                Encoder::remove_sink(deviceSource->sink_id);
                 LOG_DEBUG("Got necessary NAL Units.");
 
                 ServerMediaSession *sms = ServerMediaSession::createNew(
@@ -92,16 +94,16 @@ void RTSP::run() {
                 char* url = rtspServer->rtspURL(sms);
                 LOG_INFO("stream 0 available at: " << url);
             }
-
+            
             if(1) {
                 LOG_DEBUG("identify stream 1");
-                int sink_id = Encoder::connect_sink(this, "low_sink", 1);
+                IMPDeviceSource* deviceSource = IMPDeviceSource::createNew(*env, 1);
                 H264NALUnit sps, pps; // Declare outside the loop!
                 H264NALUnit* vps = nullptr; // Use a pointer for VPS
                 bool have_pps = false, have_sps = false, have_vps = false;
                 // Read from the stream until we capture the SPS and PPS. Only capture VPS if needed.
                 while (!have_pps || !have_sps || (cfg->stream0.format == "H265" && !have_vps)) {
-                    H264NALUnit unit = encoder->wait_read();
+                    H264NALUnit unit = deviceSource->wait_read();
                     if (cfg->stream0.format == "H265") {
                         uint8_t nalType = (unit.data[0] & 0x7E) >> 1; // H265 NAL unit type extraction
                         if (nalType == 33) { // SPS for H265
@@ -131,7 +133,7 @@ void RTSP::run() {
                         // No VPS in H264, so no need to check for it
                     }
                 }
-                Encoder::remove_sink(sink_id);
+                Encoder::remove_sink(deviceSource->sink_id);
                 LOG_DEBUG("Got necessary NAL Units.");
 
                 ServerMediaSession *sms = ServerMediaSession::createNew(
@@ -146,7 +148,7 @@ void RTSP::run() {
                 
                 char* url = rtspServer->rtspURL(sms);
                 LOG_INFO("stream 0 available at: " << url);
-            }
+            }      
             
             env->taskScheduler().doEventLoop(&cfg->rtsp_thread_signal);
 

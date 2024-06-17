@@ -1,7 +1,6 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
-#include "MsgChannel.hpp"
 #include "Encoder.hpp"
 #include "RTSP.hpp"
 #include "Logger.hpp"

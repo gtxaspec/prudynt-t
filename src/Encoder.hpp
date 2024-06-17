@@ -16,7 +16,6 @@
 #include <imp/imp_osd.h>
 #include <imp/imp_audio.h>
 
-#include "MsgChannel.hpp"
 #include "Logger.hpp"
 #include "Config.hpp"
 #include "OSD.hpp"
@@ -60,10 +59,10 @@ struct H264NALUnit {
 };
 
 struct EncoderSink {
-	std::shared_ptr<MsgChannel<H264NALUnit>> chn;
-	bool IDR;
 	std::string name;
 	int encChn;
+	bool IDR;
+	std::function<int(const H264NALUnit&)> data_available_callback;
 };
 
 class Encoder {
@@ -71,35 +70,25 @@ class Encoder {
 		Encoder(std::shared_ptr<CFG> cfg) : cfg(cfg) {};
 
 		void run();
-
+		
 		static void flush(int encChn) {
 			IMP_Encoder_RequestIDR(encChn);
 			IMP_Encoder_FlushStream(encChn);
 		}
 
-		template <class T> static uint32_t connect_sink(T *c, std::string name, int encChn) {
+		template <class T>
+		static uint32_t connect_sink(T* c, std::string name, int encChn) {
 			LOG_DEBUG("Create Sink: " << Encoder::sink_id << ", encChn:" << encChn);
-			std::shared_ptr<MsgChannel<H264NALUnit>> chn = std::make_shared<MsgChannel<H264NALUnit>>(20);
 			std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-			Encoder::sinks.insert(std::pair<uint32_t,EncoderSink>(Encoder::sink_id, {chn, false, name, encChn}));
-			c->set_framesource(chn);
-
-			// Register the callback
-			chn->set_data_available_callback([c]() {
-				c->on_data_available();
-			});
-						
-			Encoder::flush(encChn);
+			Encoder::sinks[Encoder::sink_id] = EncoderSink{name, encChn, false, [c](const H264NALUnit& nalu) { return c->on_data_available(nalu); }};
 			return Encoder::sink_id++;
 		}
 
-		static void remove_sink(uint32_t sinkid) {
-			LOG_DEBUG("Destroy Sink: " << sinkid << " type: " << Encoder::sinks[sinkid].encChn);
-			std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-			Encoder::sinks.erase(sinkid);
+		static void remove_sink(uint32_t sink_id) {
+			LOG_DEBUG("Remove Sink: " << sink_id);
+			std::unique_lock<std::mutex> lck(sinks_lock);
+			sinks.erase(sink_id);
 		}
-
-		//static const int FRAME_RATE;
 
 	private:
 		std::shared_ptr<CFG> cfg;
@@ -110,23 +99,21 @@ class Encoder {
 		bool init();
 		void exit();
 
-
-
 		int system_init();
 		int framesource_init();
 		int encoder_init();
 		int channel_init(int chn_nr, int grp_nr, IMPEncoderCHNAttr *chn_attr);
 		int channel_deinit(int chn_nr);
 
+		static std::mutex cv_mtx;
 		static std::mutex sinks_lock;
 		static uint32_t sink_id;
+
+	public:
 		static std::map<uint32_t, EncoderSink> sinks;
 
-		static std::mutex low_sinks_lock;
-		static uint32_t low_sink_id;
-		static std::map<uint32_t, EncoderSink> low_sinks;
-
-		struct timeval imp_time_base;
+	private:
+		struct timeval high_imp_time_base;
 		struct timeval low_imp_time_base;
 
 		IMPFSChnAttr create_fs_attr();
@@ -138,17 +125,16 @@ class Encoder {
 
 		IMPCell low_fs = { DEV_ID_FS, 1, 0};
 		IMPCell low_osd_cell = { DEV_ID_OSD, 1, 0 };
-		IMPCell low_enc = { DEV_ID_ENC, 1, 0 };  		   
+		IMPCell low_enc = { DEV_ID_ENC, 1, 0 };  	
+
 		IMPSensorInfo sinfo;
 		
-		std::thread stream1_thread;		
-		void stream1(std::shared_ptr<CFG>& cfg);		
-
 		std::thread jpeg_thread;
 		void jpeg_snap(std::shared_ptr<CFG>& cfg);
 
 		bool osdInitialized{0};
 		bool motionInitialized{0};
+		bool doLog = false;
 };
 
 #endif

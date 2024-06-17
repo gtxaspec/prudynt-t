@@ -2,36 +2,37 @@
 #define IMPDeviceSource_hpp
 
 #include "FramedSource.hh"
-#include "MsgChannel.hpp"
 #include "Encoder.hpp"
+#include <mutex>
+#include <queue>
 
 class IMPDeviceSource: public FramedSource {
 public:
     static IMPDeviceSource* createNew(UsageEnvironment& env, int encChn);
 
-    void set_framesource(std::shared_ptr<MsgChannel<H264NALUnit>> chn) {
-        encoder = chn;
-    }
+    H264NALUnit wait_read();
+    virtual void doGetNextFrame() override;
 
 public:
-    void on_data_available();
+    void signal_new_data();
+    int on_data_available(const H264NALUnit& nalu);
+    uint32_t sink_id;
 
 protected:
     IMPDeviceSource(UsageEnvironment& env, int encChn);
     virtual ~IMPDeviceSource();
 
 private:
-    virtual void doGetNextFrame();
-
-    static void afterGetting(void* clientData) {
-        ((IMPDeviceSource*)clientData)->doGetNextFrame();
-    }
-        
-    std::shared_ptr<MsgChannel<H264NALUnit>> encoder;
-    uint32_t sink_id;
+    
+    static void deliverFrame0(void* clientData);
+    void deliverFrame();
+ 
     int encChn;
-
-    H264NALUnit nal;    
+    EventTriggerId eventTriggerId;
+    std::queue<H264NALUnit> nalQueue;
+    std::mutex queueMutex;  
+    bool doLog; 
+    IMPDeviceSource * _IMPDeviceSource = NULL;
 };
 
 #endif
