@@ -1168,7 +1168,7 @@ void Encoder::run()
 
             for (unsigned int i = 0; i < stream0.packCount; ++i)
             {
-                std::cout << last_high_nal_ts << " " << stream0.pack[i].timestamp << " " << (high_nal_ts - last_high_nal_ts) <<std::endl;
+                //std::cout << last_high_nal_ts << " " << stream0.pack[i].timestamp << " " << (high_nal_ts - last_high_nal_ts) <<std::endl;
 
 #if defined(PLATFORM_T31)
                 uint8_t *start0 = (uint8_t *)stream0.virAddr + stream0.pack[i].offset;
