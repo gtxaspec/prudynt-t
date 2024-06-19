@@ -410,7 +410,7 @@ void OSD::init() {
     LOG_DEBUG("IMP_Encoder_GetChnAttr read. Stream resolution: " << channelAttributes.encAttr.picWidth << "x" << channelAttributes.encAttr.picHeight);
 
     ret = IMP_OSD_CreateGroup(osdGrp);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_OSD_CreateGroup(" << osdGrp << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_CreateGroup(" << osdGrp << ")");
 
     if (cfg->osd.time_enabled) {
 
@@ -536,7 +536,7 @@ void OSD::init() {
     }
 
     ret = IMP_OSD_Start(osdGrp);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_OSD_Start(" << osdGrp << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_Start(" << osdGrp << ")");
 
     initialized = true;
 }

@@ -9,9 +9,10 @@ IMPDeviceSource *IMPDeviceSource::createNew(UsageEnvironment &env, int encChn)
 }
 
 IMPDeviceSource::IMPDeviceSource(UsageEnvironment &env, int encChn)
-    : FramedSource(env), encChn(encChn), eventTriggerId(0), startTime(clock())
+    : FramedSource(env), encChn(encChn), eventTriggerId(0)
 {
     sinkId = Encoder::connect_sink(this, "IMPDeviceSource", encChn);
+    streamStart = std::chrono::high_resolution_clock::now();
 
     if (eventTriggerId == 0)
     {
@@ -27,7 +28,13 @@ IMPDeviceSource::~IMPDeviceSource()
 
     Encoder::remove_sink(sinkId);
 
-    LOG_DEBUG("IMPDeviceSource destruct, encoder channel:" << encChn << ", id:" << sinkId);
+    auto streamEnd = std::chrono::high_resolution_clock::now();
+
+    LOG_DEBUG("IMPDeviceSource destruct after , encoder channel:" << encChn << ", id:" << sinkId << "after " 
+        << duration_cast<std::chrono::hours>(streamEnd - streamStart).count() << ":"
+        << duration_cast<std::chrono::minutes>(streamEnd - streamStart).count() << ":" 
+        << duration_cast<std::chrono::seconds>(streamEnd - streamStart).count() << "."
+        << duration_cast<std::chrono::milliseconds>(streamEnd - streamStart).count());
 }
 
 void IMPDeviceSource::doGetNextFrame()
@@ -42,8 +49,6 @@ void IMPDeviceSource::deliverFrame0(void *clientData)
 
 H264NALUnit IMPDeviceSource::wait_read()
 {
-
-    LOG_DEBUG("wait_read()");
 
     while (nalQueue.empty())
     {

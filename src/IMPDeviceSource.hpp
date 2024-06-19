@@ -5,6 +5,7 @@
 #include "Encoder.hpp"
 #include <mutex>
 #include <queue>
+#include <chrono>
 
 class IMPDeviceSource: public FramedSource {
 public:
@@ -15,7 +16,7 @@ public:
 
     int sinkId;
     int encChn;
-    clock_t startTime;
+    std::chrono::high_resolution_clock::time_point streamStart;
 
     EventTriggerId eventTriggerId;
 

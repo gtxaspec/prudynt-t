@@ -72,7 +72,7 @@ struct uintEntry {
 #endif
 
 class CFG {
-	private:
+	public:
 		struct _general {
 			std::string loglevel;
 		};
@@ -133,7 +133,7 @@ class CFG {
             bool output_high_pass_filter;
         };
 #endif        
-        struct _stream0 {
+        struct _stream {
 			int gop;
 			int max_gop;
 			int fps;
@@ -160,18 +160,15 @@ class CFG {
 			int rotation;
 			int scale_width;
 			int scale_height;
-			int jpeg_quality;
-			int jpeg_refresh;
+            bool enabled;
 			bool scale_enabled;
 			std::string rtsp_endpoint;
 			std::string format;
-		};	
-		struct _stream1 {
+            /* JPEG stream*/
 			int jpeg_quality;
 			int jpeg_refresh;
-			bool jpeg_enabled;
-			std::string jpeg_path;
-		};
+			std::string jpeg_path;            
+		};	
 		struct _osd {
 			int font_size;
 			int font_stroke_size;
@@ -220,8 +217,6 @@ class CFG {
         bool config_loaded = false;
         libconfig::Config lc;
         std::string filePath;
-        
-    public:
 
 		CFG();
         bool readConfig();
@@ -234,8 +229,9 @@ class CFG {
 #if defined(AUDIO_SUPPORT)           
         _audio audio;
 #endif
-		_stream0 stream0;
-		_stream1 stream1;
+		_stream stream0;
+        _stream stream1;
+		_stream stream2;
 		_osd osd;
 		_motion motion;
         _websocket websocket;
@@ -317,7 +313,10 @@ class CFG {
             {"audio.output_high_pass_filter", audio.output_high_pass_filter, false, [](const bool &v) { return true; }, +""},
 #endif
             {"stream0.scale_enabled",   stream0.scale_enabled, false, [](const bool &v) { return true; }, ""},
-			{"stream1.jpeg_enabled",    stream1.jpeg_enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream1.scale_enabled",   stream1.scale_enabled, false, [](const bool &v) { return true; }, ""},
+            {"stream0.enabled",         stream0.enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream1.enabled",         stream1.enabled, true, [](const bool &v) { return true; }, ""},
+			{"stream2.enabled",         stream2.enabled, true, [](const bool &v) { return true; }, ""},
 			{"osd.enabled",             osd.enabled, true, [](const bool &v) { return true; }, ""},
             {"osd.logo_enabled",        osd.logo_enabled, true, [](const bool &v) { return true; }, ""},
             {"osd.time_enabled",        osd.time_enabled, true, [](const bool &v) { return true; }, ""},
@@ -337,7 +336,9 @@ class CFG {
             {"sensor.model",			sensor.model, "gc2053", [](const std::string &v) { return !v.empty(); }, "/proc/jz/sensor/name"},
 			{"stream0.rtsp_endpoint",   stream0.rtsp_endpoint, "ch0", [](const std::string &v) { return !v.empty(); }, ""},
             {"stream0.format",          stream0.format, "H264", [](const std::string &v) { return v == "H264" || v == "H265"; },""},
-            {"stream1.jpeg_path",		stream1.jpeg_path, "/tmp/snapshot.jpg", [](const std::string &v) { return !v.empty(); }, ""},
+			{"stream1.rtsp_endpoint",   stream1.rtsp_endpoint, "ch0", [](const std::string &v) { return !v.empty(); }, ""},
+            {"stream1.format",          stream1.format, "H264", [](const std::string &v) { return v == "H264" || v == "H265"; },""},            
+            {"stream2.jpeg_path",		stream2.jpeg_path, "/tmp/snapshot.jpg", [](const std::string &v) { return !v.empty(); }, ""},
             {"osd.font_path",           osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", [](const std::string &v) { return !v.empty(); }, ""},
             {"osd.time_format",         osd.time_format, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, ""},
             {"osd.uptime_format",       osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", [](const std::string &v) { return !v.empty(); }, ""},
@@ -390,6 +391,13 @@ class CFG {
 			{"stream0.width", 			stream0.width, 1920, [](const int &v) { return v > 0; },  "/proc/jz/sensor/width"},
 			{"stream0.height", 			stream0.height, 1080, [](const int &v) { return v > 0; },"/proc/jz/sensor/height"},
 			{"stream0.bitrate", 		stream0.bitrate, 1000, [](const int &v) { return v > 0; }, ""},
+			{"stream1.gop", 			stream1.gop, 20, [](const int &v) { return v > 0; }, ""},
+			{"stream1.max_gop", 		stream1.max_gop, 60, [](const int &v) { return v > 0; }, ""},
+			{"stream1.fps", 			stream1.fps, 24, [](const int &v) { return v > 0 && v <= 60; }, ""},
+			{"stream1.buffers", 		stream1.buffers, 1, [](const int &v) { return v > 0 && v <= 32; }, ""},
+			{"stream1.width", 			stream1.width, 640, [](const int &v) { return v > 0; },  ""},
+			{"stream1.height", 			stream1.height, 360, [](const int &v) { return v > 0; },""},
+			{"stream1.bitrate", 		stream1.bitrate, 500, [](const int &v) { return v > 0; }, ""},            
 			{"stream0.osd_pos_time_x", 	stream0.osd_pos_time_x, 15, [](const int &v) { return v >= -15360 && v <= 15360; },""},
 			{"stream0.osd_pos_time_y", 	stream0.osd_pos_time_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; }, ""},
 			{"stream0.osd_time_transparency", stream0.osd_time_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
@@ -409,8 +417,8 @@ class CFG {
 			{"stream0.rotation", 		stream0.rotation, 0, [](const int &v) { return v >= 0 && v <= 2; }, ""},
 			{"stream0.scale_width", 	stream0.scale_width, 640, [](const int &v) { return v > 0; }, ""},
 			{"stream0.scale_height", 	stream0.scale_height, 360, [](const int &v) { return v > 0; },""},
-			{"stream1.jpeg_quality", 	stream1.jpeg_quality, 75, [](const int &v) { return v > 0 && v <= 100; }, ""},
-			{"stream1.jpeg_refresh", 	stream1.jpeg_refresh, 1000, [](const int &v) { return v > 0; }, ""},
+			{"stream2.jpeg_quality", 	stream2.jpeg_quality, 75, [](const int &v) { return v > 0 && v <= 100; }, ""},
+			{"stream2.jpeg_refresh", 	stream2.jpeg_refresh, 1000, [](const int &v) { return v > 0; }, ""},
 			{"osd.font_size", 			osd.font_size, 32, [](const int &v) { return v > 0; }, ""},
 			{"osd.font_stroke_size", 	osd.font_stroke_size, 32, [](const int &v) { return v >= 0; },""},
 			{"osd.logo_height", 		osd.logo_height, 30, [](const int &v) { return v > 0; },  ""},
@@ -588,10 +596,10 @@ class CFG {
 			{"stream0.scale_width", 	intEntry{stream0.scale_width, 640, [](const int &v) { return v > 0; }, "Stream 0 scale width should be greater than 0", ""}},
 			{"stream0.scale_height", 	intEntry{stream0.scale_height, 360, [](const int &v) { return v > 0; }, "Stream 0 scale height should be greater than 0", ""}},
 
-			{"stream1.jpeg_enabled",    bolEntry{stream1.jpeg_enabled, true, [](const bool &v) { return true; }, "JPEG stream for Stream0 enabled flag. Must be either true or false.", ""}},
-            {"stream1.jpeg_path",		strEntry{stream1.jpeg_path, "/tmp/snapshot.jpg", [](const std::string &v) { return !v.empty(); }, "Path for JPEG snapshots must not be empty.", ""}},
-			{"stream1.jpeg_quality", 	intEntry{stream1.jpeg_quality, 75, [](const int &v) { return v > 0 && v <= 100; }, "Stream 0 jpeg quality must be between 1 and 100", ""}},
-			{"stream1.jpeg_refresh", 	intEntry{stream1.jpeg_refresh, 1000, [](const int &v) { return v > 0; }, "Stream 0 jpeg refresh rate should be greater than 0", ""}},
+			{"stream2.jpeg_enabled",    bolEntry{stream2.jpeg_enabled, true, [](const bool &v) { return true; }, "JPEG stream for Stream0 enabled flag. Must be either true or false.", ""}},
+            {"stream2.jpeg_path",		strEntry{stream2.jpeg_path, "/tmp/snapshot.jpg", [](const std::string &v) { return !v.empty(); }, "Path for JPEG snapshots must not be empty.", ""}},
+			{"stream2.jpeg_quality", 	intEntry{stream2.jpeg_quality, 75, [](const int &v) { return v > 0 && v <= 100; }, "Stream 0 jpeg quality must be between 1 and 100", ""}},
+			{"stream2.jpeg_refresh", 	intEntry{stream2.jpeg_refresh, 1000, [](const int &v) { return v > 0; }, "Stream 0 jpeg refresh rate should be greater than 0", ""}},
 
 			{"osd.enabled",             bolEntry{osd.enabled, true, [](const bool &v) { return true; }, "OSD (On-Screen Display) enabled flag. Must be either true or false.", ""}},
             {"osd.logo_enabled",        bolEntry{osd.logo_enabled, true, [](const bool &v) { return true; }, "OSD logo display enabled flag. Must be either true or false.", ""}},

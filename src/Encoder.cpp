@@ -5,13 +5,18 @@
 #include "Encoder.hpp"
 #include "Config.hpp"
 
+/*
+    todo:
+        remove max_gop from config is set to 2xgop
+        add channel_attr.encAttr.profile to config
+*/
 #define MODULE "ENCODER"
 
 #define OSDPoolSize 200000
 
 #if defined(PLATFORM_T31)
-	#define IMPEncoderCHNAttr IMPEncoderChnAttr
-	#define IMPEncoderCHNStat IMPEncoderChnStat
+#define IMPEncoderCHNAttr IMPEncoderChnAttr
+#define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
 
 std::mutex Encoder::sinks_lock;
@@ -180,51 +185,51 @@ int Encoder::system_init()
 
     /* Image tuning */
     ret = IMP_ISP_Tuning_SetContrast(cfg->image.contrast);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
 
     ret = IMP_ISP_Tuning_SetSharpness(cfg->image.sharpness);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetSharpness(" << cfg->image.sharpness << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSharpness(" << cfg->image.sharpness << ")");
 
     ret = IMP_ISP_Tuning_SetSaturation(cfg->image.saturation);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
 
     ret = IMP_ISP_Tuning_SetBrightness(cfg->image.brightness);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetBrightness(" << cfg->image.brightness << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBrightness(" << cfg->image.brightness << ")");
 
     ret = IMP_ISP_Tuning_SetSinterStrength(cfg->image.sinter_strength);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
 
     ret = IMP_ISP_Tuning_SetTemperStrength(cfg->image.temper_strength);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetTemperStrength(" << cfg->image.temper_strength << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetTemperStrength(" << cfg->image.temper_strength << ")");
 
     ret = IMP_ISP_Tuning_SetISPHflip((IMPISPTuningOpsMode)cfg->image.hflip);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetISPHflip(" << cfg->image.hflip << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPHflip(" << cfg->image.hflip << ")");
 
     ret = IMP_ISP_Tuning_SetISPVflip((IMPISPTuningOpsMode)cfg->image.vflip);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetISPVflip(" << cfg->image.vflip << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPVflip(" << cfg->image.vflip << ")");
 
     ret = IMP_ISP_Tuning_SetISPRunningMode((IMPISPRunningMode)cfg->image.running_mode);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetISPRunningMode(" << cfg->image.running_mode << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPRunningMode(" << cfg->image.running_mode << ")");
 
     ret = IMP_ISP_Tuning_SetISPBypass(IMPISP_TUNING_OPS_MODE_ENABLE);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetISPBypass(" << IMPISP_TUNING_OPS_MODE_ENABLE << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPBypass(" << IMPISP_TUNING_OPS_MODE_ENABLE << ")");
 
     ret = IMP_ISP_Tuning_SetAntiFlickerAttr((IMPISPAntiflickerAttr)cfg->image.anti_flicker);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetAntiFlickerAttr(" << cfg->image.anti_flicker << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetAntiFlickerAttr(" << cfg->image.anti_flicker << ")");
 
 #if !defined(PLATFORM_T21)
     ret = IMP_ISP_Tuning_SetAeComp(cfg->image.ae_compensation);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetAeComp(" << cfg->image.ae_compensation << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetAeComp(" << cfg->image.ae_compensation << ")");
 #endif
 
     ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
 
     ret = IMP_ISP_Tuning_SetMaxAgain(cfg->image.max_again);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetMaxAgain(" << cfg->image.max_again << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetMaxAgain(" << cfg->image.max_again << ")");
 
     ret = IMP_ISP_Tuning_SetMaxDgain(cfg->image.max_dgain);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetMaxDgain(" << cfg->image.max_dgain << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetMaxDgain(" << cfg->image.max_dgain << ")");
 
     IMPISPWB wb;
     memset(&wb, 0, sizeof(IMPISPWB));
@@ -249,58 +254,58 @@ int Encoder::system_init()
 
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
     ret = IMP_ISP_Tuning_SetBcshHue(cfg->image.hue);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetBcshHue(" << cfg->image.hue << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBcshHue(" << cfg->image.hue << ")");
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
     uint8_t _defog_strength = static_cast<uint8_t>(cfg->image.defog_strength);
     ret = IMP_ISP_Tuning_SetDefog_Strength(reinterpret_cast<uint8_t *>(&_defog_strength));
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDefog_Strength(" << cfg->image.defog_strength << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDefog_Strength(" << cfg->image.defog_strength << ")");
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
     ret = IMP_ISP_Tuning_SetDPC_Strength(cfg->image.dpc_strength);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDPC_Strength(" << cfg->image.dpc_strength << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDPC_Strength(" << cfg->image.dpc_strength << ")");
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
     ret = IMP_ISP_Tuning_SetDRC_Strength(cfg->image.dpc_strength);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << cfg->image.drc_strength << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << cfg->image.drc_strength << ")");
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
     ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
 #endif
 
-#if defined(AUDIO_SUPPORT)   
+#if defined(AUDIO_SUPPORT)
     /* Audio tuning */
     /*     input    */
     if (cfg->audio.input_enabled)
     {
         ret = IMP_AI_Enable(0);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_Enable(0)");
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Enable(0)");
 
         ret = IMP_AI_EnableChn(0, 0);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_EnableChn(0, 0)");
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableChn(0, 0)");
 
         ret = IMP_AI_SetVol(0, 0, cfg->audio.input_vol);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_SetVol(0, 0, " << cfg->audio.input_vol << ")");
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetVol(0, 0, " << cfg->audio.input_vol << ")");
 
         ret = IMP_AI_SetGain(0, 0, cfg->audio.input_gain);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_SetGain(0, 0, " << cfg->audio.input_gain << ")");
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetGain(0, 0, " << cfg->audio.input_gain << ")");
 
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
 
         ret = IMP_AI_SetAlcGain(0, 0, cfg->audio.input_alc_gain);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_SetAlcGain(0, 0, " << cfg->audio.input_alc_gain << ")");
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetAlcGain(0, 0, " << cfg->audio.input_alc_gain << ")");
 
 #endif
         if (cfg->audio.input_echo_cancellation)
         {
             ret = IMP_AI_EnableAec(0, 0, 0, 0);
-            LOG_ERROR_OR_DEBUG(ret, "IMP_AI_EnableAec(0)");
+            LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableAec(0)");
         }
         else
         {
             ret = IMP_AI_DisableAec(0, 0);
-            LOG_ERROR_OR_DEBUG(ret, "IMP_AI_DisableAec(0)");
+            LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableAec(0)");
         }
 
         IMPAudioIOAttr ioattr;
@@ -310,22 +315,22 @@ int Encoder::system_init()
             if (cfg->audio.input_noise_suppression)
             {
                 ret = IMP_AI_EnableNs(&ioattr, cfg->audio.input_noise_suppression);
-                LOG_ERROR_OR_DEBUG(ret, "IMP_AI_EnableNs(" << cfg->audio.input_noise_suppression << ")");
+                LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableNs(" << cfg->audio.input_noise_suppression << ")");
             }
             else
             {
                 ret = IMP_AI_DisableNs();
-                LOG_ERROR_OR_DEBUG(ret, "IMP_AI_DisableNs(0)");
+                LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableNs(0)");
             }
             if (cfg->audio.output_high_pass_filter)
             {
                 ret = IMP_AI_EnableHpf(&ioattr);
-                LOG_ERROR_OR_DEBUG(ret, "IMP_AI_EnableHpf(0)");
+                LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableHpf(0)");
             }
             else
             {
                 ret = IMP_AI_DisableHpf();
-                LOG_ERROR_OR_DEBUG(ret, "IMP_AI_DisableHpf(0)");
+                LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableHpf(0)");
             }
         }
         else
@@ -337,57 +342,57 @@ int Encoder::system_init()
     {
 
         ret = IMP_AI_DisableChn(0, 0);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_DisableChn(0)"); 
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableChn(0)");
 
         ret = IMP_AI_Disable(0);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AI_Disable(0)");
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Disable(0)");
     }
 
     /*    output    */
     if (cfg->audio.output_enabled)
     {
         ret = IMP_AO_Enable(0);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_Enable(0)");
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_Enable(0)");
 
         ret = IMP_AO_EnableChn(0, 0);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_EnableChn(0, 0)"); 
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_EnableChn(0, 0)");
 
         ret = IMP_AO_SetVol(0, 0, cfg->audio.output_vol);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_SetVol(0, 0, " << cfg->audio.output_vol << ")");
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_SetVol(0, 0, " << cfg->audio.output_vol << ")");
 
         ret = IMP_AO_SetGain(0, 0, cfg->audio.output_gain);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_SetGain(0, 0, " << cfg->audio.output_gain << ")");
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_SetGain(0, 0, " << cfg->audio.output_gain << ")");
 
         IMPAudioIOAttr ioattr;
         ret = IMP_AO_GetPubAttr(0, &ioattr);
         if (ret == 0)
-        {     
+        {
             if (cfg->audio.output_high_pass_filter)
             {
                 ret = IMP_AO_EnableHpf(&ioattr);
-                LOG_ERROR_OR_DEBUG(ret, "IMP_AO_EnableHpf(0)");
+                LOG_DEBUG_OR_ERROR(ret, "IMP_AO_EnableHpf(0)");
             }
             else
             {
                 ret = IMP_AO_DisableHpf();
-                LOG_ERROR_OR_DEBUG(ret, "IMP_AO_DisableHpf(0)");
+                LOG_DEBUG_OR_ERROR(ret, "IMP_AO_DisableHpf(0)");
             }
         }
         else
         {
             LOG_ERROR("IMP_AO_GetPubAttr failed.");
-        }               
+        }
     }
     else
     {
 
         ret = IMP_AO_DisableChn(0, 0);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_DisableChn(0, 0)"); 
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_DisableChn(0, 0)");
 
         ret = IMP_AO_Disable(0);
-        LOG_ERROR_OR_DEBUG(ret, "IMP_AO_Disable(0)");
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_Disable(0)");
     }
-#endif //#if defined(AUDIO_SUPPORT)   
+#endif // #if defined(AUDIO_SUPPORT)
 
     LOG_DEBUG("ISP Tuning Defaults set");
 
@@ -451,7 +456,7 @@ int Encoder::framesource_init()
     fs_low_chn_attr.scaler.enable = 1;
     fs_low_chn_attr.scaler.outwidth = 640;
     fs_low_chn_attr.scaler.outheight = 340;
-#endif    
+#endif
 #if !defined(KERNEL_VERSION_4)
 #if defined(PLATFORM_T31)
 
@@ -461,137 +466,91 @@ int Encoder::framesource_init()
 
     // Set rotate before FS creation
     // IMP_Encoder_SetFisheyeEnableStatus(0, 1);
-    //ret = IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width);
-    //LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width)");
+    // ret = IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width);
+    // LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width)");
 #endif
 #endif
 
     /* FrameSource lowres channel */
     ret = IMP_FrameSource_CreateChn(0, &fs_high_chn_attr);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_CreateChn(0, &fs_high_chn_attr)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_CreateChn(0, &fs_high_chn_attr)");
 
     ret = IMP_FrameSource_SetChnAttr(0, &fs_high_chn_attr);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_SetChnAttr(0, &fs_high_chn_attr)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnAttr(0, &fs_high_chn_attr)");
 
     IMPFSChnFifoAttr fifo;
     ret = IMP_FrameSource_GetChnFifoAttr(0, &fifo);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_GetChnFifoAttr(0, &fifo)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_GetChnFifoAttr(0, &fifo)");
 
     fifo.maxdepth = 0;
     ret = IMP_FrameSource_SetChnFifoAttr(0, &fifo);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_SetChnFifoAttr(0, &fifo)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnFifoAttr(0, &fifo)");
 
     ret = IMP_FrameSource_SetFrameDepth(0, 0);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_SetFrameDepth(0, 0)");
-    
-#if defined(LOW_STREAM)
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(0, 0)");
+
     /* FrameSource lowres channel */
     ret = IMP_FrameSource_CreateChn(1, &fs_low_chn_attr);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_CreateChn(1, &fs_low_chn_attr)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_CreateChn(1, &fs_low_chn_attr)");
 
     ret = IMP_FrameSource_SetChnAttr(1, &fs_low_chn_attr);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_SetChnAttr(1, &fs_low_chn_attr)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnAttr(1, &fs_low_chn_attr)");
 
     IMPFSChnFifoAttr low_fifo;
     ret = IMP_FrameSource_GetChnFifoAttr(1, &low_fifo);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_GetChnFifoAttr(1, &low_fifo)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_GetChnFifoAttr(1, &low_fifo)");
 
     fifo.maxdepth = 0;
     ret = IMP_FrameSource_SetChnFifoAttr(1, &low_fifo);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_SetChnFifoAttr(1, &low_fifo)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnFifoAttr(1, &low_fifo)");
 
     ret = IMP_FrameSource_SetFrameDepth(1, 0);
-    LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_SetFrameDepth(1, 0)");
-#endif
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(1, 0)");
 
     return ret;
 }
 
-int Encoder::encoder_init()
+IMPEncoderCHNAttr createEncoderProfile(CFG::_stream &stream)
 {
-    int ret = 0;
 
-    /* Encoder highres channel */
-    IMPEncoderRcAttr *rc_high_attr;
-    IMPEncoderCHNAttr high_channel_attr;
-    memset(&high_channel_attr, 0, sizeof(IMPEncoderCHNAttr));
-    rc_high_attr = &high_channel_attr.rcAttr;
-
-#if defined(LOW_STREAM)
-    /* Encoder lowres channel */
-    IMPEncoderRcAttr *rc_low_attr;
-    IMPEncoderCHNAttr low_channel_attr;
-    memset(&low_channel_attr, 0, sizeof(IMPEncoderCHNAttr));
-    rc_low_attr = &low_channel_attr.rcAttr;
-#endif
+    IMPEncoderRcAttr *rc_attr;
+    IMPEncoderCHNAttr channel_attr;
+    memset(&channel_attr, 0, sizeof(IMPEncoderCHNAttr));
+    rc_attr = &channel_attr.rcAttr;
 
 #if defined(PLATFORM_T31)
 
     IMPEncoderProfile encoderProfile;
+    encoderProfile = (stream.format == "H265") ? IMP_ENC_PROFILE_HEVC_MAIN : IMP_ENC_PROFILE_AVC_HIGH;
 
-    // Allow user to specify the profile directly in the future with fallback defaults
-    const std::string &format = cfg->stream0.format;
-    encoderProfile = (format == "H265") ? IMP_ENC_PROFILE_HEVC_MAIN : IMP_ENC_PROFILE_AVC_HIGH;
-
-     /* Encoder highres channel */
     IMP_Encoder_SetDefaultParam(
-        &high_channel_attr, encoderProfile, IMP_ENC_RC_MODE_CAPPED_QUALITY, cfg->stream0.width, cfg->stream0.height,
-        cfg->stream0.fps, 1, cfg->stream0.gop, 2,
-        -1, cfg->stream0.bitrate);
+        &channel_attr, encoderProfile, IMP_ENC_RC_MODE_CAPPED_QUALITY, stream.width, stream.height,
+        stream.fps, 1, stream.gop, 2, -1, stream.bitrate);
 
-    switch (rc_high_attr->attrRcMode.rcMode)
+    switch (rc_attr->attrRcMode.rcMode)
     {
     case IMP_ENC_RC_MODE_CAPPED_QUALITY:
-        rc_high_attr->attrRcMode.attrVbr.uTargetBitRate = cfg->stream0.bitrate;
-        rc_high_attr->attrRcMode.attrVbr.uMaxBitRate = cfg->stream0.bitrate;
-        rc_high_attr->attrRcMode.attrVbr.iInitialQP = -1;
-        rc_high_attr->attrRcMode.attrVbr.iMinQP = 20;
-        rc_high_attr->attrRcMode.attrVbr.iMaxQP = 45;
-        rc_high_attr->attrRcMode.attrVbr.iIPDelta = 3;
-        rc_high_attr->attrRcMode.attrVbr.iPBDelta = 3;
+        rc_attr->attrRcMode.attrVbr.uTargetBitRate = stream.bitrate;
+        rc_attr->attrRcMode.attrVbr.uMaxBitRate = stream.bitrate;
+        rc_attr->attrRcMode.attrVbr.iInitialQP = -1;
+        rc_attr->attrRcMode.attrVbr.iMinQP = 20;
+        rc_attr->attrRcMode.attrVbr.iMaxQP = 45;
+        rc_attr->attrRcMode.attrVbr.iIPDelta = 3;
+        rc_attr->attrRcMode.attrVbr.iPBDelta = 3;
         // rc_high_attr->attrRcMode.attrVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
-        rc_high_attr->attrRcMode.attrVbr.uMaxPictureSize = cfg->stream0.width;
-        rc_high_attr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
+        rc_attr->attrRcMode.attrVbr.uMaxPictureSize = stream.width;
+        rc_attr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
         break;
     }
-
-#if defined(LOW_STREAM)
-    /* Encoder lowres channel */
-    // Allow user to specify the profile directly in the future with fallback defaults
-    IMP_Encoder_SetDefaultParam(
-        &low_channel_attr, encoderProfile, IMP_ENC_RC_MODE_CAPPED_QUALITY, 640, 340,
-        cfg->stream0.fps, 1, cfg->stream0.gop, 2,
-        -1, 500);
-
-    switch (rc_low_attr->attrRcMode.rcMode)
-    {
-    case IMP_ENC_RC_MODE_CAPPED_QUALITY:
-        rc_low_attr->attrRcMode.attrVbr.uTargetBitRate = 500;
-        rc_low_attr->attrRcMode.attrVbr.uMaxBitRate = 500;
-        rc_low_attr->attrRcMode.attrVbr.iInitialQP = -1;
-        rc_low_attr->attrRcMode.attrVbr.iMinQP = 20;
-        rc_low_attr->attrRcMode.attrVbr.iMaxQP = 45;
-        rc_low_attr->attrRcMode.attrVbr.iIPDelta = 3;
-        rc_low_attr->attrRcMode.attrVbr.iPBDelta = 3;
-        // rc_low_attr->attrRcMode.attrVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
-        rc_low_attr->attrRcMode.attrVbr.uMaxPictureSize = 640;
-        rc_low_attr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
-        break;
-    }
-#endif //LOW_STREAM
-
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
-    // high_channel_attr.encAttr.enType = PT_JPEG;
-    const std::string &format = cfg->stream0.format;
 
 #if defined(PLATFORM_T30)
-    high_channel_attr.encAttr.enType = (format == "H264") ? PT_H264 : (format == "H265") ? PT_H265
-                                                                                    : PT_H264;
+    channel_attr.encAttr.enType = (stream.format == "H264") ? PT_H264 : PT_H265;
 #else
-    high_channel_attr.encAttr.enType = (format == "H264") ? PT_H264 : PT_H264;
+    channel_attr.encAttr.enType = PT_H264;
 #endif
 
-    high_channel_attr.encAttr.bufSize = 0;
+    channel_attr.encAttr.bufSize = 0;
 
     // 0 = Baseline
     // 1 = Main
@@ -599,89 +558,99 @@ int Encoder::encoder_init()
     // Note: The encoder seems to emit frames at half the
     // requested framerate when the profile is set to Baseline.
     // For this reason, Main or High are recommended.
-    high_channel_attr.encAttr.profile = 2;
-    high_channel_attr.encAttr.picWidth = cfg->stream0.width;
-    high_channel_attr.encAttr.picHeight = cfg->stream0.height;
+    channel_attr.encAttr.profile = 2;
+    channel_attr.encAttr.picWidth = stream.width;
+    channel_attr.encAttr.picHeight = stream.height;
+    channel_attr.rcAttr.outFrmRate.frmRateNum = stream.fps;
+    channel_attr.rcAttr.outFrmRate.frmRateDen = 1;
 
-    high_channel_attr.rcAttr.outFrmRate.frmRateNum = cfg->stream0.fps;
-    high_channel_attr.rcAttr.outFrmRate.frmRateDen = 1;
-
+    /* unknow authoŕ */
     // Setting maxGop to a low value causes the encoder to emit frames at a much
     // slower rate. A sufficiently low value can cause the frame emission rate to
     // drop below the frame rate.
     // I find that 2x the frame rate is a good setting.
-    rc_high_attr->maxGop = cfg->stream0.max_gop;
+    rc_attr->maxGop = stream.gop * 2;
 
-    if (cfg->stream0.format == "H264")
+    if (stream.format == "H264")
     {
-        rc_high_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
-        rc_high_attr->attrRcMode.attrH264Smart.maxQp = 45;
-        rc_high_attr->attrRcMode.attrH264Smart.minQp = 24;
-        rc_high_attr->attrRcMode.attrH264Smart.staticTime = 2;
-        rc_high_attr->attrRcMode.attrH264Smart.maxBitRate = cfg->stream0.bitrate;
-        rc_high_attr->attrRcMode.attrH264Smart.iBiasLvl = 0;
-        rc_high_attr->attrRcMode.attrH264Smart.changePos = 80;
-        rc_high_attr->attrRcMode.attrH264Smart.qualityLvl = 0;
-        rc_high_attr->attrRcMode.attrH264Smart.frmQPStep = 3;
-        rc_high_attr->attrRcMode.attrH264Smart.gopQPStep = 15;
-        rc_high_attr->attrRcMode.attrH264Smart.gopRelation = false;
+        rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
+        rc_attr->attrRcMode.attrH264Smart.maxQp = 45;
+        rc_attr->attrRcMode.attrH264Smart.minQp = 24;
+        rc_attr->attrRcMode.attrH264Smart.staticTime = 2;
+        rc_attr->attrRcMode.attrH264Smart.maxBitRate = stream.bitrate;
+        rc_attr->attrRcMode.attrH264Smart.iBiasLvl = 0;
+        rc_attr->attrRcMode.attrH264Smart.changePos = 80;
+        rc_attr->attrRcMode.attrH264Smart.qualityLvl = 0;
+        rc_attr->attrRcMode.attrH264Smart.frmQPStep = 3;
+        rc_attr->attrRcMode.attrH264Smart.gopQPStep = 15;
+        rc_attr->attrRcMode.attrH264Smart.gopRelation = false;
 #if defined(PLATFORM_T30)
     }
-    else if (cfg->stream0.format == "H265")
+    else if (stream.format == "H265")
     {
-        rc_high_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
-        rc_high_attr->attrRcMode.attrH265Smart.maxQp = 45;
-        rc_high_attr->attrRcMode.attrH265Smart.minQp = 15;
-        rc_high_attr->attrRcMode.attrH265Smart.staticTime = 2;
-        rc_high_attr->attrRcMode.attrH265Smart.maxBitRate = cfg->stream0.bitrate;
-        rc_high_attr->attrRcMode.attrH265Smart.iBiasLvl = 0;
-        rc_high_attr->attrRcMode.attrH265Smart.changePos = 80;
-        rc_high_attr->attrRcMode.attrH265Smart.qualityLvl = 2;
-        rc_high_attr->attrRcMode.attrH265Smart.frmQPStep = 3;
-        rc_high_attr->attrRcMode.attrH265Smart.gopQPStep = 15;
-        rc_high_attr->attrRcMode.attrH265Smart.flucLvl = 2;
+        rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
+        rc_attr->attrRcMode.attrH265Smart.maxQp = 45;
+        rc_attr->attrRcMode.attrH265Smart.minQp = 15;
+        rc_attr->attrRcMode.attrH265Smart.staticTime = 2;
+        rc_attr->attrRcMode.attrH265Smart.maxBitRate = stream.bitrate;
+        rc_attr->attrRcMode.attrH265Smart.iBiasLvl = 0;
+        rc_attr->attrRcMode.attrH265Smart.changePos = 80;
+        rc_attr->attrRcMode.attrH265Smart.qualityLvl = 2;
+        rc_attr->attrRcMode.attrH265Smart.frmQPStep = 3;
+        rc_attr->attrRcMode.attrH265Smart.gopQPStep = 15;
+        rc_attr->attrRcMode.attrH265Smart.flucLvl = 2;
 #endif
     }
 
-    rc_high_attr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X; // IMP_Encoder_STYPE_HN1_TRUE
-    rc_high_attr->attrHSkip.hSkipAttr.m = rc_high_attr->maxGop - 1;
-    rc_high_attr->attrHSkip.hSkipAttr.n = 1;
-    rc_high_attr->attrHSkip.hSkipAttr.maxSameSceneCnt = 6;
-    rc_high_attr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
-    rc_high_attr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
-    rc_high_attr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X; // IMP_Encoder_STYPE_N4X
+    rc_attr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
+    rc_attr->attrHSkip.hSkipAttr.m = rc_high_attr->maxGop - 1;
+    rc_attr->attrHSkip.hSkipAttr.n = 1;
+    rc_attr->attrHSkip.hSkipAttr.maxSameSceneCnt = 6;
+    rc_attr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
+    rc_attr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
+    rc_attr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X;
 
 #endif
+    return channel_attr;
+}
+
+int Encoder::encoder_init()
+{
+    int ret = 0;
 
 #if defined(PLATFORM_T31)
-    if (cfg->stream1.jpeg_enabled)
+    /* Encoder preview channel */
+    if (cfg->stream2.enabled)
     {
         ret = IMP_Encoder_SetbufshareChn(2, 0);
-        if (ret < 0)
-        {
-            LOG_ERROR("IMP_Encoder_SetbufshareChn(2, 0) == " << ret);
-        }
-        LOG_DEBUG("IMP_Encoder_SetbufshareChn(2, 0) enabled");
+        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_SetbufshareChn(2, 0)")
     }
 #endif
 
     /* Encoder highres channel */
-    ret = channel_init(0, 0, &high_channel_attr);
-    if (ret < 0)
+    if (cfg->stream0.enabled)
     {
-        LOG_ERROR("channel_init(0, 0, &high_channel_attr) == " << ret);
-        return ret;
+        IMPEncoderCHNAttr chn_attr_high = createEncoderProfile(cfg->stream0);
+        ret = channel_init(0, 0, &chn_attr_high);
+        if (ret < 0)
+        {
+            LOG_ERROR("channel_init(0, 0, &high_channel_attr) == " << ret);
+            return ret;
+        }
     }
 
-#if defined(LOW_STREAM)
     /* Encoder lowres channel */
-    ret = channel_init(1, 1, &low_channel_attr);
-    if (ret < 0)
+    if (cfg->stream1.enabled)
     {
-        LOG_ERROR("channel_init(1, 1, &low_channel_attr) == " << ret);
-        return ret;
+        IMPEncoderCHNAttr chn_attr_low = createEncoderProfile(cfg->stream1);
+        ret = channel_init(1, 1, &chn_attr_low);
+        if (ret < 0)
+        {
+            LOG_ERROR("channel_init(1, 1, &low_channel_attr) == " << ret);
+            return ret;
+        }
     }
-#endif
+
 #if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
 /*
     //The SuperFrame configuration basically puts
@@ -704,79 +673,73 @@ bool Encoder::init()
     int ret = 0;
 
     ret = system_init();
-    LOG_ERROR_OR_DEBUG_EXIT(ret, "system_init(0)");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "system_init(0)");
 
     ret = framesource_init();
-    LOG_ERROR_OR_DEBUG_EXIT(ret, "framesource_init(0)");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "framesource_init(0)");
 
     ret = encoder_init();
-    LOG_ERROR_OR_DEBUG_EXIT(ret, "encoder_init(0)");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "encoder_init(0)");
 
     /* Encoder highres channel */
-    ret = IMP_Encoder_CreateGroup(0);
-    LOG_ERROR_OR_DEBUG_EXIT(ret, "IMP_Encoder_CreateGroup(0)");
+    if (cfg->stream0.enabled)
+    {
 
-#if defined(LOW_STREAM)
+        ret = IMP_Encoder_CreateGroup(0);
+        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_CreateGroup(0)");
+
+        if (!cfg->osd.enabled)
+        {
+
+            ret = IMP_System_Bind(&low_fs, &low_enc);
+            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&low_fs, &low_enc)");
+        }
+        else
+        {
+            stream0_osd = OSD::createNew(cfg, 0, 0);
+            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "osd.init(cfg, 0)");
+
+            // high framesource -> high OSD
+            ret = IMP_System_Bind(&high_fs, &high_osd_cell);
+            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&high_fs, &high_osd_cell)");
+                        
+            // high OSD -> high Encoder
+            ret = IMP_System_Bind(&high_osd_cell, &high_enc);
+            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&high_osd_cell, &high_enc)");
+        }     
+
+        ret = IMP_FrameSource_EnableChn(0);
+        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_FrameSource_EnableChn(0)");           
+    }
+
     /* Encoder lowres channel */
-    ret = IMP_Encoder_CreateGroup(1);
-    LOG_ERROR_OR_DEBUG_EXIT(ret, "IMP_Encoder_CreateGroup(1)");
-#endif
-
-    if (!cfg->osd.enabled)
+    if (cfg->stream1.enabled)
     {
-        LOG_DEBUG("OSD disabled");
+        ret = IMP_Encoder_CreateGroup(1);
+        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_CreateGroup(1)");
 
-        // high framesource -> high ENC
-        ret = IMP_System_Bind(&high_fs, &high_enc);
-        LOG_ERROR_OR_DEBUG_EXIT(ret, "IMP_System_Bind(&high_fs, &high_enc)");
+        if (!cfg->osd.enabled)
+        {
+            ret = IMP_System_Bind(&low_fs, &low_enc);
+            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&low_fs, &low_enc)");
+        }
+        else
+        {
+            stream1_osd = OSD::createNew(cfg, 1, 1);
+            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "osd.init(cfg, 1)");
 
-#if defined(LOW_STREAM)
-        // low framesource -> low ENC
-        ret = IMP_System_Bind(&low_fs, &low_enc);
-        LOG_ERROR_OR_DEBUG_EXIT(ret, "IMP_System_Bind(&low_fs, &low_enc)");        
-#endif
+            // low framesource -> low OSD
+            ret = IMP_System_Bind(&low_fs, &low_osd_cell);
+            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&low_fs, &low_osd_cell)");
+
+            // low OSD -> low Encoder
+            ret = IMP_System_Bind(&low_osd_cell, &low_enc);
+            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&low_osd_cell, &low_enc)");            
+
+            ret = IMP_FrameSource_EnableChn(1);
+            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_FrameSource_EnableChn(1)");
+        }        
     }
-    else
-    {
-        // If OSD is enabled, initialize OSD and bind FrameSource to OSD, then OSD to Encoder
-        LOG_DEBUG("OSD enabled");
-        osdInitialized = true;
-
-        //ret = osd.init(cfg);
-        stream0_osd = OSD::createNew(cfg, 0, 0);
-        LOG_ERROR_OR_DEBUG_EXIT(ret, "osd.init(cfg, 0)");
-
-#if defined(LOW_STREAM)
-        stream1_osd = OSD::createNew(cfg, 1, 1);
-        LOG_ERROR_OR_DEBUG_EXIT(ret, "osd.init(cfg, 1)");
-#endif
-
-        // high framesource -> high OSD
-        ret = IMP_System_Bind(&high_fs, &high_osd_cell);
-        LOG_ERROR_OR_DEBUG_EXIT(ret, "IMP_System_Bind(&high_fs, &high_osd_cell)");
-
-        // high OSD -> high Encoder
-        ret = IMP_System_Bind(&high_osd_cell, &high_enc);
-        LOG_ERROR_OR_DEBUG_EXIT(ret, "IMP_System_Bind(&high_osd_cell, &high_enc)");
-
-#if defined(LOW_STREAM)
-        // low framesource -> low OSD
-        ret = IMP_System_Bind(&low_fs, &low_osd_cell);
-        LOG_ERROR_OR_DEBUG_EXIT(ret, "IMP_System_Bind(&low_fs, &low_osd_cell)");
-
-        // low OSD -> low Encoder
-        ret = IMP_System_Bind(&low_osd_cell, &low_enc);
-        LOG_ERROR_OR_DEBUG_EXIT(ret, "IMP_System_Bind(&low_osd_cell, &low_enc)"); 
-#endif       
-    }
-
-    ret = IMP_FrameSource_EnableChn(0);
-    LOG_ERROR_OR_DEBUG_EXIT(ret, "IMP_FrameSource_EnableChn(0)");
-
-#if defined(LOW_STREAM)
-    ret = IMP_FrameSource_EnableChn(1);
-    LOG_ERROR_OR_DEBUG_EXIT(ret, "IMP_FrameSource_EnableChn(1)");
-#endif
 
     if (cfg->motion.enabled)
     {
@@ -798,60 +761,40 @@ bool Encoder::init()
 void Encoder::exit()
 {
 
-    int ret = 0, i = 0, chnNum = 0;
-    IMPEncoderCHNStat chn_stat;
+    int ret = 0, i = 0;
 
-#if !defined(LOW_STREAM)
-    if (cfg->stream1.jpeg_enabled)
+    if (cfg->stream2.enabled)
     {
         cfg->jpg_thread_signal.fetch_or(4);
     }
-#endif
-
-    ret = ret = IMP_FrameSource_DisableChn(chnNum);
-    LOG_DEBUG("IMP_FrameSource_DisableChn(" << chnNum << ") error: " << ret);
-
-#if defined(LOW_STREAM)
-    ret = ret = IMP_FrameSource_DisableChn(1);
-    LOG_DEBUG("IMP_FrameSource_DisableChn(1) error: " << ret);
-
-    ret = IMP_System_UnBind(&low_fs, &low_enc);
-    LOG_DEBUG("IMP_System_UnBind 1 error: " << ret);
-#endif
-
-    ret = IMP_System_UnBind(&high_fs, &high_osd_cell);
-    LOG_DEBUG("IMP_System_UnBind 1 error: " << ret);
-
-    ret = IMP_System_UnBind(&high_osd_cell, &high_enc);
-    LOG_DEBUG("IMP_System_UnBind 2 error: " << ret);
-
-    memset(&chn_stat, 0, sizeof(IMPEncoderCHNStat));
 
     for (int i = 1; i >= 0; i--)
     {
-
-        ret = IMP_Encoder_Query(i, &chn_stat);
-        LOG_DEBUG("IMP_Encoder_Query(" << i << ") registred: " << chn_stat.registered << ", ret: " << ret);
-
-        if (ret == 0 && chn_stat.registered)
-        {
-
-            channel_deinit(i);
-
-            ret = IMP_FrameSource_DestroyChn(i);
-            LOG_DEBUG("IMP_FrameSource_DestroyChn(" << i << ") error: " << ret);
-        }
+        ret = ret = IMP_FrameSource_DisableChn(i);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DisableChn(" << i << ")");
     }
 
-    ret = IMP_Encoder_DestroyGroup(0);
-    LOG_DEBUG("IMP_Encoder_DestroyGroup(0) error: " << ret);
+    ret = IMP_System_UnBind(&low_fs, &low_enc);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&low_fs, &low_enc)");
 
-#if defined(LOW_STREAM)
-    ret = IMP_Encoder_DestroyGroup(1);
-    LOG_DEBUG("IMP_Encoder_DestroyGroup(1) error: " << ret);
-#endif
+    ret = IMP_System_UnBind(&high_fs, &high_osd_cell);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&high_fs, &high_osd_cell)");
 
-    if (osdInitialized) {
+    ret = IMP_System_UnBind(&high_osd_cell, &high_enc);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&high_osd_cell, &high_enc)");
+
+    for (int i = 1; i >= 0; i--)
+    {
+        channel_deinit(i);
+        ret = IMP_FrameSource_DestroyChn(i);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DestroyChn(" << i << ")");
+
+        ret = IMP_Encoder_DestroyGroup(i);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_DestroyGroup(" << i << ")");
+    }
+
+    if (osdInitialized)
+    {
         stream0_osd->exit();
         stream1_osd->exit();
     }
@@ -864,29 +807,20 @@ void Encoder::exit()
         }
     }
 
-    IMP_System_Exit();
-    LOG_DEBUG("IMP_System_Exit");
+    ret = IMP_System_Exit();
+    LOG_DEBUG_OR_ERROR(ret, "IMP_System_Exit()");
 
     ret = IMP_ISP_DisableSensor();
-    if (ret < 0)
-    {
-        LOG_DEBUG("failed to EnableSensor\n");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_DisableSensor()");
 
     ret = IMP_ISP_DelSensor(&sinfo);
-    if (ret < 0)
-    {
-        LOG_DEBUG("failed to AddSensor");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_DelSensor()");
 
     ret = IMP_ISP_DisableTuning();
-    if (ret < 0)
-    {
-        LOG_DEBUG("failed to disable tuning");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_DisableTuning()");
 
-    IMP_ISP_Close();
-    LOG_DEBUG("IMP_ISP_Close");
+    ret = IMP_ISP_Close();
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Close()");
 
     cfg->encoder_thread_signal.fetch_xor(4); // remove stopping
     cfg->encoder_thread_signal.fetch_or(8);  // set stopped
@@ -990,7 +924,7 @@ void Encoder::jpeg_snap(std::shared_ptr<CFG> &cfg)
             LOG_DEBUG("Init jpeg thread.");
 #if defined(PLATFORM_T31)
             IMP_Encoder_SetDefaultParam(&channel_attr_jpg, IMP_ENC_PROFILE_JPEG, IMP_ENC_RC_MODE_FIXQP,
-                                        cfg->stream0.width, cfg->stream0.height, 24, 1, 0, 0, cfg->stream1.jpeg_quality, 0);
+                                        cfg->stream0.width, cfg->stream0.height, 24, 1, 0, 0, cfg->stream2.jpeg_quality, 0);
 
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
             IMPEncoderAttr *enc_attr;
@@ -1022,7 +956,7 @@ void Encoder::jpeg_snap(std::shared_ptr<CFG> &cfg)
 
 #if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
             IMPEncoderJpegeQl pstJpegeQl;
-            MakeTables(cfg->stream1.jpeg_quality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
+            MakeTables(cfg->stream2.jpeg_quality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
             pstJpegeQl.user_ql_en = 1;
             IMP_Encoder_SetJpegeQl(2, &pstJpegeQl);
 #endif
@@ -1033,7 +967,7 @@ void Encoder::jpeg_snap(std::shared_ptr<CFG> &cfg)
             if (IMP_Encoder_GetStream(2, &stream_jpeg, 1) == 0)
             {                                                   // Check for success
                 std::string tempPath = "/tmp/snapshot.tmp";     // Temporary path
-                std::string finalPath = cfg->stream1.jpeg_path; // Final path for the JPEG snapshot
+                std::string finalPath = cfg->stream2.jpeg_path; // Final path for the JPEG snapshot
 
                 // Open and create temporary file with read and write permissions
                 int snap_fd = open(tempPath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
@@ -1071,7 +1005,7 @@ void Encoder::jpeg_snap(std::shared_ptr<CFG> &cfg)
                 }
 
                 // Delay before we release, otherwise an overflow may occur
-                std::this_thread::sleep_for(std::chrono::milliseconds(cfg->stream1.jpeg_refresh)); // Control the rate
+                std::this_thread::sleep_for(std::chrono::milliseconds(cfg->stream2.jpeg_refresh)); // Control the rate
                 IMP_Encoder_ReleaseStream(2, &stream_jpeg);                                        // Release stream after saving
             }
 
@@ -1097,7 +1031,7 @@ void Encoder::run()
 
     // The encoder thread is very important, but we
     // want sink threads to have higher priority.
-    //nice(-19);
+    // nice(-19);
 
     int64_t last_high_nal_ts;
     int64_t last_low_nal_ts;
@@ -1119,13 +1053,13 @@ void Encoder::run()
 
             gettimeofday(&high_imp_time_base, NULL);
             IMP_Encoder_StartRecvPic(0);
-            
+
             gettimeofday(&low_imp_time_base, NULL);
             IMP_Encoder_StartRecvPic(1);
 
             LOG_DEBUG("Encoder StartRecvPic(0) success");
 
-            if (cfg->stream1.jpeg_enabled)
+            if (cfg->stream2.enabled)
             {
 
                 LOG_DEBUG("JPEG support enabled");
@@ -1160,7 +1094,7 @@ void Encoder::run()
             if (high_nal_ts - last_high_nal_ts > 1.5 * (1000000 / cfg->stream0.fps))
             {
                 // Silence for now until further tests / THINGINO
-                //LOG_WARN("The encoder 0 dropped a frame. " << (high_nal_ts - last_high_nal_ts) << ", " << (1.5 * (1000000 / cfg->stream0.fps)));
+                // LOG_WARN("The encoder 0 dropped a frame. " << (high_nal_ts - last_high_nal_ts) << ", " << (1.5 * (1000000 / cfg->stream0.fps)));
             }
             struct timeval high_encode_time;
             high_encode_time.tv_sec = high_nal_ts / 1000000;
@@ -1168,7 +1102,7 @@ void Encoder::run()
 
             for (unsigned int i = 0; i < stream0.packCount; ++i)
             {
-                //std::cout << last_high_nal_ts << " " << stream0.pack[i].timestamp << " " << (high_nal_ts - last_high_nal_ts) <<std::endl;
+                // std::cout << last_high_nal_ts << " " << stream0.pack[i].timestamp << " " << (high_nal_ts - last_high_nal_ts) <<std::endl;
 
 #if defined(PLATFORM_T31)
                 uint8_t *start0 = (uint8_t *)stream0.virAddr + stream0.pack[i].offset;
@@ -1216,13 +1150,15 @@ void Encoder::run()
                 nalu0.data.insert(nalu0.data.end(), start0 + 4, end0);
 
                 std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-                //for (std::map<uint32_t, EncoderSink>::iterator it = Encoder::sinks.begin();
-                //     it != Encoder::sinks.end(); ++it)
+                // for (std::map<uint32_t, EncoderSink>::iterator it = Encoder::sinks.begin();
+                //      it != Encoder::sinks.end(); ++it)
                 //{
-                for (auto& [sinkId, sink] : Encoder::sinks) 
-                {                    
-                    if(sink.encChn == 0) {      
-                        if(!sink.IDR) {          
+                for (auto &[sinkId, sink] : Encoder::sinks)
+                {
+                    if (sink.encChn == 0)
+                    {
+                        if (!sink.IDR)
+                        {
 #if defined(PLATFORM_T31)
                             if (stream0.pack[i].nalType.h264NalType == 7 ||
                                 stream0.pack[i].nalType.h264NalType == 8 ||
@@ -1256,13 +1192,11 @@ void Encoder::run()
                         }
                         if (sink.IDR)
                         {
- 
-                            if(sink.data_available_callback(nalu0)) {
 
-                                LOG_ERROR("stream 0, eC:" << sink.encChn << ", id:" << sinkId << ", size:" << nalu0.data.size() <<
-                                        ", pC:" << stream0.packCount << ", pS:" << nalu0.data.size() << ", pN:" << i << 
-                                        ", sC:" << Encoder::sinks.size() << 
-                                        " clogged!");                              
+                            if (sink.data_available_callback(nalu0))
+                            {
+
+                                LOG_ERROR("stream 0, eC:" << sink.encChn << ", id:" << sinkId << ", size:" << nalu0.data.size() << ", pC:" << stream0.packCount << ", pS:" << nalu0.data.size() << ", pN:" << i << ", sC:" << Encoder::sinks.size() << " clogged!");
                             }
                         }
                     }
@@ -1285,12 +1219,12 @@ void Encoder::run()
             if (low_nal_ts - last_low_nal_ts > 1.5 * (1000000 / cfg->stream0.fps))
             {
                 // Silence for now until further tests / THINGINO
-                //LOG_WARN("The encoder 1 dropped a frame. " << (low_nal_ts - last_low_nal_ts) << ", " << (1.5 * (1000000 / cfg->stream0.fps)));
+                // LOG_WARN("The encoder 1 dropped a frame. " << (low_nal_ts - last_low_nal_ts) << ", " << (1.5 * (1000000 / cfg->stream0.fps)));
             }
             struct timeval low_encode_time;
             low_encode_time.tv_sec = low_nal_ts / 1000000;
             low_encode_time.tv_usec = low_nal_ts % 1000000;
-       
+
             for (unsigned int i = 0; i < stream1.packCount; ++i)
             {
 #if defined(PLATFORM_T31)
@@ -1339,13 +1273,15 @@ void Encoder::run()
                 nalu1.data.insert(nalu1.data.end(), start1 + 4, end1);
 
                 std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-                //for (std::map<uint32_t, EncoderSink>::iterator it = Encoder::sinks.begin();
-                //     it != Encoder::sinks.end(); ++it)
+                // for (std::map<uint32_t, EncoderSink>::iterator it = Encoder::sinks.begin();
+                //      it != Encoder::sinks.end(); ++it)
                 //{
-                for (auto& [sinkId, sink] : Encoder::sinks)                     
+                for (auto &[sinkId, sink] : Encoder::sinks)
                 {
-                    if(sink.encChn == 1) { 
-                        if(!sink.IDR) {             
+                    if (sink.encChn == 1)
+                    {
+                        if (!sink.IDR)
+                        {
 #if defined(PLATFORM_T31)
                             if (stream1.pack[i].nalType.h264NalType == 7 ||
                                 stream1.pack[i].nalType.h264NalType == 8 ||
@@ -1378,38 +1314,34 @@ void Encoder::run()
 #endif
                         }
                         if (sink.IDR)
-                        {                                                               
-                            if(sink.data_available_callback(nalu1)) {
+                        {
+                            if (sink.data_available_callback(nalu1))
+                            {
 
-                                LOG_ERROR("stream 0, eC:" << sink.encChn << ", id:" << sinkId << ", size:" << nalu1.data.size() <<
-                                        ", pC:" << stream1.packCount << ", pS:" << nalu1.data.size() << ", pN:" << i << 
-                                        ", sC:" << Encoder::sinks.size() << 
-                                        " clogged!");                            
+                                LOG_ERROR("stream 0, eC:" << sink.encChn << ", id:" << sinkId << ", size:" << nalu1.data.size() << ", pC:" << stream1.packCount << ", pS:" << nalu1.data.size() << ", pN:" << i << ", sC:" << Encoder::sinks.size() << " clogged!");
                             }
                         }
                     }
                 }
-            }       
+            }
 
             IMP_Encoder_ReleaseStream(1, &stream1);
 
             if (cfg->osd.enabled)
             {
-                stream0_osd->update();               
+                stream0_osd->update();
                 stream1_osd->update();
             }
 
-            last_high_nal_ts = high_nal_ts;        
+            last_high_nal_ts = high_nal_ts;
             last_low_nal_ts = low_nal_ts;
         }
-
-
 
         // 4 = Stop thread
         if (cfg->encoder_thread_signal.load() & 4)
         {
-            IMP_Encoder_StopRecvPic(0);          
-            IMP_Encoder_StopRecvPic(1);                    
+            IMP_Encoder_StopRecvPic(0);
+            IMP_Encoder_StopRecvPic(1);
             exit();
         }
 
