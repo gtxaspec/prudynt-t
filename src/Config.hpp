@@ -132,49 +132,29 @@ class CFG {
             bool input_high_pass_filter;
             bool output_high_pass_filter;
         };
-#endif        
-        struct _stream {
-			int gop;
-			int max_gop;
-			int fps;
-			int buffers;
-			int width;
-			int height;
-			int bitrate;
-			int osd_pos_time_x;
-			int osd_pos_time_y;
-			int osd_time_transparency;
-            int osd_time_rotation;
-			int osd_pos_user_text_x;
-			int osd_pos_user_text_y;
-			int osd_user_text_transparency;
-            int osd_user_text_rotation;
-			int osd_pos_uptime_x;
-			int osd_pos_uptime_y;
-			int osd_uptime_transparency;
-            int osd_uptime_rotation;
-			int osd_pos_logo_x;
-			int osd_pos_logo_y;
-			int osd_logo_transparency;
-            int osd_logo_rotation;
-			int rotation;
-			int scale_width;
-			int scale_height;
-            bool enabled;
-			bool scale_enabled;
-			std::string rtsp_endpoint;
-			std::string format;
-            /* JPEG stream*/
-			int jpeg_quality;
-			int jpeg_refresh;
-			std::string jpeg_path;            
-		};	
-		struct _osd {
+#endif      
+		struct _osd {            
 			int font_size;
 			int font_stroke_size;
 			int logo_height;
 			int logo_width;
-			bool enabled;
+			int pos_time_x;
+			int pos_time_y;
+			int time_transparency;
+            int time_rotation;
+			int pos_user_text_x;
+			int pos_user_text_y;
+			int user_text_transparency;
+            int user_text_rotation;
+			int pos_uptime_x;
+			int pos_uptime_y;
+			int uptime_transparency;
+            int uptime_rotation;
+			int pos_logo_x;
+			int pos_logo_y;
+			int logo_transparency;
+            int logo_rotation;            
+			bool enabled;            
 			bool time_enabled;
 			bool user_text_enabled;
 			bool uptime_enabled;
@@ -187,7 +167,28 @@ class CFG {
 			std::string logo_path;
 			unsigned int font_color;
 			unsigned int font_stroke_color;
-		};
+		};  
+        struct _stream {
+			int gop;
+			int max_gop;
+			int fps;
+			int buffers;
+			int width;
+			int height;
+			int bitrate;
+			int rotation;
+			int scale_width;
+			int scale_height;
+            bool enabled;
+			bool scale_enabled;
+			std::string rtsp_endpoint;
+			std::string format;
+            /* JPEG stream*/
+			int jpeg_quality;
+			int jpeg_refresh;
+			std::string jpeg_path;  
+            _osd osd;          
+		};	
 		struct _motion {
 			int debounce_time;
 			int post_time;
@@ -317,12 +318,18 @@ class CFG {
             {"stream0.enabled",         stream0.enabled, true, [](const bool &v) { return true; }, ""},
             {"stream1.enabled",         stream1.enabled, true, [](const bool &v) { return true; }, ""},
 			{"stream2.enabled",         stream2.enabled, true, [](const bool &v) { return true; }, ""},
-			{"osd.enabled",             osd.enabled, true, [](const bool &v) { return true; }, ""},
-            {"osd.logo_enabled",        osd.logo_enabled, true, [](const bool &v) { return true; }, ""},
-            {"osd.time_enabled",        osd.time_enabled, true, [](const bool &v) { return true; }, ""},
-            {"osd.user_text_enabled",   osd.user_text_enabled, true, [](const bool &v) { return true; }, ""},
-            {"osd.font_stroke_enabled", osd.font_stroke_enabled, true, [](const bool &v) { return true; }, ""},
-            {"osd.uptime_enabled",      osd.uptime_enabled, true, [](const bool &v) { return true; }, ""},
+			{"stream0.osd.enabled",     stream0.osd.enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream0.osd.logo_enabled", stream0.osd.logo_enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream0.osd.time_enabled", stream0.osd.time_enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream0.osd.user_text_enabled", stream0.osd.user_text_enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream0.osd.font_stroke_enabled", stream0.osd.font_stroke_enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream0.osd.uptime_enabled", stream0.osd.uptime_enabled, true, [](const bool &v) { return true; }, ""},
+			{"stream1.osd.enabled",     stream1.osd.enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream1.osd.logo_enabled",stream1.osd.logo_enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream1.osd.time_enabled",stream1.osd.time_enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream1.osd.user_text_enabled", stream1.osd.user_text_enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream1.osd.font_stroke_enabled", stream1.osd.font_stroke_enabled, true, [](const bool &v) { return true; }, ""},
+            {"stream1.osd.uptime_enabled", stream1.osd.uptime_enabled, true, [](const bool &v) { return true; }, ""},            
             {"motion.enabled",          motion.enabled, false, [](const bool &v) { return true; }, ""},
 			{"websocket.enabled",       websocket.enabled, true, [](const bool &v) { return true; }, ""},
             {"websocket.secured",       websocket.secured, false, [](const bool &v) { return true; }, ""},
@@ -339,11 +346,16 @@ class CFG {
 			{"stream1.rtsp_endpoint",   stream1.rtsp_endpoint, "ch0", [](const std::string &v) { return !v.empty(); }, ""},
             {"stream1.format",          stream1.format, "H264", [](const std::string &v) { return v == "H264" || v == "H265"; },""},            
             {"stream2.jpeg_path",		stream2.jpeg_path, "/tmp/snapshot.jpg", [](const std::string &v) { return !v.empty(); }, ""},
-            {"osd.font_path",           osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", [](const std::string &v) { return !v.empty(); }, ""},
-            {"osd.time_format",         osd.time_format, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, ""},
-            {"osd.uptime_format",       osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", [](const std::string &v) { return !v.empty(); }, ""},
-            {"osd.user_text_format",    osd.user_text_format, "thingino", [](const std::string &v) { return true; },  ""},
-            {"osd.logo_path",           osd.logo_path, "/usr/share/thingino_logo_1.bgra", [](const std::string &v) { return !v.empty(); }, ""},
+            {"stream0.osd.font_path",   stream0.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", [](const std::string &v) { return !v.empty(); }, ""},
+            {"stream0.osd.time_format", stream0.osd.time_format, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, ""},
+            {"stream0.osd.uptime_format", stream0.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", [](const std::string &v) { return !v.empty(); }, ""},
+            {"stream0.osd.user_text_format", stream0.osd.user_text_format, "thingino", [](const std::string &v) { return true; },  ""},
+            {"stream0.osd.logo_path",   stream0.osd.logo_path, "/usr/share/thingino_logo_1.bgra", [](const std::string &v) { return !v.empty(); }, ""},
+            {"stream1.osd.font_path",   stream1.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", [](const std::string &v) { return !v.empty(); }, ""},
+            {"stream1.osd.time_format", stream1.osd.time_format, "%I:%M:%S%p %m/%d/%Y", [](const std::string &v) { return !v.empty(); }, ""},
+            {"stream1.osd.uptime_format", stream1.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", [](const std::string &v) { return !v.empty(); }, ""},
+            {"stream1.osd.user_text_format", stream1.osd.user_text_format, "thingino", [](const std::string &v) { return true; },  ""},
+            {"stream1.osd.logo_path",   stream1.osd.logo_path, "/usr/share/thingino_logo_1.bgra", [](const std::string &v) { return !v.empty(); }, ""},            
             {"motion.script_path",      motion.script_path, "/usr/sbin/motion", [](const std::string &v) { return !v.empty(); },""},
 			{"websocket.name", 	        websocket.name, "wss prudynt", [](const std::string &v) { return !v.empty(); },  ""},
         };
@@ -396,33 +408,53 @@ class CFG {
 			{"stream1.fps", 			stream1.fps, 24, [](const int &v) { return v > 0 && v <= 60; }, ""},
 			{"stream1.buffers", 		stream1.buffers, 1, [](const int &v) { return v > 0 && v <= 32; }, ""},
 			{"stream1.width", 			stream1.width, 640, [](const int &v) { return v > 0; },  ""},
-			{"stream1.height", 			stream1.height, 360, [](const int &v) { return v > 0; },""},
+			{"stream1.height", 			stream1.height, 340, [](const int &v) { return v > 0; },""},
 			{"stream1.bitrate", 		stream1.bitrate, 500, [](const int &v) { return v > 0; }, ""},            
-			{"stream0.osd_pos_time_x", 	stream0.osd_pos_time_x, 15, [](const int &v) { return v >= -15360 && v <= 15360; },""},
-			{"stream0.osd_pos_time_y", 	stream0.osd_pos_time_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; }, ""},
-			{"stream0.osd_time_transparency", stream0.osd_time_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-            {"stream0.osd_time_rotation", stream0.osd_time_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},
-			{"stream0.osd_pos_user_text_x", stream0.osd_pos_user_text_x, 0, [](const int &v) { return v >= -15360 && v <= 15360; }, ""},
-			{"stream0.osd_pos_user_text_y", stream0.osd_pos_user_text_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
-			{"stream0.osd_user_text_transparency", stream0.osd_user_text_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; },  ""},
-            {"stream0.osd_user_text_rotation", stream0.osd_user_text_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},            
-			{"stream0.osd_pos_uptime_x", stream0.osd_pos_uptime_x, -15, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
-			{"stream0.osd_pos_uptime_y", stream0.osd_pos_uptime_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
-			{"stream0.osd_uptime_transparency", stream0.osd_uptime_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-            {"stream0.osd_uptime_rotation", stream0.osd_uptime_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},            
-			{"stream0.osd_pos_logo_x", 	stream0.osd_pos_logo_x, -15, [](const int &v) { return v >= -15360 && v <= 15360; },""},
-			{"stream0.osd_pos_logo_y", 	stream0.osd_pos_logo_y, -10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
-			{"stream0.osd_logo_transparency", stream0.osd_logo_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
-            {"stream0.osd_logo_rotation", stream0.osd_logo_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; }, ""},            
+			{"stream0.osd.pos_time_x", 	stream0.osd.pos_time_x, 15, [](const int &v) { return v >= -15360 && v <= 15360; },""},
+			{"stream0.osd.pos_time_y", 	stream0.osd.pos_time_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; }, ""},
+			{"stream0.osd.time_transparency", stream0.osd.time_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
+            {"stream0.osd.time_rotation", stream0.osd.time_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},
+			{"stream0.osd.pos_user_text_x", stream0.osd.pos_user_text_x, 0, [](const int &v) { return v >= -15360 && v <= 15360; }, ""},
+			{"stream0.osd.pos_user_text_y", stream0.osd.pos_user_text_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
+			{"stream0.osd.user_text_transparency", stream0.osd.user_text_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; },  ""},
+            {"stream0.osd.user_text_rotation", stream0.osd.user_text_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},            
+			{"stream0.osd.pos_uptime_x", stream0.osd.pos_uptime_x, -15, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
+			{"stream0.osd.pos_uptime_y", stream0.osd.pos_uptime_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
+			{"stream0.osd.uptime_transparency", stream0.osd.uptime_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
+            {"stream0.osd.uptime_rotation", stream0.osd.uptime_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},            
+			{"stream0.osd.pos_logo_x", 	stream0.osd.pos_logo_x, -15, [](const int &v) { return v >= -15360 && v <= 15360; },""},
+			{"stream0.osd.pos_logo_y", 	stream0.osd.pos_logo_y, -10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
+			{"stream0.osd.logo_transparency", stream0.osd.logo_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
+            {"stream0.osd.logo_rotation", stream0.osd.logo_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; }, ""},   
+			{"stream1.osd.pos_time_x", 	stream1.osd.pos_time_x, 15, [](const int &v) { return v >= -15360 && v <= 15360; },""},
+			{"stream1.osd.pos_time_y", 	stream1.osd.pos_time_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; }, ""},
+			{"stream1.osd.time_transparency", stream1.osd.time_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
+            {"stream1.osd.time_rotation", stream1.osd.time_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},
+			{"stream1.osd.pos_user_text_x", stream1.osd.pos_user_text_x, 0, [](const int &v) { return v >= -15360 && v <= 15360; }, ""},
+			{"stream1.osd.pos_user_text_y", stream1.osd.pos_user_text_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
+			{"stream1.osd.user_text_transparency", stream1.osd.user_text_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; },  ""},
+            {"stream1.osd.user_text_rotation", stream1.osd.user_text_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},            
+			{"stream1.osd.pos_uptime_x", stream1.osd.pos_uptime_x, -15, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
+			{"stream1.osd.pos_uptime_y", stream1.osd.pos_uptime_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
+			{"stream1.osd.uptime_transparency", stream1.osd.uptime_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
+            {"stream1.osd.uptime_rotation", stream1.osd.uptime_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; },  ""},            
+			{"stream1.osd.pos_logo_x", 	stream1.osd.pos_logo_x, -15, [](const int &v) { return v >= -15360 && v <= 15360; },""},
+			{"stream1.osd.pos_logo_y", 	stream1.osd.pos_logo_y, -10, [](const int &v) { return v >= -15360 && v <= 15360; },  ""},
+			{"stream1.osd.logo_transparency", stream1.osd.logo_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
+            {"stream1.osd.logo_rotation", stream1.osd.logo_rotation, 0, [](const int &v) { return v >= 0 && v <= 360; }, ""},                      
 			{"stream0.rotation", 		stream0.rotation, 0, [](const int &v) { return v >= 0 && v <= 2; }, ""},
 			{"stream0.scale_width", 	stream0.scale_width, 640, [](const int &v) { return v > 0; }, ""},
 			{"stream0.scale_height", 	stream0.scale_height, 360, [](const int &v) { return v > 0; },""},
 			{"stream2.jpeg_quality", 	stream2.jpeg_quality, 75, [](const int &v) { return v > 0 && v <= 100; }, ""},
 			{"stream2.jpeg_refresh", 	stream2.jpeg_refresh, 1000, [](const int &v) { return v > 0; }, ""},
-			{"osd.font_size", 			osd.font_size, 32, [](const int &v) { return v > 0; }, ""},
-			{"osd.font_stroke_size", 	osd.font_stroke_size, 32, [](const int &v) { return v >= 0; },""},
-			{"osd.logo_height", 		osd.logo_height, 30, [](const int &v) { return v > 0; },  ""},
-			{"osd.logo_width", 			osd.logo_width, 100, [](const int &v) { return v > 0; },""},
+			{"stream0.osd.font_size",   stream0.osd.font_size, 64, [](const int &v) { return v > 0; }, ""},
+			{"stream0.osd.font_stroke_size", stream0.osd.font_stroke_size, 64, [](const int &v) { return v >= 0; },""},
+			{"stream0.osd.logo_height", stream0.osd.logo_height, 30, [](const int &v) { return v > 0; },  ""},
+			{"stream0.osd.logo_width",  stream0.osd.logo_width, 100, [](const int &v) { return v > 0; },""},
+			{"stream1.osd.font_size",   stream1.osd.font_size, 32, [](const int &v) { return v > 0; }, ""},
+			{"stream1.osd.font_stroke_size", stream1.osd.font_stroke_size, 32, [](const int &v) { return v >= 0; },""},
+			{"stream1.osd.logo_height", stream1.osd.logo_height, 30, [](const int &v) { return v > 0; },  ""},
+			{"stream1.osd.logo_width",  stream1.osd.logo_width, 100, [](const int &v) { return v > 0; },""},            
 			{"motion.debounce_time", 	motion.debounce_time, 0, [](const int &v) { return v >= 0; },""},
 			{"motion.post_time", 		motion.post_time, 0, [](const int &v) { return v >= 0; },""},
             {"motion.thread_wait", 		motion.thread_wait, 5000, [](const int &v) { return v >= 1000 && v <= 10000; }, ""},
@@ -443,8 +475,10 @@ class CFG {
 
         std::vector<ConfigItem<unsigned int>> uintItems = {
 			{"sensor.i2c_address", 		sensor.i2c_address, 0x37, [](const unsigned int &v) { return v <= 0x7F; },  "/proc/jz/sensor/i2c_addr"},
-			{"osd.font_color", 			osd.font_color, 0xFFFFFFFF, [](const unsigned int &v) { return true; }, ""},
-			{"osd.font_stroke_color", 	osd.font_stroke_color, 0xFF000000, [](const unsigned int &v) { return true; },""},
+			{"stream0.osd.font_color",  stream0.osd.font_color, 0xFFFFFFFF, [](const unsigned int &v) { return true; }, ""},
+			{"stream0.font_stroke_color", stream0.osd.font_stroke_color, 0xFF000000, [](const unsigned int &v) { return true; },""},
+			{"stream1.font_color",      stream1.osd.font_color, 0xFFFFFFFF, [](const unsigned int &v) { return true; }, ""},
+			{"stream1.font_stroke_color", stream1.osd.font_stroke_color, 0xFF000000, [](const unsigned int &v) { return true; },""},            
         };
 #else
         template <typename T>

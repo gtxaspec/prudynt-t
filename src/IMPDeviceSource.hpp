@@ -13,7 +13,7 @@ public:
 
     H264NALUnit wait_read();
     int on_data_available(const H264NALUnit& nalu);
-
+    void deinit();
     int sinkId;
     int encChn;
     std::chrono::high_resolution_clock::time_point streamStart;

@@ -25,7 +25,7 @@ enum
     PNT_AUDIO,
     PNT_STREAM0,
     PNT_STREAM1,
-    PNT_OSD,
+    PNT_STREAM2,
     PNT_MOTION,
     PNT_INFO,
     PNT_ACTION
@@ -39,7 +39,7 @@ static const char *const root_keys[] = {
     "audio",
     "stream0",
     "stream1",
-    "osd",
+    "stream2",
     "motion",
     "info",
     "action"};
@@ -179,41 +179,26 @@ static const char *const audio_keys[] = {
     "output_high_pass_filter"};
 #endif
 
-/* STREAM0 */
+/* STREAM */
 enum
 {
-    PNT_STREAM0_RTSP_ENDPOINT = 1,
-    PNT_STREAM0_SCALE_ENABLED,
-    PNT_STREAM0_FORMAT,
-    PNT_STREAM0_GOP,
-    PNT_STREAM0_MAX_GOP,
-    PNT_STREAM0_FPS,
-    PNT_STREAM0_BUFFERS,
-    PNT_STREAM0_WIDTH,
-    PNT_STREAM0_HEIGHT,
-    PNT_STREAM0_BITRATE,
-    PNT_STREAM0_OSD_POS_TIME_X,
-    PNT_STREAM0_OSD_POS_TIME_Y,
-    PNT_STREAM0_OSD_TIME_TRANSPARENCY,
-    PNT_STREAM0_OSD_TIME_ROTATION,
-    PNT_STREAM0_OSD_POS_USER_TEXT_X,
-    PNT_STREAM0_OSD_POS_USER_TEXT_Y,
-    PNT_STREAM0_OSD_USER_TEXT_TRANSPARENCY,
-    PNT_STREAM0_OSD_USER_TEXT_ROTATION,
-    PNT_STREAM0_OSD_POS_UPTIME_X,
-    PNT_STREAM0_OSD_POS_UPTIME_Y,
-    PNT_STREAM0_OSD_UPTIME_TRANSPARENCY,
-    PNT_STREAM0_OSD_UPTIME_ROTATION,
-    PNT_STREAM0_OSD_POS_LOGO_X,
-    PNT_STREAM0_OSD_POS_LOGO_Y,
-    PNT_STREAM0_OSD_LOGO_TRANSPARENCY,
-    PNT_STREAM0_OSD_LOGO_ROTATION,
-    PNT_STREAM0_ROTATION,
-    PNT_STREAM0_SCALE_WIDTH,
-    PNT_STREAM0_SCALE_HEIGHT
+    PNT_STREAM_RTSP_ENDPOINT = 1,
+    PNT_STREAM_SCALE_ENABLED,
+    PNT_STREAM_FORMAT,
+    PNT_STREAM_GOP,
+    PNT_STREAM_MAX_GOP,
+    PNT_STREAM_FPS,
+    PNT_STREAM_BUFFERS,
+    PNT_STREAM_WIDTH,
+    PNT_STREAM_HEIGHT,
+    PNT_STREAM_BITRATE,
+    PNT_STREAM_ROTATION,
+    PNT_STREAM_SCALE_WIDTH,
+    PNT_STREAM_SCALE_HEIGHT,
+    PNT_STREAM_OSD
 };
 
-static const char *const stream0_keys[] = {
+static const char *const stream_keys[] = {
     "rtsp_endpoint",
     "scale_enabled",
     "format",
@@ -224,27 +209,12 @@ static const char *const stream0_keys[] = {
     "width",
     "height",
     "bitrate",
-    "osd_pos_time_x",
-    "osd_pos_time_y",
-    "osd_time_transparency",
-    "osd_time_rotation",
-    "osd_pos_user_text_x",
-    "osd_pos_user_text_y",
-    "osd_user_text_transparency",
-    "osd_user_text_rotation",
-    "osd_pos_uptime_x",
-    "osd_pos_uptime_y",
-    "osd_uptime_transparency",
-    "osd_uptime_rotation",
-    "osd_pos_logo_x",
-    "osd_pos_logo_y",
-    "osd_logo_transparency",
-    "osd_logo_rotation",
     "rotation",
     "scale_width",
-    "scale_height"};
+    "scale_height",
+    "osd"};
 
-/* STREAM1 */
+/* STREAM2 (JPEG) */
 enum
 {
     PNT_STREAM1_JPEG_ENABLED = 1,
@@ -266,6 +236,22 @@ enum
     PNT_OSD_FONT_STROKE_SIZE,
     PNT_OSD_LOGO_HEIGHT,
     PNT_OSD_LOGO_WIDTH,
+    PNT_OSD_POS_TIME_X,
+    PNT_OSD_POS_TIME_Y,
+    PNT_OSD_TIME_TRANSPARENCY,
+    PNT_OSD_TIME_ROTATION,
+    PNT_OSD_POS_USER_TEXT_X,
+    PNT_OSD_POS_USER_TEXT_Y,
+    PNT_OSD_USER_TEXT_TRANSPARENCY,
+    PNT_OSD_USER_TEXT_ROTATION,
+    PNT_OSD_POS_UPTIME_X,
+    PNT_OSD_POS_UPTIME_Y,
+    PNT_OSD_UPTIME_TRANSPARENCY,
+    PNT_OSD_UPTIME_ROTATION,
+    PNT_OSD_POS_LOGO_X,
+    PNT_OSD_POS_LOGO_Y,
+    PNT_OSD_LOGO_TRANSPARENCY,
+    PNT_OSD_LOGO_ROTATION,    
     PNT_OSD_ENABLED,
     PNT_OSD_TIME_ENABLED,
     PNT_OSD_USER_TEXT_ENABLED,
@@ -278,7 +264,7 @@ enum
     PNT_OSD_USER_TEXT_FORMAT,
     PNT_OSD_LOGO_PATH,
     PNT_OSD_FONT_COLOR,
-    PNT_OSD_FONT_STROKE_COLOR
+    PNT_OSD_FONT_STROKE_COLOR,    
 };
 
 static const char *const osd_keys[] = {
@@ -286,6 +272,22 @@ static const char *const osd_keys[] = {
     "font_stroke_size",
     "logo_height",
     "logo_width",
+    "pos_time_x",
+    "pos_time_y",
+    "time_transparency",
+    "time_rotation",
+    "pos_user_text_x",
+    "pos_user_text_y",
+    "user_text_transparency",
+    "user_text_rotation",
+    "pos_uptime_x",
+    "pos_uptime_y",
+    "uptime_transparency",
+    "uptime_rotation",
+    "pos_logo_x",
+    "pos_logo_y",
+    "logo_transparency",
+    "logo_rotation",      
     "enabled",
     "time_enabled",
     "user_text_enabled",
@@ -298,7 +300,8 @@ static const char *const osd_keys[] = {
     "user_text_format",
     "logo_path",
     "font_color",
-    "font_stroke_color"};
+    "font_stroke_color",  
+    };
 
 /* MOTION */
 enum
@@ -1133,65 +1136,19 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
 }
 #endif
 
-signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
+signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
 {
+    struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
+    u_ctx->path = u_ctx->root + "." + std::string(ctx->path) + std::to_string(u_ctx->flag);
+        
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-
-        struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
-        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
-
-        LOG_DEBUG("stream0_callback: " << u_ctx->path << " = " << (char *)ctx->buf);
+        LOG_DEBUG("stream_callback: " << u_ctx->path << " = " << (char *)ctx->buf);
 
         append_message(
-            "%s\"%s\":", u_ctx->s ? "," : "", stream0_keys[ctx->path_match - 1]);
+            "%s\"%s\":", u_ctx->s ? "," : "", stream_keys[ctx->path_match - 1]);
 
-        if (ctx->path_match >= PNT_STREAM0_OSD_TIME_TRANSPARENCY ||
-            ctx->path_match <= PNT_STREAM0_OSD_USER_TEXT_TRANSPARENCY ||
-            ctx->path_match <= PNT_STREAM0_OSD_UPTIME_TRANSPARENCY ||
-            ctx->path_match <= PNT_STREAM0_OSD_LOGO_TRANSPARENCY)
-        {
-            int hnd;
-            if (reason == LEJPCB_VAL_NUM_INT)
-            {
-
-                if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                {
-
-                    if (ctx->path_match == PNT_STREAM0_OSD_TIME_TRANSPARENCY)
-                    {
-                        hnd = 0;
-                    }
-                    else if (ctx->path_match == PNT_STREAM0_OSD_USER_TEXT_TRANSPARENCY)
-                    {
-                        hnd = 1;
-                    }
-                    else if (ctx->path_match == PNT_STREAM0_OSD_UPTIME_TRANSPARENCY)
-                    {
-                        hnd = 2;
-                    }
-                    else if (ctx->path_match == PNT_STREAM0_OSD_LOGO_TRANSPARENCY)
-                    {
-                        hnd = 3;
-                    }
-
-                    IMPOSDGrpRgnAttr grpRgnAttr;
-                    int ret = IMP_OSD_GetGrpRgnAttr(hnd, 0, &grpRgnAttr);
-                    if (ret == 0)
-                    {
-                        memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
-                        grpRgnAttr.show = 1;
-                        grpRgnAttr.gAlphaEn = 1;
-                        grpRgnAttr.fgAlhpa = u_ctx->ws->cfg->get<int>(u_ctx->path);
-                        IMP_OSD_SetGrpRgnAttr(hnd, 0, &grpRgnAttr);
-                    }
-                };
-            }
-            append_message(
-                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
-        }
-        else if ((ctx->path_match >= PNT_STREAM0_GOP && ctx->path_match <= PNT_STREAM0_OSD_UPTIME_ROTATION) ||
-                 (ctx->path_match >= PNT_STREAM0_ROTATION && ctx->path_match <= PNT_STREAM0_SCALE_HEIGHT))
+        if ((ctx->path_match >= PNT_STREAM_GOP && ctx->path_match <= PNT_STREAM_OSD))
         { // integer values
             if (reason == LEJPCB_VAL_NUM_INT)
                 u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
@@ -1202,13 +1159,13 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
         {
             switch (ctx->path_match)
             {
-            case PNT_STREAM0_RTSP_ENDPOINT:
+            case PNT_STREAM_RTSP_ENDPOINT:
                 if (reason == LEJPCB_VAL_STR_END)
                     u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf);
                 append_message(
                     "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
                 break;
-            case PNT_STREAM0_SCALE_ENABLED:
+            case PNT_STREAM_SCALE_ENABLED:
                 if (reason == LEJPCB_VAL_TRUE)
                 {
                     u_ctx->ws->cfg->set<bool>(u_ctx->path, true);
@@ -1220,101 +1177,17 @@ signed char WS::stream0_callback(struct lejp_ctx *ctx, char reason)
                 append_message(
                     "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
                 break;
-            case PNT_STREAM0_FORMAT:
+            case PNT_STREAM_FORMAT:
                 break;
-            /* handled by if before
-            case PNT_STREAM0_GOP:
-                break;
-            case PNT_STREAM0_MAX_GOP:
-                break;
-            case PNT_STREAM0_FPS:
-                break;
-            case PNT_STREAM0_BUFFERS:
-                break;
-            case PNT_STREAM0_WIDTH:
-                break;
-            case PNT_STREAM0_HEIGHT:
-                break;
-            case PNT_STREAM0_BITRATE:
-                break;
-            case PNT_STREAM0_OSD_POS_TIME_X:
-                break;
-            case PNT_STREAM0_OSD_POS_TIME_Y:
-                break;
-            case PNT_STREAM0_OSD_TIME_TRANSPARENCY:
-                break;
-            case PNT_STREAM0_OSD_TIME_ROTATION:
-                break;
-            case PNT_STREAM0_OSD_POS_USER_TEXT_X:
-                break;
-            case PNT_STREAM0_OSD_POS_USER_TEXT_Y:
-                break;
-            case PNT_STREAM0_OSD_USER_TEXT_TRANSPARENCY:
-                break;
-            case PNT_STREAM0_OSD_USER_TEXT_ROTATION:
-                break;
-            case PNT_STREAM0_OSD_POS_UPTIME_X:
-                break;
-            case PNT_STREAM0_OSD_POS_UPTIME_Y:
-                break;
-            case PNT_STREAM0_OSD_UPTIME_TRANSPARENCY:
-                break;
-            case PNT_STREAM0_OSD_UPTIME_ROTATION:
-                break;
-            */
-            case PNT_STREAM0_OSD_POS_LOGO_X:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
-                    IMPOSDRgnAttr rgnAttr;
-                    memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
-                    if (IMP_OSD_GetRgnAttr(3, &rgnAttr) == 0)
-                    {
-                        OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd_pos_logo_x, u_ctx->ws->cfg->stream0.osd_pos_logo_y);
-                        IMP_OSD_SetRgnAttr(3, &rgnAttr);
-                    }
-                }
-                append_message(
-                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
-                break;
-            case PNT_STREAM0_OSD_POS_LOGO_Y:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
-                    IMPOSDRgnAttr rgnAttr;
-                    memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
-                    if (IMP_OSD_GetRgnAttr(3, &rgnAttr) == 0)
-                    {
-                        OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd_pos_logo_x, u_ctx->ws->cfg->stream0.osd_pos_logo_y);
-                        IMP_OSD_SetRgnAttr(3, &rgnAttr);
-                    }
-                }
-                append_message(
-                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
-                break;
-            /*
-            case PNT_STREAM0_OSD_LOGO_TRANSPARENCY:
-                break;
-            */
-            case PNT_STREAM0_OSD_LOGO_ROTATION:
-                // encoder restart required
-                if (reason == LEJPCB_VAL_NUM_INT)
-                    u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
-                append_message(
-                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
-                break;
-                /*
-                case PNT_STREAM0_ROTATION:
-                    break;
-                case PNT_STREAM0_SCALE_WIDTH:
-                    break;
-                case PNT_STREAM0_SCALE_HEIGHT:
-                    break;
-                */
             };
         }
 
         u_ctx->s = 1;
+    }
+    else if (reason == LECPCB_PAIR_NAME && ctx->path_match == PNT_STREAM_OSD)
+    {
+        lejp_parser_push(ctx, u_ctx,
+                        osd_keys, LWS_ARRAY_SIZE(osd_keys), osd_callback);
     }
     else if (reason == LEJPCB_OBJECT_END)
     {
@@ -1397,15 +1270,58 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
 {
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+
+        LOG_DEBUG("osd_callback: " << u_ctx->path << " = " << (char *)ctx->buf);
 
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", osd_keys[ctx->path_match - 1]);
 
+        if (ctx->path_match >= PNT_OSD_TIME_TRANSPARENCY ||
+            ctx->path_match <= PNT_OSD_USER_TEXT_TRANSPARENCY ||
+            ctx->path_match <= PNT_OSD_UPTIME_TRANSPARENCY ||
+            ctx->path_match <= PNT_OSD_LOGO_TRANSPARENCY)
+        {
+            int hnd;
+            if (reason == LEJPCB_VAL_NUM_INT)
+            {
+                if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                {
+                    if (ctx->path_match == PNT_OSD_TIME_TRANSPARENCY)
+                    {
+                        hnd = 0;
+                    }
+                    else if (ctx->path_match == PNT_OSD_USER_TEXT_TRANSPARENCY)
+                    {
+                        hnd = 1;
+                    }
+                    else if (ctx->path_match == PNT_OSD_UPTIME_TRANSPARENCY)
+                    {
+                        hnd = 2;
+                    }
+                    else if (ctx->path_match == PNT_OSD_LOGO_TRANSPARENCY)
+                    {
+                        hnd = 3;
+                    }
+
+                    IMPOSDGrpRgnAttr grpRgnAttr;
+                    int ret = IMP_OSD_GetGrpRgnAttr(hnd, u_ctx->flag, &grpRgnAttr);
+                    if (ret == 0)
+                    {
+                        memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
+                        grpRgnAttr.show = 1;
+                        grpRgnAttr.gAlphaEn = 1;
+                        grpRgnAttr.fgAlhpa = u_ctx->ws->cfg->get<int>(u_ctx->path);
+                        IMP_OSD_SetGrpRgnAttr(hnd, 0, &grpRgnAttr);
+                    }
+                };
+            }
+            append_message(
+                "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+        }
         // integer
-        if (ctx->path_match >= PNT_OSD_FONT_SIZE && ctx->path_match <= PNT_OSD_LOGO_WIDTH)
+        else if (ctx->path_match >= PNT_OSD_FONT_SIZE && ctx->path_match <= PNT_OSD_LOGO_WIDTH)
         {
             if (reason == LEJPCB_VAL_NUM_INT)
             {
@@ -1413,8 +1329,8 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
             }
             append_message(
                 "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
-            // bool
         }
+        // bool
         else if (ctx->path_match >= PNT_OSD_ENABLED && ctx->path_match <= PNT_OSD_FONT_STROKE_ENABLED)
         {
             if (reason == LEJPCB_VAL_TRUE)
@@ -1427,8 +1343,8 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
             }
             append_message(
                 "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
-            // std::string
         }
+        // std::string
         else if (ctx->path_match >= PNT_OSD_FONT_PATH && ctx->path_match <= PNT_OSD_LOGO_PATH)
         {
             if (reason == LEJPCB_VAL_STR_END)
@@ -1439,8 +1355,8 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
             }
             append_message(
                 "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
-            // unsigned int
         }
+        // unsigned int
         else if (ctx->path_match >= PNT_OSD_FONT_COLOR && ctx->path_match <= PNT_OSD_FONT_STROKE_COLOR)
         {
             if (reason == LEJPCB_VAL_STR_END)
@@ -1451,6 +1367,81 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
             }
             append_message(
                 "\"%#x\"", u_ctx->ws->cfg->get<unsigned int>(u_ctx->path));
+        }        
+        else
+        {
+            switch (ctx->path_match)
+            {
+            case PNT_STREAM_RTSP_ENDPOINT:
+                if (reason == LEJPCB_VAL_STR_END)
+                    u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf);
+                append_message(
+                    "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+                break;
+            case PNT_STREAM_SCALE_ENABLED:
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    u_ctx->ws->cfg->set<bool>(u_ctx->path, true);
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    u_ctx->ws->cfg->set<bool>(u_ctx->path, false);
+                }
+                append_message(
+                    "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                break;
+            case PNT_STREAM_FORMAT:
+                break;
+            case PNT_OSD_POS_LOGO_X:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
+                    IMPOSDRgnAttr rgnAttr;
+                    memset(&rgnAttr, u_ctx->flag, sizeof(IMPOSDRgnAttr));
+                    if (IMP_OSD_GetRgnAttr(3, &rgnAttr) == 0)
+                    {
+                        if(u_ctx->flag == 0) {
+                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd.pos_logo_x, u_ctx->ws->cfg->stream0.osd.pos_logo_y);
+                        } else if(u_ctx->flag == 1) {
+                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream1.osd.pos_logo_x, u_ctx->ws->cfg->stream1.osd.pos_logo_y);
+                        }
+                        IMP_OSD_SetRgnAttr(3, &rgnAttr);
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            case PNT_OSD_POS_LOGO_Y:
+                if (reason == LEJPCB_VAL_NUM_INT)
+                {
+                    u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
+                    IMPOSDRgnAttr rgnAttr;
+                    memset(&rgnAttr, u_ctx->flag, sizeof(IMPOSDRgnAttr));
+                    if (IMP_OSD_GetRgnAttr(3, &rgnAttr) == 0)
+                    {
+                        if(u_ctx->flag == 0) {
+                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd.pos_logo_y, u_ctx->ws->cfg->stream0.osd.pos_logo_y);
+                        } else if(u_ctx->flag == 1) {
+                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream1.osd.pos_logo_y, u_ctx->ws->cfg->stream1.osd.pos_logo_y);
+                        }
+                        IMP_OSD_SetRgnAttr(3, &rgnAttr);
+                    }
+                }
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            /*
+            case PNT_STREAM0_OSD_LOGO_TRANSPARENCY:
+                break;
+            */
+            case PNT_OSD_LOGO_ROTATION:
+                // encoder restart required
+                if (reason == LEJPCB_VAL_NUM_INT)
+                    u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf));
+                append_message(
+                    "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
+                break;
+            };
         }
 
         u_ctx->s = 1;
@@ -1766,16 +1757,18 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
 #endif
 
         case PNT_STREAM0:
+            u_ctx->flag = 0;
             lejp_parser_push(ctx, &u_ctx,
-                             stream0_keys, LWS_ARRAY_SIZE(stream0_keys), stream0_callback);
+                             stream_keys, LWS_ARRAY_SIZE(stream_keys), stream_callback);
             break;
         case PNT_STREAM1:
+            u_ctx->flag = 1;
+            lejp_parser_push(ctx, &u_ctx,
+                             stream_keys, LWS_ARRAY_SIZE(stream_keys), stream_callback);
+            break;
+        case PNT_STREAM2:
             lejp_parser_push(ctx, u_ctx,
                              stream1_keys, LWS_ARRAY_SIZE(stream1_keys), stream1_callback);
-            break;
-        case PNT_OSD:
-            lejp_parser_push(ctx, u_ctx,
-                             osd_keys, LWS_ARRAY_SIZE(osd_keys), osd_callback);
             break;
         case PNT_MOTION:
             lejp_parser_push(ctx, u_ctx,

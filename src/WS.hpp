@@ -39,7 +39,7 @@ class WS {
 #if defined(AUDIO_SUPPORT)           
         static signed char audio_callback(struct lejp_ctx *ctx, char reason);
 #endif
-        static signed char stream0_callback(struct lejp_ctx *ctx, char reason);
+        static signed char stream_callback(struct lejp_ctx *ctx, char reason);
         static signed char stream1_callback(struct lejp_ctx *ctx, char reason);
         static signed char osd_callback(struct lejp_ctx *ctx, char reason);
         static signed char motion_callback(struct lejp_ctx *ctx, char reason);

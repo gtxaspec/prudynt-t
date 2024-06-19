@@ -167,10 +167,10 @@ int OSD::freetype_init() {
     if (error) {
         return error;
     }
-
+    
     error = FT_New_Face(
         freetype,
-        cfg->osd.font_path.c_str(),
+        osd->font_path.c_str(),
         0,
         &fontface
     );
@@ -199,17 +199,17 @@ int OSD::freetype_init() {
 
     FT_Stroker_Set(
         stroker,
-        cfg->osd.font_stroke_size,
+        osd->font_stroke_size,
         FT_STROKER_LINECAP_SQUARE,
         FT_STROKER_LINEJOIN_ROUND,
         0
     );
-    FT_Set_Char_Size(fontface, 0, 32*64, cfg->osd.font_size , cfg->osd.font_size);
+    FT_Set_Char_Size(fontface, 0, 32*64, osd->font_size , osd->font_size);
 
     //Prerender glyphs needed for displaying date & time.
     std::string prerender_list;
 
-    if (cfg->osd.user_text_enabled) {
+    if (osd->user_text_enabled) {
         prerender_list = "0123456789 /:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|;:'\",.<>?`~";
     } else {
         prerender_list = "0123456789 /APM:";
@@ -343,10 +343,10 @@ void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, std::string text, i
         int cpx = pen_x;
         int cpy = pen_y;
 
-    if (cfg->osd.font_stroke_enabled) {
-        draw_glyph(osdItem->data, stroke_bitmaps[text[i]], &cpx, &cpy, item_height, item_width, cfg->osd.font_stroke_color);
+    if (osd->font_stroke_enabled) {
+        draw_glyph(osdItem->data, stroke_bitmaps[text[i]], &cpx, &cpy, item_height, item_width, osd->font_stroke_color);
     }
-        draw_glyph(osdItem->data, bitmaps[text[i]], &pen_x, &pen_y, item_height, item_width, cfg->osd.font_color);
+        draw_glyph(osdItem->data, bitmaps[text[i]], &pen_x, &pen_y, item_height, item_width, osd->font_color);
     }
 
     if(angle) {
@@ -381,11 +381,11 @@ std::unique_ptr<unsigned char[]> loadBGRAImage(const std::string& filepath, size
 }
 
 OSD* OSD::createNew(
-    std::shared_ptr<CFG> cfg,
+    std::shared_ptr<CFG::_osd> osd,
     int osdGrp,
     int encChn
 ) {
-    return new OSD(cfg, osdGrp, encChn);
+    return new OSD(osd, osdGrp, encChn);
 }
 
 void OSD::init() {
@@ -412,7 +412,7 @@ void OSD::init() {
     ret = IMP_OSD_CreateGroup(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_CreateGroup(" << osdGrp << ")");
 
-    if (cfg->osd.time_enabled) {
+    if (osd->time_enabled) {
 
         /* OSD Time */
         osdTime.data = NULL;
@@ -423,8 +423,8 @@ void OSD::init() {
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;
-        set_text(&osdTime, &rgnAttr, cfg->osd.time_format, 
-            cfg->stream0.osd_pos_time_x, cfg->stream0.osd_pos_time_y, cfg->stream0.osd_time_rotation);
+        set_text(&osdTime, &rgnAttr, osd->time_format, 
+            osd->pos_time_x, osd->pos_time_y, osd->time_rotation);
         IMP_OSD_SetRgnAttr(osdTime.imp_rgn, &rgnAttr);
         
         IMPOSDGrpRgnAttr grpRgnAttr;
@@ -432,11 +432,11 @@ void OSD::init() {
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 1;
         grpRgnAttr.gAlphaEn = 0;
-        grpRgnAttr.fgAlhpa = cfg->stream0.osd_time_transparency;
+        grpRgnAttr.fgAlhpa = osd->time_transparency;
         IMP_OSD_SetGrpRgnAttr(osdTime.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
-    if (cfg->osd.user_text_enabled) {
+    if (osd->user_text_enabled) {
 
         /* OSD Usertext */
         osdUser.data = NULL;
@@ -447,8 +447,8 @@ void OSD::init() {
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;       
-        set_text(&osdUser, &rgnAttr, cfg->osd.user_text_format,
-            cfg->stream0.osd_pos_user_text_x, cfg->stream0.osd_pos_user_text_y, cfg->stream0.osd_user_text_rotation);
+        set_text(&osdUser, &rgnAttr, osd->user_text_format,
+            osd->pos_user_text_x, osd->pos_user_text_y, osd->user_text_rotation);
         IMP_OSD_SetRgnAttr(osdUser.imp_rgn, &rgnAttr);
         
         IMPOSDGrpRgnAttr grpRgnAttr;
@@ -456,11 +456,11 @@ void OSD::init() {
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 2;        
         grpRgnAttr.gAlphaEn = 1;
-        grpRgnAttr.fgAlhpa = cfg->stream0.osd_time_transparency;
+        grpRgnAttr.fgAlhpa = osd->time_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUser.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
-    if (cfg->osd.uptime_enabled) {
+    if (osd->uptime_enabled) {
 
         /* OSD Uptime */
         osdUptm.data = NULL;
@@ -471,8 +471,8 @@ void OSD::init() {
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;     
-        set_text(&osdUptm, &rgnAttr, cfg->osd.uptime_format,
-            cfg->stream0.osd_pos_uptime_x, cfg->stream0.osd_pos_uptime_y, cfg->stream0.osd_uptime_rotation);
+        set_text(&osdUptm, &rgnAttr, osd->uptime_format,
+            osd->pos_uptime_x, osd->pos_uptime_y, osd->uptime_rotation);
         IMP_OSD_SetRgnAttr(osdUptm.imp_rgn, &rgnAttr);
         
         IMPOSDGrpRgnAttr grpRgnAttr;
@@ -480,16 +480,16 @@ void OSD::init() {
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 3;       
         grpRgnAttr.gAlphaEn = 1;
-        grpRgnAttr.fgAlhpa = cfg->stream0.osd_time_transparency;
+        grpRgnAttr.fgAlhpa = osd->time_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
-   if (cfg->osd.logo_enabled) {
+   if (osd->logo_enabled) {
 
         /* OSD Logo */
 
         size_t imageSize;
-        auto imageData = loadBGRAImage(cfg->osd.logo_path.c_str(), imageSize);
+        auto imageData = loadBGRAImage(osd->logo_path.c_str(), imageSize);
 
         osdLogo.data = NULL;
         osdLogo.imp_rgn = IMP_OSD_CreateRgn(NULL);
@@ -499,28 +499,28 @@ void OSD::init() {
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
 
         //Verify OSD logo size vs dimensions
-        if ((cfg->osd.logo_width*cfg->osd.logo_height*4) == imageSize) {
+        if ((osd->logo_width*osd->logo_height*4) == imageSize) {
 
             rgnAttr.type = OSD_REG_PIC;
             rgnAttr.fmt = PIX_FMT_BGRA;
             rgnAttr.data.picData.pData = imageData.get();
 
             //Logo rotation
-            int logo_width = cfg->osd.logo_width;
-            int logo_height = cfg->osd.logo_height;
-            if(cfg->stream0.osd_logo_rotation) {
+            int logo_width = osd->logo_width;
+            int logo_height = osd->logo_height;
+            if(osd->logo_rotation) {
                 uint8_t* imageData = static_cast<uint8_t*>(rgnAttr.data.picData.pData);
                 rotateBGRAImage(imageData, logo_width, 
-                    logo_height, cfg->stream0.osd_logo_rotation, false);
+                    logo_height, osd->logo_rotation, false);
                 rgnAttr.data.picData.pData = imageData;
             }
 
-            set_pos(&rgnAttr, cfg->stream0.osd_pos_logo_x, 
-                cfg->stream0.osd_pos_logo_y, logo_width, logo_height, encChn);
+            set_pos(&rgnAttr, osd->pos_logo_x, 
+                osd->pos_logo_y, logo_width, logo_height, encChn);
         } else {
 
-            LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << cfg->osd.logo_width << "*" << 
-                cfg->osd.logo_height << "*4=" << (cfg->osd.logo_width*cfg->osd.logo_height*4));
+            LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << osd->logo_width << "*" << 
+                osd->logo_height << "*4=" << (osd->logo_width*osd->logo_height*4));
         }  
         IMP_OSD_SetRgnAttr(osdLogo.imp_rgn, &rgnAttr);
         
@@ -531,7 +531,7 @@ void OSD::init() {
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 4;       
         grpRgnAttr.gAlphaEn = 1;
-        grpRgnAttr.fgAlhpa = cfg->stream0.osd_logo_transparency;
+        grpRgnAttr.fgAlhpa = osd->logo_transparency;
         IMP_OSD_SetGrpRgnAttr(osdLogo.imp_rgn, osdGrp, &grpRgnAttr);     
     }
 
@@ -655,22 +655,22 @@ void OSD::updateDisplayEverySecond() {
     if (ltime->tm_sec != last_updated_second) {
 
         // Format and update system time 
-        if (cfg->osd.time_enabled) {
+        if (osd->time_enabled) {
 
             char timeFormatted[256];
-            strftime(timeFormatted, sizeof(timeFormatted), cfg->osd.time_format.c_str(), ltime);
+            strftime(timeFormatted, sizeof(timeFormatted), osd->time_format.c_str(), ltime);
             
             IMPOSDRgnAttr rgnAttr;
             IMP_OSD_GetRgnAttr(osdTime.imp_rgn, &rgnAttr);
             set_text(&osdTime, &rgnAttr, std::string(timeFormatted), 
-                cfg->stream0.osd_pos_time_x, cfg->stream0.osd_pos_time_y, cfg->stream0.osd_time_rotation);
+                osd->pos_time_x, osd->pos_time_y, osd->time_rotation);
             IMP_OSD_SetRgnAttr(osdTime.imp_rgn, &rgnAttr);
         }
 
         // Format and update user text !! every 30 seconds !!
-        if (cfg->osd.user_text_enabled && (!(ltime->tm_sec % 30) || last_updated_second == -1)) {
+        if (osd->user_text_enabled && (!(ltime->tm_sec % 30) || last_updated_second == -1)) {
 
-            std::string user_text = cfg->osd.user_text_format;
+            std::string user_text = osd->user_text_format;
 
             std::size_t tokenPos = user_text.find("%hostname");
             if (tokenPos != std::string::npos) {
@@ -689,12 +689,12 @@ void OSD::updateDisplayEverySecond() {
             IMPOSDRgnAttr rgnAttr;
             IMP_OSD_GetRgnAttr(osdUser.imp_rgn, &rgnAttr);
             set_text(&osdUser, &rgnAttr, user_text,
-                cfg->stream0.osd_pos_user_text_x, cfg->stream0.osd_pos_user_text_y, cfg->stream0.osd_user_text_rotation);
+                osd->pos_user_text_x, osd->pos_user_text_y, osd->user_text_rotation);
             IMP_OSD_SetRgnAttr(osdUser.imp_rgn, &rgnAttr);
         }
 
         // Format and update uptime
-        if (cfg->osd.uptime_enabled) {
+        if (osd->uptime_enabled) {
 
             unsigned long currentUptime = getSystemUptime();
             unsigned long hours = currentUptime / 3600;
@@ -702,12 +702,12 @@ void OSD::updateDisplayEverySecond() {
             unsigned long seconds = currentUptime % 60;
 
             char uptimeFormatted[256];
-            snprintf(uptimeFormatted, sizeof(uptimeFormatted), cfg->osd.uptime_format.c_str(), hours, minutes, seconds);
+            snprintf(uptimeFormatted, sizeof(uptimeFormatted), osd->uptime_format.c_str(), hours, minutes, seconds);
 
             IMPOSDRgnAttr rgnAttr;
             IMP_OSD_GetRgnAttr(osdUptm.imp_rgn, &rgnAttr);
             set_text(&osdUptm, &rgnAttr, std::string(uptimeFormatted),
-                cfg->stream0.osd_pos_uptime_x, cfg->stream0.osd_pos_uptime_y, cfg->stream0.osd_uptime_rotation);
+                osd->pos_uptime_x, osd->pos_uptime_y, osd->uptime_rotation);
             IMP_OSD_SetRgnAttr(osdUptm.imp_rgn, &rgnAttr);
         }  
 

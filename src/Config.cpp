@@ -90,6 +90,8 @@ void handleConfigItem(libconfig::Config &lc, ConfigItem<T> &item, std::vector<st
         //LOG_ERROR(item.errorMessage); // Log validation error
         item.value = item.defaultValue; // Revert to default if validation fails
     }
+
+    //std::cout << item.path << " = " << item.value << std::endl;
 }
 
 template<typename T>

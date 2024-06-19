@@ -24,17 +24,24 @@ IMPDeviceSource::IMPDeviceSource(UsageEnvironment &env, int encChn)
 
 IMPDeviceSource::~IMPDeviceSource()
 {
+    deinit();
+}
+
+void IMPDeviceSource::deinit() 
+{
     envir().taskScheduler().deleteEventTrigger(eventTriggerId);
 
     Encoder::remove_sink(sinkId);
 
     auto streamEnd = std::chrono::high_resolution_clock::now();
 
-    LOG_DEBUG("IMPDeviceSource destruct after , encoder channel:" << encChn << ", id:" << sinkId << "after " 
-        << duration_cast<std::chrono::hours>(streamEnd - streamStart).count() << ":"
-        << duration_cast<std::chrono::minutes>(streamEnd - streamStart).count() << ":" 
-        << duration_cast<std::chrono::seconds>(streamEnd - streamStart).count() << "."
-        << duration_cast<std::chrono::milliseconds>(streamEnd - streamStart).count());
+    auto h = duration_cast<std::chrono::hours>(streamEnd - streamStart);
+    auto m = duration_cast<std::chrono::minutes>(streamEnd - streamStart - h);
+    auto s = duration_cast<std::chrono::seconds>(streamEnd - streamStart - h - m);
+    auto ms = duration_cast<std::chrono::milliseconds>(streamEnd - streamStart - h - m - s);
+
+    LOG_DEBUG("IMPDeviceSource destruct after , encoder channel:" << encChn << ", id:" << sinkId << " after:" 
+        << h.count() << ":" << m.count() << ":" << s.count() << "." << ms.count());    
 }
 
 void IMPDeviceSource::doGetNextFrame()

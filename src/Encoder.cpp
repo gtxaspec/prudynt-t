@@ -37,59 +37,26 @@ IMPSensorInfo Encoder::create_sensor_info(std::string sensor)
 
 int Encoder::channel_init(int chn_nr, int grp_nr, IMPEncoderCHNAttr *chn_attr)
 {
-
     int ret;
 
     ret = IMP_Encoder_CreateChn(chn_nr, chn_attr);
-    if (ret < 0)
-    {
-        LOG_ERROR("IMP_Encoder_CreateChn(" << chn_nr << ") == " << ret);
-        return 0;
-    }
-    else
-    {
-        LOG_DEBUG("IMP_Encoder_CreateChn(" << chn_nr << ") created");
-    }
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_CreateChn("<<chn_nr<<", chn_attr)");
 
     ret = IMP_Encoder_RegisterChn(grp_nr, chn_nr);
-    if (ret < 0)
-    {
-        LOG_ERROR("IMP_Encoder_RegisterChn(" << chn_nr << ") == " << ret);
-        return 0;
-    }
-    else
-    {
-        LOG_DEBUG("IMP_Encoder_RegisterChn(" << chn_nr << ") registered");
-    }
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_RegisterChn("<<chn_nr<<", chn_attr)");
+
     return 1;
 }
 
 int Encoder::channel_deinit(int chn_nr)
 {
-
     int ret;
 
     ret = IMP_Encoder_UnRegisterChn(chn_nr);
-    if (ret < 0)
-    {
-        LOG_ERROR("IMP_Encoder_UnRegisterChn(" << chn_nr << ") == " << ret);
-        return 0;
-    }
-    else
-    {
-        LOG_DEBUG("Encoder Channel " << chn_nr << " unregistered");
-    }
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_UnRegisterChn("<<chn_nr<<")");
 
     ret = IMP_Encoder_DestroyChn(chn_nr);
-    if (ret < 0)
-    {
-        LOG_ERROR("IMP_Encoder_DestroyChn(" << chn_nr << ") == " << ret);
-        return 0;
-    }
-    else
-    {
-        LOG_DEBUG("Encoder Channel " << chn_nr << " destroyed");
-    }
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_DestroyChn("<<chn_nr<<")");
 
     return 1;
 }
@@ -114,74 +81,26 @@ int Encoder::system_init()
     LOG_INFO("CPU Information: " << cpuInfo);
 
     ret = IMP_OSD_SetPoolSize(OSDPoolSize);
-    if (ret < 0)
-    {
-        LOG_DEBUG("Error: IMP_OSD_SetPoolSize == " + std::to_string(ret));
-        return ret;
-    }
-    else
-    {
-        LOG_DEBUG("IMP_OSD_SetPoolSize == " + std::to_string(OSDPoolSize));
-    }
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_OSD_SetPoolSize("<<OSDPoolSize<<")");
 
     ret = IMP_ISP_Open();
-    if (ret < 0)
-    {
-        LOG_DEBUG("Error: IMP_ISP_Open() == " + std::to_string(ret));
-        return ret;
-    }
-    else
-    {
-        LOG_DEBUG("ISP Opened!");
-    }
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Open()");
 
     sinfo = create_sensor_info(cfg->sensor.model.c_str());
     ret = IMP_ISP_AddSensor(&sinfo);
-    if (ret < 0)
-    {
-        LOG_DEBUG("Error: IMP_ISP_AddSensor() == " + std::to_string(ret));
-        return ret;
-    }
-    else
-    {
-        LOG_DEBUG("Sensor Added");
-    }
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_AddSensor(&sinfo)");
 
     ret = IMP_ISP_EnableSensor();
-    if (ret < 0)
-    {
-        LOG_DEBUG("Error: IMP_ISP_EnableSensor() == " + std::to_string(ret));
-        return ret;
-    }
-    else
-    {
-        LOG_DEBUG("Sensor Enabled");
-    }
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_EnableSensor()");
 
     ret = IMP_System_Init();
-    if (ret < 0)
-    {
-        LOG_DEBUG("Error: IMP_System_Init() == " + std::to_string(ret));
-        return ret;
-    }
-    else
-    {
-        LOG_DEBUG("IMP System Initialized");
-    }
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Init()");
 
     // Enable tuning.
     // This is necessary to customize the sensor's image output.
     // Denoising, WDR, Night Mode, and FPS customization require this.
     ret = IMP_ISP_EnableTuning();
-    if (ret < 0)
-    {
-        LOG_DEBUG("ERROR: IMP_ISP_EnableTuning() == " + std::to_string(ret));
-        return ret;
-    }
-    else
-    {
-        LOG_DEBUG("IMP_ISP_EnableTuning enabled");
-    }
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_EnableTuning()");
 
     /* Image tuning */
     ret = IMP_ISP_Tuning_SetContrast(cfg->image.contrast);
@@ -397,21 +316,11 @@ int Encoder::system_init()
     LOG_DEBUG("ISP Tuning Defaults set");
 
     ret = IMP_ISP_Tuning_SetSensorFPS(cfg->sensor.fps, 1);
-    if (ret < 0)
-    {
-        LOG_DEBUG("ERROR: IMP_ISP_Tuning_SetSensorFPS() == " + std::to_string(ret));
-        return ret;
-    }
-    LOG_DEBUG("IMP_ISP_Tuning_SetSensorFPS == " + std::to_string(cfg->sensor.fps));
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetSensorFPS("<<cfg->sensor.fps<<", 1);");
 
     // Set the ISP to DAY on launch
     ret = IMP_ISP_Tuning_SetISPRunningMode(IMPISP_RUNNING_MODE_DAY);
-    if (ret < 0)
-    {
-        LOG_DEBUG("ERROR: IMP_ISP_Tuning_SetISPRunningMode() == " + std::to_string(ret));
-        return ret;
-    }
-    LOG_DEBUG("IMP_ISP_Tuning_SetISPRunningMode == " + std::to_string(IMPISP_RUNNING_MODE_DAY));
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetISPRunningMode("<<IMPISP_RUNNING_MODE_DAY<<")");
 
     return ret;
 }
@@ -688,15 +597,17 @@ bool Encoder::init()
         ret = IMP_Encoder_CreateGroup(0);
         LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_CreateGroup(0)");
 
-        if (!cfg->osd.enabled)
+        if (!cfg->stream0.osd.enabled)
         {
 
-            ret = IMP_System_Bind(&low_fs, &low_enc);
-            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&low_fs, &low_enc)");
+            ret = IMP_System_Bind(&high_fs, &high_enc);
+            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&high_fs, &high_enc)");
         }
         else
         {
-            stream0_osd = OSD::createNew(cfg, 0, 0);
+            osdStream0 = true;
+
+            stream0_osd = OSD::createNew(std::make_shared<CFG::_osd>(cfg->stream0.osd), 0, 0);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "osd.init(cfg, 0)");
 
             // high framesource -> high OSD
@@ -718,14 +629,16 @@ bool Encoder::init()
         ret = IMP_Encoder_CreateGroup(1);
         LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_CreateGroup(1)");
 
-        if (!cfg->osd.enabled)
+        if (!cfg->stream1.osd.enabled)
         {
             ret = IMP_System_Bind(&low_fs, &low_enc);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&low_fs, &low_enc)");
         }
         else
         {
-            stream1_osd = OSD::createNew(cfg, 1, 1);
+            osdStream1 = true;
+
+            stream1_osd = OSD::createNew(std::make_shared<CFG::_osd>(cfg->stream1.osd), 1, 1);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "osd.init(cfg, 1)");
 
             // low framesource -> low OSD
@@ -774,29 +687,49 @@ void Encoder::exit()
         LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DisableChn(" << i << ")");
     }
 
-    ret = IMP_System_UnBind(&low_fs, &low_enc);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&low_fs, &low_enc)");
 
-    ret = IMP_System_UnBind(&high_fs, &high_osd_cell);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&high_fs, &high_osd_cell)");
+    if(osdStream0) {
 
-    ret = IMP_System_UnBind(&high_osd_cell, &high_enc);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&high_osd_cell, &high_enc)");
+        stream0_osd->exit();
+        
+        ret = IMP_System_UnBind(&high_fs, &high_osd_cell);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&high_fs, &high_osd_cell)");
 
-    for (int i = 1; i >= 0; i--)
-    {
-        channel_deinit(i);
-        ret = IMP_FrameSource_DestroyChn(i);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DestroyChn(" << i << ")");
+        ret = IMP_System_UnBind(&high_osd_cell, &high_enc);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&high_osd_cell, &high_enc)");
+    } else {
 
-        ret = IMP_Encoder_DestroyGroup(i);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_DestroyGroup(" << i << ")");
+        ret = IMP_System_UnBind(&high_fs, &high_enc);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&high_fs, &high_enc)");
     }
 
-    if (osdInitialized)
-    {
-        stream0_osd->exit();
+    if(osdStream1) {
+
         stream1_osd->exit();
+
+        ret = IMP_System_UnBind(&low_fs, &low_osd_cell);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&low_fs, &low_osd_cell)");
+
+        ret = IMP_System_UnBind(&low_osd_cell, &low_enc);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&low_osd_cell, &low_enc)");
+    } else {
+
+        ret = IMP_System_UnBind(&low_fs, &low_enc);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&low_fs, &low_enc)");
+    }
+
+    for (int i = 2; i >= 0; i--)
+    {
+        channel_deinit(i);
+
+        ret = IMP_FrameSource_DestroyChn(i);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DestroyChn(" << i << ")");
+    }
+
+    for (int i = 2; i >= 0; i--)
+    {
+        ret = IMP_Encoder_DestroyGroup(i);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_DestroyGroup(" << i << ")");
     }
 
     if (motionInitialized)
@@ -1031,7 +964,7 @@ void Encoder::run()
 
     // The encoder thread is very important, but we
     // want sink threads to have higher priority.
-    // nice(-19);
+    nice(-19);
 
     int64_t last_high_nal_ts;
     int64_t last_low_nal_ts;
@@ -1327,11 +1260,15 @@ void Encoder::run()
 
             IMP_Encoder_ReleaseStream(1, &stream1);
 
-            if (cfg->osd.enabled)
+            if (cfg->stream0.osd.enabled)
             {
                 stream0_osd->update();
-                stream1_osd->update();
             }
+
+            if (cfg->stream1.osd.enabled)
+            {
+                stream1_osd->update();
+            }            
 
             last_high_nal_ts = high_nal_ts;
             last_low_nal_ts = low_nal_ts;
@@ -1344,7 +1281,5 @@ void Encoder::run()
             IMP_Encoder_StopRecvPic(1);
             exit();
         }
-
-        usleep(1000);
     }
 }

@@ -133,7 +133,8 @@ class Encoder {
 		std::thread jpeg_thread;
 		void jpeg_snap(std::shared_ptr<CFG>& cfg);
 
-		bool osdInitialized{0};
+		bool osdStream0 = false;
+		bool osdStream1 = false;
 		bool motionInitialized{0};
 };
 

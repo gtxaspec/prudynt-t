@@ -80,6 +80,7 @@ void RTSP::run() {
                         // No VPS in H264, so no need to check for it
                     }
                 }
+                deviceSource->deinit();
                 Encoder::remove_sink(deviceSource->sinkId);
                 LOG_DEBUG("Got necessary NAL Units.");
 
@@ -134,6 +135,7 @@ void RTSP::run() {
                         // No VPS in H264, so no need to check for it
                     }
                 }
+                deviceSource->deinit();
                 Encoder::remove_sink(deviceSource->sinkId);
                 LOG_DEBUG("Got necessary NAL Units.");
 
