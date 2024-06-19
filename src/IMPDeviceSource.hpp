@@ -11,28 +11,25 @@ public:
     static IMPDeviceSource* createNew(UsageEnvironment& env, int encChn);
 
     H264NALUnit wait_read();
-    virtual void doGetNextFrame() override;
-
-public:
-    void signal_new_data();
     int on_data_available(const H264NALUnit& nalu);
-    uint32_t sink_id;
+
+    int sinkId;
+    int encChn;
+    clock_t startTime;
+
+    EventTriggerId eventTriggerId;
 
 protected:
     IMPDeviceSource(UsageEnvironment& env, int encChn);
     virtual ~IMPDeviceSource();
 
 private:
-    
+    virtual void doGetNextFrame();
     static void deliverFrame0(void* clientData);
     void deliverFrame();
  
-    int encChn;
-    EventTriggerId eventTriggerId;
     std::queue<H264NALUnit> nalQueue;
     std::mutex queueMutex;  
-    bool doLog; 
-    IMPDeviceSource * _IMPDeviceSource = NULL;
 };
 
 #endif

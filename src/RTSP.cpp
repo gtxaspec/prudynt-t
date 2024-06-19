@@ -39,6 +39,7 @@ void RTSP::run() {
             }
             OutPacketBuffer::maxSize = cfg->rtsp.out_buffer_size;
 
+            
             if(1) {
                 LOG_DEBUG("identify stream 0");
                 IMPDeviceSource* deviceSource = IMPDeviceSource::createNew(*env, 0);
@@ -79,7 +80,7 @@ void RTSP::run() {
                         // No VPS in H264, so no need to check for it
                     }
                 }
-                Encoder::remove_sink(deviceSource->sink_id);
+                Encoder::remove_sink(deviceSource->sinkId);
                 LOG_DEBUG("Got necessary NAL Units.");
 
                 ServerMediaSession *sms = ServerMediaSession::createNew(
@@ -133,7 +134,7 @@ void RTSP::run() {
                         // No VPS in H264, so no need to check for it
                     }
                 }
-                Encoder::remove_sink(deviceSource->sink_id);
+                Encoder::remove_sink(deviceSource->sinkId);
                 LOG_DEBUG("Got necessary NAL Units.");
 
                 ServerMediaSession *sms = ServerMediaSession::createNew(

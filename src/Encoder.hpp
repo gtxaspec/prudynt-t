@@ -81,6 +81,7 @@ class Encoder {
 			LOG_DEBUG("Create Sink: " << Encoder::sink_id << ", encChn:" << encChn);
 			std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
 			Encoder::sinks[Encoder::sink_id] = EncoderSink{name, encChn, false, [c](const H264NALUnit& nalu) { return c->on_data_available(nalu); }};
+			Encoder::flush(encChn);
 			return Encoder::sink_id++;
 		}
 
@@ -134,7 +135,6 @@ class Encoder {
 
 		bool osdInitialized{0};
 		bool motionInitialized{0};
-		bool doLog = false;
 };
 
 #endif

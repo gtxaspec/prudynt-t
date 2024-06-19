@@ -3,28 +3,31 @@
 #include "GroupsockHelper.hh"
 #include <chrono>
 
-IMPDeviceSource* IMPDeviceSource::createNew(UsageEnvironment& env, int encChn) {
+IMPDeviceSource *IMPDeviceSource::createNew(UsageEnvironment &env, int encChn)
+{
     return new IMPDeviceSource(env, encChn);
 }
 
-IMPDeviceSource::IMPDeviceSource(UsageEnvironment& env, int encChn)
-    : FramedSource(env), encChn(encChn), eventTriggerId(0), doLog(0)
+IMPDeviceSource::IMPDeviceSource(UsageEnvironment &env, int encChn)
+    : FramedSource(env), encChn(encChn), eventTriggerId(0), startTime(clock())
 {
-    sink_id = Encoder::connect_sink(this, "IMPDeviceSource", encChn);
+    sinkId = Encoder::connect_sink(this, "IMPDeviceSource", encChn);
 
-    if (eventTriggerId == 0) {
+    if (eventTriggerId == 0)
+    {
         eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
     }
 
-    _IMPDeviceSource = static_cast<IMPDeviceSource *>(this);
-
-    LOG_DEBUG("Device source construct, encChn:" << encChn << ", sink_id:" << sink_id << ", enevtTriggerId:" << eventTriggerId); 
+    LOG_DEBUG("IMPDeviceSource construct, encoder channel:" << encChn << ", id:" << sinkId);
 }
 
-IMPDeviceSource::~IMPDeviceSource() {
+IMPDeviceSource::~IMPDeviceSource()
+{
     envir().taskScheduler().deleteEventTrigger(eventTriggerId);
-    Encoder::remove_sink(sink_id);
-    LOG_DEBUG("Device source destruct, encChn:" << encChn << ", sink_id:" << sink_id << ", enevtTriggerId:" << eventTriggerId); 
+
+    Encoder::remove_sink(sinkId);
+
+    LOG_DEBUG("IMPDeviceSource destruct, encoder channel:" << encChn << ", id:" << sinkId);
 }
 
 void IMPDeviceSource::doGetNextFrame()
@@ -32,18 +35,21 @@ void IMPDeviceSource::doGetNextFrame()
     deliverFrame();
 }
 
-void IMPDeviceSource::deliverFrame0(void* clientData)
+void IMPDeviceSource::deliverFrame0(void *clientData)
 {
-    ((IMPDeviceSource*)clientData)->deliverFrame();
+    ((IMPDeviceSource *)clientData)->deliverFrame();
 }
 
-H264NALUnit IMPDeviceSource::wait_read() {
+H264NALUnit IMPDeviceSource::wait_read()
+{
 
-    LOG_DEBUG("H264NALUnit IMPDeviceSource::wait_read()");
+    LOG_DEBUG("wait_read()");
 
-    while (nalQueue.empty()) {
-        usleep(1000*1000);
-        LOG_DEBUG("H264NALUnit IMPDeviceSource::wait_read(), nalQueue.empty(), wait for data.");
+    while (nalQueue.empty())
+    {
+
+        usleep(1000 * 1000);
+        LOG_DEBUG("wait_read(), nalQueue.empty(), wait for data.");
     }
 
     H264NALUnit nal = nalQueue.front();
@@ -51,77 +57,60 @@ H264NALUnit IMPDeviceSource::wait_read() {
     return nal;
 }
 
-void IMPDeviceSource::deliverFrame() {
+void IMPDeviceSource::deliverFrame()
+{
 
-    if(doLog) LOG_DEBUG("void IMPDeviceSource::deliverFrame() START, encChn:" 
-        << encChn << ", sink_id:" << sink_id << ", enevtTriggerId:" << eventTriggerId); 
-
-    if (!isCurrentlyAwaitingData()) {
-        return;
-    }
-
-    if(doLog) LOG_DEBUG("void IMPDeviceSource::deliverFrame() STEP1, encChn:" 
-        << encChn << ", sink_id:" << sink_id << ", enevtTriggerId:" << eventTriggerId); 
+    if (!isCurrentlyAwaitingData()) return;
 
     std::unique_lock<std::mutex> lock(queueMutex);
 
-    if(doLog) LOG_DEBUG("void IMPDeviceSource::deliverFrame() STEP2, encChn:" 
-        << encChn << ", sink_id:" << sink_id << ", enevtTriggerId:" << eventTriggerId); 
+    if (!nalQueue.empty())
+    {
 
-    if (!nalQueue.empty()) {
         H264NALUnit nal = nalQueue.front();
         nalQueue.pop();
         lock.unlock();
 
-        if(doLog) LOG_DEBUG("void IMPDeviceSource::deliverFrame() STEP3, encChn:" 
-            << encChn << ", sink_id:" << sink_id << ", enevtTriggerId:" << eventTriggerId << ", data.size():" << nal.data.size()); 
-
-        if (nal.data.size() > fMaxSize) {
+        if (nal.data.size() > fMaxSize)
+        {
             fFrameSize = fMaxSize;
             fNumTruncatedBytes = nal.data.size() - fMaxSize;
-        } else {
+        }
+        else
+        {
             fFrameSize = nal.data.size();
         }
         fPresentationTime = nal.time;
         fDurationInMicroseconds = nal.duration;
         memcpy(fTo, &nal.data[0], fFrameSize);
 
-        if(fFrameSize > 0) {
+        if (fFrameSize > 0)
+        {
             FramedSource::afterGetting(this);
         }
-    } else {
+    }
+    else
+    {
         lock.unlock();
         fFrameSize = 0;
     }
-
-    if(doLog) LOG_DEBUG("void IMPDeviceSource::deliverFrame() EXIT, encChn:" 
-        << encChn << ", sink_id:" << sink_id << ", enevtTriggerId:" << eventTriggerId); 
 }
 
-void IMPDeviceSource::signal_new_data() {
-    envir().taskScheduler().triggerEvent(eventTriggerId, _IMPDeviceSource);
-}
-
-int IMPDeviceSource::on_data_available(const H264NALUnit& nal) {
-
-    if(doLog) LOG_DEBUG("int IMPDeviceSource::on_data_available(const H264NALUnit& nal) START, encChn:" 
-        << encChn << ", sink_id:" << sink_id << ", enevtTriggerId:" << eventTriggerId); 
-
+int IMPDeviceSource::on_data_available(const H264NALUnit &nal)
+{
     std::unique_lock<std::mutex> lock(queueMutex);
-    int r = 0;
-    while(nalQueue.size() >= 30) {
-      nalQueue.pop();
-      r++;
-      doLog = true;
+
+    int dropCount = 0;
+    while (nalQueue.size() >= 30)
+    {
+        nalQueue.pop();
+        dropCount++;
     }
 
     nalQueue.push(nal);
     lock.unlock();
 
-    //envir().taskScheduler().triggerEvent(eventTriggerId, this);
-    _IMPDeviceSource->signal_new_data();
+    envir().taskScheduler().triggerEvent(eventTriggerId, this);
 
-    if(doLog) LOG_DEBUG("int IMPDeviceSource::on_data_available(const H264NALUnit& nal) START, encChn:" 
-        << encChn << ", sink_id:" << sink_id << ", enevtTriggerId:" << eventTriggerId); 
-    return r;
+    return dropCount;
 }
