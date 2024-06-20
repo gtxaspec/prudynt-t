@@ -381,7 +381,7 @@ std::unique_ptr<unsigned char[]> loadBGRAImage(const std::string& filepath, size
 }
 
 OSD* OSD::createNew(
-    std::shared_ptr<CFG::_osd> osd,
+    _osd *osd,
     int osdGrp,
     int encChn
 ) {
@@ -418,6 +418,7 @@ void OSD::init() {
         osdTime.data = NULL;
         osdTime.imp_rgn = IMP_OSD_CreateRgn(NULL);
         IMP_OSD_RegisterRgn(osdTime.imp_rgn, osdGrp, NULL);
+        osd->regions.time = osdTime.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
@@ -442,6 +443,7 @@ void OSD::init() {
         osdUser.data = NULL;
         osdUser.imp_rgn = IMP_OSD_CreateRgn(NULL);
         IMP_OSD_RegisterRgn(osdUser.imp_rgn, osdGrp, NULL);
+        osd->regions.user = osdUser.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
@@ -466,6 +468,7 @@ void OSD::init() {
         osdUptm.data = NULL;
         osdUptm.imp_rgn = IMP_OSD_CreateRgn(NULL);
         IMP_OSD_RegisterRgn(osdUptm.imp_rgn, osdGrp, NULL);
+        osd->regions.uptime = osdUptm.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
@@ -494,6 +497,7 @@ void OSD::init() {
         osdLogo.data = NULL;
         osdLogo.imp_rgn = IMP_OSD_CreateRgn(NULL);
         IMP_OSD_RegisterRgn(osdLogo.imp_rgn, osdGrp, NULL);
+        osd->regions.logo = osdLogo.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));

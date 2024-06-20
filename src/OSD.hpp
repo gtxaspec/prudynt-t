@@ -23,8 +23,8 @@ struct OSDItem {
 
 class OSD {
     public:
-        static OSD* createNew(std::shared_ptr<CFG::_osd> osd,int osdGrp, int encChn);
-        OSD(std::shared_ptr<CFG::_osd> osd, int osdGrp, int encChn) : osd(osd), osdGrp(osdGrp), encChn(encChn) {
+        static OSD* createNew(_osd *osd,int osdGrp, int encChn);
+        OSD(_osd *osd, int osdGrp, int encChn) : osd(osd), osdGrp(osdGrp), encChn(encChn) {
             init();
         }
         void init();
@@ -36,7 +36,7 @@ class OSD {
         static void set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width = 0, int height = 0, int encChn = 0);
         static int get_abs_pos(int max, int size, int pos);            
     private:
-        std::shared_ptr<CFG::_osd> osd;
+        _osd *osd;
 
         int last_updated_second;
 

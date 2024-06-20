@@ -71,150 +71,160 @@ struct uintEntry {
 };
 #endif
 
+struct _regions {
+    int time;
+    int user;
+    int uptime;
+    int logo;
+};
+struct _general {
+    std::string loglevel;
+};
+struct _rtsp {
+    int port;
+    int est_bitrate;
+    int out_buffer_size;
+    int send_buffer_size;		
+    bool auth_required;
+    std::string username;
+    std::string password;
+    std::string name;
+};
+struct _sensor {
+    int fps;
+    int width;
+    int height;
+    std::string model;
+    unsigned int i2c_address;
+};
+struct _image {
+    int contrast;
+    int sharpness;
+    int saturation;
+    int brightness;
+    int hue;
+    int sinter_strength;
+    int temper_strength;
+    bool vflip;
+    bool hflip;
+    int running_mode;
+    int anti_flicker;
+    int ae_compensation;
+    int dpc_strength;
+    int defog_strength;
+    int drc_strength;
+    int highlight_depress;
+    int backlight_compensation;
+    int max_again;
+    int max_dgain;
+    int core_wb_mode;
+    int wb_rgain;
+    int wb_bgain;
+
+};
+#if defined(AUDIO_SUPPORT)        
+struct _audio {
+    bool input_enabled;
+    int input_vol;
+    int input_gain;
+    int input_alc_gain;
+    bool output_enabled;            
+    int output_vol;
+    int output_gain;
+    int input_noise_suppression;            
+    bool input_echo_cancellation;
+    bool input_high_pass_filter;
+    bool output_high_pass_filter;
+};
+#endif      
+struct _osd {            
+    int font_size;
+    int font_stroke_size;
+    int logo_height;
+    int logo_width;
+    int pos_time_x;
+    int pos_time_y;
+    int time_transparency;
+    int time_rotation;
+    int pos_user_text_x;
+    int pos_user_text_y;
+    int user_text_transparency;
+    int user_text_rotation;
+    int pos_uptime_x;
+    int pos_uptime_y;
+    int uptime_transparency;
+    int uptime_rotation;
+    int pos_logo_x;
+    int pos_logo_y;
+    int logo_transparency;
+    int logo_rotation;            
+    bool enabled;            
+    bool time_enabled;
+    bool user_text_enabled;
+    bool uptime_enabled;
+    bool logo_enabled;
+    bool font_stroke_enabled;            
+    std::string font_path;
+    std::string time_format;
+    std::string uptime_format;
+    std::string user_text_format;
+    std::string logo_path;
+    unsigned int font_color;
+    unsigned int font_stroke_color;
+    _regions regions;
+};  
+struct _stream {
+    int gop;
+    int max_gop;
+    int fps;
+    int buffers;
+    int width;
+    int height;
+    int bitrate;
+    int rotation;
+    int scale_width;
+    int scale_height;
+    int profile;
+    bool enabled;
+    bool scale_enabled;
+    std::string rtsp_endpoint;
+    std::string format;
+    /* JPEG stream*/
+    int jpeg_quality;
+    int jpeg_refresh;
+    std::string jpeg_path;  
+    _osd osd;          
+};	
+struct _motion {
+    int debounce_time;
+    int post_time;
+    int cooldown_time;
+    int init_time;
+    int thread_wait;
+    int sensitivity;
+    int skip_frame_count;
+    int frame_width;
+    int frame_height;
+    int roi_0_x;
+    int roi_0_y;
+    int roi_1_x;
+    int roi_1_y;
+    int roi_count;
+    bool enabled;
+    std::string script_path;
+    std::array<roi, 52> rois;
+};
+struct _websocket {
+    bool enabled;
+    bool secured;
+    int port;
+    int loglevel;
+    std::string name;
+};
+
 class CFG {
 	public:
-		struct _general {
-			std::string loglevel;
-		};
-		struct _rtsp {
-			int port;
-			int est_bitrate;
-			int out_buffer_size;
-			int send_buffer_size;		
-			bool auth_required;
-			std::string username;
-			std::string password;
-			std::string name;
-		};
-		struct _sensor {
-			int fps;
-			int width;
-			int height;
-			std::string model;
-			unsigned int i2c_address;
-		};
-		struct _image {
-            int contrast;
-            int sharpness;
-            int saturation;
-            int brightness;
-            int hue;
-            int sinter_strength;
-            int temper_strength;
-            bool vflip;
-            bool hflip;
-            int running_mode;
-            int anti_flicker;
-            int ae_compensation;
-            int dpc_strength;
-            int defog_strength;
-            int drc_strength;
-            int highlight_depress;
-            int backlight_compensation;
-            int max_again;
-            int max_dgain;
-            int core_wb_mode;
-            int wb_rgain;
-            int wb_bgain;
 
-        };
-#if defined(AUDIO_SUPPORT)        
-        struct _audio {
-            bool input_enabled;
-            int input_vol;
-            int input_gain;
-            int input_alc_gain;
-            bool output_enabled;            
-            int output_vol;
-            int output_gain;
-            int input_noise_suppression;            
-            bool input_echo_cancellation;
-            bool input_high_pass_filter;
-            bool output_high_pass_filter;
-        };
-#endif      
-		struct _osd {            
-			int font_size;
-			int font_stroke_size;
-			int logo_height;
-			int logo_width;
-			int pos_time_x;
-			int pos_time_y;
-			int time_transparency;
-            int time_rotation;
-			int pos_user_text_x;
-			int pos_user_text_y;
-			int user_text_transparency;
-            int user_text_rotation;
-			int pos_uptime_x;
-			int pos_uptime_y;
-			int uptime_transparency;
-            int uptime_rotation;
-			int pos_logo_x;
-			int pos_logo_y;
-			int logo_transparency;
-            int logo_rotation;            
-			bool enabled;            
-			bool time_enabled;
-			bool user_text_enabled;
-			bool uptime_enabled;
-            bool logo_enabled;
-			bool font_stroke_enabled;            
-			std::string font_path;
-			std::string time_format;
-			std::string uptime_format;
-			std::string user_text_format;
-			std::string logo_path;
-			unsigned int font_color;
-			unsigned int font_stroke_color;
-		};  
-        struct _stream {
-			int gop;
-			int max_gop;
-			int fps;
-			int buffers;
-			int width;
-			int height;
-			int bitrate;
-			int rotation;
-			int scale_width;
-			int scale_height;
-            bool enabled;
-			bool scale_enabled;
-			std::string rtsp_endpoint;
-			std::string format;
-            /* JPEG stream*/
-			int jpeg_quality;
-			int jpeg_refresh;
-			std::string jpeg_path;  
-            _osd osd;          
-		};	
-		struct _motion {
-			int debounce_time;
-			int post_time;
-			int cooldown_time;
-			int init_time;
-            int thread_wait;
-			int sensitivity;
-			int skip_frame_count;
-			int frame_width;
-			int frame_height;
-			int roi_0_x;
-			int roi_0_y;
-			int roi_1_x;
-			int roi_1_y;
-			int roi_count;
-			bool enabled;
-			std::string script_path;
-            std::array<roi, 52> rois;
-		};
-        struct _websocket {
-            bool enabled;
-            bool secured;
-            int port;
-            int loglevel;
-            std::string name;
-        };
         bool config_loaded = false;
         libconfig::Config lc;
         std::string filePath;
@@ -247,7 +257,6 @@ class CFG {
         char volatile rtsp_thread_signal{0};
         // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
         std::atomic<int> motion_thread_signal{1};
-
 #if defined(OLD_CONFIG)
 
     template <typename T>
@@ -402,14 +411,16 @@ class CFG {
 			{"stream0.buffers", 		stream0.buffers, 1, [](const int &v) { return v > 0 && v <= 32; }, ""},
 			{"stream0.width", 			stream0.width, 1920, [](const int &v) { return v > 0; },  "/proc/jz/sensor/width"},
 			{"stream0.height", 			stream0.height, 1080, [](const int &v) { return v > 0; },"/proc/jz/sensor/height"},
-			{"stream0.bitrate", 		stream0.bitrate, 1000, [](const int &v) { return v > 0; }, ""},
+			{"stream0.bitrate", 		stream0.bitrate, 1500, [](const int &v) { return v > 0; }, ""},
+            {"stream0.profile", 		stream0.profile, 2, [](const int &v) { return v >= 0 && v <= 2; }, ""},
 			{"stream1.gop", 			stream1.gop, 20, [](const int &v) { return v > 0; }, ""},
 			{"stream1.max_gop", 		stream1.max_gop, 60, [](const int &v) { return v > 0; }, ""},
 			{"stream1.fps", 			stream1.fps, 24, [](const int &v) { return v > 0 && v <= 60; }, ""},
 			{"stream1.buffers", 		stream1.buffers, 1, [](const int &v) { return v > 0 && v <= 32; }, ""},
 			{"stream1.width", 			stream1.width, 640, [](const int &v) { return v > 0; },  ""},
 			{"stream1.height", 			stream1.height, 340, [](const int &v) { return v > 0; },""},
-			{"stream1.bitrate", 		stream1.bitrate, 500, [](const int &v) { return v > 0; }, ""},            
+			{"stream1.bitrate", 		stream1.bitrate, 500, [](const int &v) { return v > 0; }, ""},  
+            {"stream1.profile", 		stream1.profile, 2, [](const int &v) { return v >= 0 && v <= 2; }, ""},          
 			{"stream0.osd.pos_time_x", 	stream0.osd.pos_time_x, 15, [](const int &v) { return v >= -15360 && v <= 15360; },""},
 			{"stream0.osd.pos_time_y", 	stream0.osd.pos_time_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; }, ""},
 			{"stream0.osd.time_transparency", stream0.osd.time_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, ""},
@@ -609,7 +620,7 @@ class CFG {
 			{"stream0.buffers", 		intEntry{stream0.buffers, 2, [](const int &v) { return v > 0 && v <= 32; }, "Number of buffers for stream 0, must be between 1 and 32", ""}},
 			{"stream0.width", 			intEntry{stream0.width, 1920, [](const int &v) { return v > 0; }, "Width of stream 0 in pixels", "/proc/jz/sensor/width"}},
 			{"stream0.height", 			intEntry{stream0.height, 1080, [](const int &v) { return v > 0; }, "Height of stream 0 in pixels", "/proc/jz/sensor/height"}},
-			{"stream0.bitrate", 		intEntry{stream0.bitrate, 1000, [](const int &v) { return v > 0; }, "Bitrate for stream 0, must be greater than 0", ""}},
+			{"stream0.bitrate", 		intEntry{stream0.bitrate, 2000, [](const int &v) { return v > 0; }, "Bitrate for stream 0, must be greater than 0", ""}},
 			{"stream0.osd_pos_time_x", 	intEntry{stream0.osd_pos_time_x, 15, [](const int &v) { return v >= -15360 && v <= 15360; }, "X position for OSD in stream 0", ""}},
 			{"stream0.osd_pos_time_y", 	intEntry{stream0.osd_pos_time_y, 10, [](const int &v) { return v >= -15360 && v <= 15360; }, "Y position for OSD in stream 0", ""}},
 			{"stream0.osd_time_transparency", intEntry{stream0.osd_time_transparency, 255, [](const int &v) { return v >= 0 && v <= 255; }, "Transparency for time OSD in stream 0", ""}},

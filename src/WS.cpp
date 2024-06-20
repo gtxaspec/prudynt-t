@@ -232,32 +232,36 @@ static const char *const stream1_keys[] = {
 /* OSD */
 enum
 {
-    PNT_OSD_FONT_SIZE = 1,
+    PNT_OSD_TIME_TRANSPARENCY = 1,    
+    PNT_OSD_USER_TEXT_TRANSPARENCY,
+    PNT_OSD_UPTIME_TRANSPARENCY,   
+    PNT_OSD_LOGO_TRANSPARENCY, 
+
+    PNT_OSD_FONT_SIZE,
     PNT_OSD_FONT_STROKE_SIZE,
     PNT_OSD_LOGO_HEIGHT,
     PNT_OSD_LOGO_WIDTH,
     PNT_OSD_POS_TIME_X,
     PNT_OSD_POS_TIME_Y,
-    PNT_OSD_TIME_TRANSPARENCY,
     PNT_OSD_TIME_ROTATION,
     PNT_OSD_POS_USER_TEXT_X,
     PNT_OSD_POS_USER_TEXT_Y,
-    PNT_OSD_USER_TEXT_TRANSPARENCY,
     PNT_OSD_USER_TEXT_ROTATION,
     PNT_OSD_POS_UPTIME_X,
     PNT_OSD_POS_UPTIME_Y,
-    PNT_OSD_UPTIME_TRANSPARENCY,
     PNT_OSD_UPTIME_ROTATION,
+
     PNT_OSD_POS_LOGO_X,
     PNT_OSD_POS_LOGO_Y,
-    PNT_OSD_LOGO_TRANSPARENCY,
     PNT_OSD_LOGO_ROTATION,    
+
     PNT_OSD_ENABLED,
     PNT_OSD_TIME_ENABLED,
     PNT_OSD_USER_TEXT_ENABLED,
     PNT_OSD_UPTIME_ENABLED,
     PNT_OSD_LOGO_ENABLED,
     PNT_OSD_FONT_STROKE_ENABLED,
+
     PNT_OSD_FONT_PATH,
     PNT_OSD_TIME_FORMAT,
     PNT_OSD_UPTIME_FORMAT,
@@ -268,26 +272,29 @@ enum
 };
 
 static const char *const osd_keys[] = {
+    "time_transparency",
+    "user_text_transparency",
+    "uptime_transparency",
+    "logo_transparency",
+
     "font_size",
     "font_stroke_size",
     "logo_height",
     "logo_width",
     "pos_time_x",
     "pos_time_y",
-    "time_transparency",
     "time_rotation",
     "pos_user_text_x",
     "pos_user_text_y",
-    "user_text_transparency",
     "user_text_rotation",
     "pos_uptime_x",
     "pos_uptime_y",
-    "uptime_transparency",
     "uptime_rotation",
+
     "pos_logo_x",
     "pos_logo_y",
-    "logo_transparency",
     "logo_rotation",      
+
     "enabled",
     "time_enabled",
     "user_text_enabled",
@@ -1139,11 +1146,11 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
 signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
 {
     struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
-    u_ctx->path = u_ctx->root + "." + std::string(ctx->path) + std::to_string(u_ctx->flag);
+    u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
         
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        LOG_DEBUG("stream_callback: " << u_ctx->path << " = " << (char *)ctx->buf);
+        //LOG_DEBUG("stream_callback: " << u_ctx->path << " = " << (char *)ctx->buf);
 
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", stream_keys[ctx->path_match - 1]);
@@ -1186,6 +1193,10 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
     }
     else if (reason == LECPCB_PAIR_NAME && ctx->path_match == PNT_STREAM_OSD)
     {
+
+        append_message(
+            "%s\"%s\":", u_ctx->s ? "," : "", stream_keys[ctx->path_match - 1]);
+
         lejp_parser_push(ctx, u_ctx,
                         osd_keys, LWS_ARRAY_SIZE(osd_keys), osd_callback);
     }
@@ -1273,14 +1284,12 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
         u_ctx->path = u_ctx->path + "." + std::string(ctx->path);
 
-        LOG_DEBUG("osd_callback: " << u_ctx->path << " = " << (char *)ctx->buf);
+        //LOG_DEBUG("osd_callback: " << u_ctx->path << " = " << (char *)ctx->buf << ", " << ctx->path_match);
 
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", osd_keys[ctx->path_match - 1]);
 
-        if (ctx->path_match >= PNT_OSD_TIME_TRANSPARENCY ||
-            ctx->path_match <= PNT_OSD_USER_TEXT_TRANSPARENCY ||
-            ctx->path_match <= PNT_OSD_UPTIME_TRANSPARENCY ||
+        if (ctx->path_match >= PNT_OSD_TIME_TRANSPARENCY &&
             ctx->path_match <= PNT_OSD_LOGO_TRANSPARENCY)
         {
             int hnd;
@@ -1288,32 +1297,41 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
             {
                 if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
                 {
-                    if (ctx->path_match == PNT_OSD_TIME_TRANSPARENCY)
-                    {
-                        hnd = 0;
+
+                    _regions regions;
+
+                    if(u_ctx->flag==0) {
+                        regions = u_ctx->ws->cfg->stream0.osd.regions; 
+                    } else if(u_ctx->flag==1) {
+                        regions = u_ctx->ws->cfg->stream1.osd.regions; 
                     }
-                    else if (ctx->path_match == PNT_OSD_USER_TEXT_TRANSPARENCY)
+
+                    switch (ctx->path_match)
                     {
-                        hnd = 1;
-                    }
-                    else if (ctx->path_match == PNT_OSD_UPTIME_TRANSPARENCY)
-                    {
-                        hnd = 2;
-                    }
-                    else if (ctx->path_match == PNT_OSD_LOGO_TRANSPARENCY)
-                    {
-                        hnd = 3;
+                    case PNT_OSD_TIME_TRANSPARENCY:
+                        hnd = regions.time;
+                        break;
+                    case PNT_OSD_USER_TEXT_TRANSPARENCY:
+                        hnd = regions.user;
+                        break;
+                    case PNT_OSD_UPTIME_TRANSPARENCY:
+                        hnd = regions.uptime;;
+                        break;
+                    case PNT_OSD_LOGO_TRANSPARENCY:
+                        hnd = regions.logo;;
+                        break;                                                                    
                     }
 
                     IMPOSDGrpRgnAttr grpRgnAttr;
                     int ret = IMP_OSD_GetGrpRgnAttr(hnd, u_ctx->flag, &grpRgnAttr);
+
                     if (ret == 0)
                     {
                         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
                         grpRgnAttr.show = 1;
                         grpRgnAttr.gAlphaEn = 1;
                         grpRgnAttr.fgAlhpa = u_ctx->ws->cfg->get<int>(u_ctx->path);
-                        IMP_OSD_SetGrpRgnAttr(hnd, 0, &grpRgnAttr);
+                        IMP_OSD_SetGrpRgnAttr(hnd, u_ctx->flag, &grpRgnAttr);
                     }
                 };
             }
@@ -1321,7 +1339,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                 "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
         }
         // integer
-        else if (ctx->path_match >= PNT_OSD_FONT_SIZE && ctx->path_match <= PNT_OSD_LOGO_WIDTH)
+        else if (ctx->path_match >= PNT_OSD_FONT_SIZE && ctx->path_match <= PNT_OSD_UPTIME_ROTATION)
         {
             if (reason == LEJPCB_VAL_NUM_INT)
             {
@@ -1372,26 +1390,6 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
         {
             switch (ctx->path_match)
             {
-            case PNT_STREAM_RTSP_ENDPOINT:
-                if (reason == LEJPCB_VAL_STR_END)
-                    u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf);
-                append_message(
-                    "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
-                break;
-            case PNT_STREAM_SCALE_ENABLED:
-                if (reason == LEJPCB_VAL_TRUE)
-                {
-                    u_ctx->ws->cfg->set<bool>(u_ctx->path, true);
-                }
-                else if (reason == LEJPCB_VAL_FALSE)
-                {
-                    u_ctx->ws->cfg->set<bool>(u_ctx->path, false);
-                }
-                append_message(
-                    "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
-                break;
-            case PNT_STREAM_FORMAT:
-                break;
             case PNT_OSD_POS_LOGO_X:
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
@@ -1430,10 +1428,6 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                 append_message(
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
                 break;
-            /*
-            case PNT_STREAM0_OSD_LOGO_TRANSPARENCY:
-                break;
-            */
             case PNT_OSD_LOGO_ROTATION:
                 // encoder restart required
                 if (reason == LEJPCB_VAL_NUM_INT)

@@ -30,11 +30,11 @@
 #else
     #define LOG_DEBUG(str) ((void)0)
     #define LOG_DEBUG_OR_ERROR(condition, str)  \
-        ((condition) == 0 ? (void)0 : \
+        ((condition) == 0 ? ((void)0) : \
         Logger::log(Logger::ERROR, __FILENAME__, LogMsg() << str))
     #define LOG_DEBUG_OR_ERROR_AND_EXIT(condition, str) \
         if ((condition) == 0) { \
-            (void)0 \
+            ((void)0); \
         } else { \
             Logger::log(Logger::ERROR, __FILENAME__, LogMsg() << str << " returns " << condition); \
             return condition; \

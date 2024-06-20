@@ -419,7 +419,7 @@ int Encoder::framesource_init()
     return ret;
 }
 
-IMPEncoderCHNAttr createEncoderProfile(CFG::_stream &stream)
+IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
 {
 
     IMPEncoderRcAttr *rc_attr;
@@ -599,7 +599,7 @@ bool Encoder::init()
         {
             osdStream0 = true;
 
-            stream0_osd = OSD::createNew(std::make_shared<CFG::_osd>(cfg->stream0.osd), 0, 0);
+            stream0_osd = OSD::createNew(&cfg->stream0.osd, 0, 0);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "osd.init(cfg, 0)");
 
             // high framesource -> high OSD
@@ -630,7 +630,7 @@ bool Encoder::init()
         {
             osdStream1 = true;
 
-            stream1_osd = OSD::createNew(std::make_shared<CFG::_osd>(cfg->stream1.osd), 1, 1);
+            stream1_osd = OSD::createNew(&cfg->stream1.osd, 1, 1);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "osd.init(cfg, 1)");
 
             // low framesource -> low OSD
