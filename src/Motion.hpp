@@ -15,8 +15,8 @@ class Motion {
         static void detect_start(Motion *m);
         void detect();
         void run();
-        bool init(std::shared_ptr<CFG> _cfg);
-        bool exit();
+        int init(std::shared_ptr<CFG> _cfg);
+        int exit();
 
     private:
         std::atomic<bool> moving;

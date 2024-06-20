@@ -109,7 +109,7 @@ void Motion::detect() {
     cfg->motion_thread_signal.fetch_or(8);
 }
 
-bool Motion::init(std::shared_ptr<CFG> _cfg) {
+int Motion::init(std::shared_ptr<CFG> _cfg) {
 
     LOG_INFO("Initialize motion detection.");
     
@@ -120,11 +120,7 @@ bool Motion::init(std::shared_ptr<CFG> _cfg) {
     cfg->motion_thread_signal.store(0);
 
     ret = IMP_IVS_CreateGroup(0);
-    if (ret < 0) {
-        LOG_ERROR("IMP_IVS_CreateGroup(0) == " << ret);
-        return false;
-    }
-    LOG_DEBUG("IMP_IVS_CreateGroup(0)");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_IVS_CreateGroup(0)");
 
     memset(&move_param, 0, sizeof(IMP_IVS_MoveParam));
     //OSD is affecting motion for some reason.
@@ -142,33 +138,17 @@ bool Motion::init(std::shared_ptr<CFG> _cfg) {
     move_intf = IMP_IVS_CreateMoveInterface(&move_param);
 
     ret = IMP_IVS_CreateChn(0, move_intf);
-    if (ret < 0) {
-        LOG_ERROR("IMP_IVS_CreateChn(0, move_intf) == " << ret);
-        return false;
-    }
-    LOG_DEBUG("IMP_IVS_CreateChn()");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_IVS_CreateChn(0, move_intf)");
 
     ret = IMP_IVS_RegisterChn(0, 0);
-    if (ret < 0) {
-        LOG_ERROR("IMP_IVS_RegisterChn(0, 0) == " << ret);
-        return false;
-    }
-    LOG_DEBUG("IMP_IVS_RegisterChn(0, 0)");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_IVS_RegisterChn(0, 0)");
 
     ret = IMP_IVS_StartRecvPic(0);
-    if (ret < 0) {
-        LOG_ERROR("IMP_IVS_StartRecvPic(0) == " << ret);
-        return false;
-    }
-    LOG_DEBUG("IMP_IVS_StartRecvPic(0)");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_IVS_StartRecvPic(0)");
 
     //Framesource -> IVS
     ret = IMP_System_Bind(&fs, &ivs_cell);
-    if (ret < 0) {
-        LOG_ERROR("IMP_System_Bind(FS, IVS) == " << ret);
-        return false;
-    }
-    LOG_ERROR("IMP_System_Bind(FS, IVS)");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&fs, &ivs_cell)");
 
     //initialize and start
     cfg->motion_thread_signal.fetch_or(1);
@@ -176,10 +156,10 @@ bool Motion::init(std::shared_ptr<CFG> _cfg) {
     // Start the detection thread
     detect_thread = std::thread(Motion::detect_start, this);
 
-    return true;
+    return ret;
 }
 
-bool Motion::exit() {
+int Motion::exit() {
 
     int ret;
 
@@ -188,32 +168,16 @@ bool Motion::exit() {
     cfg->motion_thread_signal.fetch_or(4);
 
     ret = IMP_IVS_StopRecvPic(0);
-    if (ret < 0) {
-        LOG_ERROR("IMP_IVS_StopRecvPic() == " << ret);
-        return true;
-    }
-    LOG_DEBUG("IMP_IVS_StopRecvPic(0)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_IVS_StopRecvPic(0)");
 
     ret = IMP_IVS_UnRegisterChn(0);
-    if (ret < 0) {
-        LOG_ERROR("IMP_IVS_UnRegisterChn(0) == " << ret);
-        return true;
-    }
-    LOG_DEBUG("IMP_IVS_UnRegisterChn(0)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_IVS_UnRegisterChn(0)");
 
     ret = IMP_IVS_DestroyChn(0);
-    if (ret < 0) {
-        LOG_ERROR("IMP_IVS_DestroyChn(0) == " << ret);
-        return true;
-    }
-    LOG_DEBUG("IMP_IVS_DestroyChn(0)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_IVS_DestroyChn(0)");
 
     ret = IMP_IVS_DestroyGroup(0);
-    if (ret < 0) {
-        LOG_ERROR("IMP_IVS_DestroyGroup(0) == " << ret);
-        return true;
-    }
-    LOG_DEBUG("IMP_IVS_DestroyGroup(0)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_IVS_DestroyGroup(0)");
 
     IMP_IVS_DestroyMoveInterface(move_intf);
 
@@ -233,5 +197,5 @@ bool Motion::exit() {
 
     cfg->motion_thread_signal.fetch_xor(1);
 
-    return true;
+    return ret;
 }

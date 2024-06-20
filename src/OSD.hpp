@@ -28,7 +28,7 @@ class OSD {
             init();
         }
         void init();
-        bool exit();
+        int exit();
         void update();
         void updateDisplayEverySecond();
         

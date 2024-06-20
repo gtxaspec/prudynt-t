@@ -30,7 +30,7 @@ IMPServerMediaSubsession::IMPServerMediaSubsession(
     H264NALUnit sps,
     H264NALUnit pps,
     int encChn)
-    : OnDemandServerMediaSubsession(env, false),
+    : OnDemandServerMediaSubsession(env, true),
       vps(vps ? new H264NALUnit(*vps) : nullptr),  // Copy if not nullptr
       sps(sps), pps(pps), encChn(encChn) {
 }

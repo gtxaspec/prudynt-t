@@ -541,49 +541,33 @@ void OSD::init() {
     initialized = true;
 }
 
-bool OSD::exit() {
+int OSD::exit() {
 
     int ret;
 
     ret = IMP_OSD_ShowRgn(osdTime.imp_rgn, osdGrp, 0);
-    if (ret < 0) {
-        LOG_ERROR("IMP_OSD_ShowRgn close timeStamp error");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdTime.imp_rgn, "<<osdGrp<<", 0)");
 
     ret = IMP_OSD_ShowRgn(osdUser.imp_rgn, osdGrp, 0);
-    if (ret < 0) {
-        LOG_ERROR( "IMP_OSD_ShowRgn close user text error");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdUser.imp_rgn, "<<osdGrp<<", 0)");
 
     ret = IMP_OSD_ShowRgn(osdUptm.imp_rgn, osdGrp, 0);
-    if (ret < 0) {
-        LOG_ERROR( "IMP_OSD_ShowRgn close uptime error");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdUptm.imp_rgn, "<<osdGrp<<", 0)");
 
     ret = IMP_OSD_ShowRgn(osdLogo.imp_rgn, osdGrp, 0);
-    if (ret < 0) {
-        LOG_ERROR("IMP_OSD_ShowRgn close Rect error");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdLogo.imp_rgn, "<<osdGrp<<", 0)");
 
     ret = IMP_OSD_UnRegisterRgn(osdTime.imp_rgn, osdGrp);
-    if (ret < 0) {
-        LOG_ERROR("IMP_OSD_UnRegisterRgn timeStamp error");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdTime.imp_rgn, "<<osdGrp<<")");
 
     ret = IMP_OSD_UnRegisterRgn(osdUser.imp_rgn, osdGrp);
-    if (ret < 0) {
-        LOG_ERROR("IMP_OSD_UnRegisterRgn user text error");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdUser.imp_rgn, "<<osdGrp<<")");
 
     ret = IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, osdGrp);
-    if (ret < 0) {
-        LOG_ERROR("IMP_OSD_UnRegisterRgn Cover error");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, "<<osdGrp<<")");
 
     ret = IMP_OSD_UnRegisterRgn(osdLogo.imp_rgn, osdGrp);
-    if (ret < 0) {
-        LOG_ERROR("IMP_OSD_UnRegisterRgn Rect error");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, "<<osdGrp<<")");
 
     IMP_OSD_DestroyRgn(osdTime.imp_rgn);
     IMP_OSD_DestroyRgn(osdUser.imp_rgn);
@@ -591,10 +575,7 @@ bool OSD::exit() {
     IMP_OSD_DestroyRgn(osdLogo.imp_rgn);
 
     ret = IMP_OSD_DestroyGroup(osdGrp);
-    if (ret < 0) {
-        LOG_ERROR("IMP_OSD_DestroyGroup(0) error");
-        return -1;
-    }
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_DestroyGroup("<<osdGrp<<")");
 
     // cleanup osd image data
     free(osdTime.data);
@@ -603,9 +584,7 @@ bool OSD::exit() {
     free(osdLogo.data);
 
     ret = FT_Done_FreeType(freetype);
-    if (ret < 0) {
-        LOG_ERROR("FT_Done_FreeType error");
-    }
+    LOG_DEBUG_OR_ERROR(ret, "FT_Done_FreeType(freetype)");
 
     return 0;    
 }

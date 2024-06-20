@@ -1271,7 +1271,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
-        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+        u_ctx->path = u_ctx->path + "." + std::string(ctx->path);
 
         LOG_DEBUG("osd_callback: " << u_ctx->path << " = " << (char *)ctx->buf);
 

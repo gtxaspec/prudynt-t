@@ -45,7 +45,7 @@ int Encoder::channel_init(int chn_nr, int grp_nr, IMPEncoderCHNAttr *chn_attr)
     ret = IMP_Encoder_RegisterChn(grp_nr, chn_nr);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_RegisterChn("<<chn_nr<<", chn_attr)");
 
-    return 1;
+    return ret;
 }
 
 int Encoder::channel_deinit(int chn_nr)
@@ -58,7 +58,7 @@ int Encoder::channel_deinit(int chn_nr)
     ret = IMP_Encoder_DestroyChn(chn_nr);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_DestroyChn("<<chn_nr<<")");
 
-    return 1;
+    return ret;
 }
 
 int Encoder::system_init()
@@ -541,11 +541,7 @@ int Encoder::encoder_init()
     {
         IMPEncoderCHNAttr chn_attr_high = createEncoderProfile(cfg->stream0);
         ret = channel_init(0, 0, &chn_attr_high);
-        if (ret < 0)
-        {
-            LOG_ERROR("channel_init(0, 0, &high_channel_attr) == " << ret);
-            return ret;
-        }
+        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "channel_init(0, 0, &chn_attr_high)")
     }
 
     /* Encoder lowres channel */
@@ -553,11 +549,7 @@ int Encoder::encoder_init()
     {
         IMPEncoderCHNAttr chn_attr_low = createEncoderProfile(cfg->stream1);
         ret = channel_init(1, 1, &chn_attr_low);
-        if (ret < 0)
-        {
-            LOG_ERROR("channel_init(1, 1, &low_channel_attr) == " << ret);
-            return ret;
-        }
+        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "channel_init(1, 1, &chn_attr_high)")
     }
 
 #if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
@@ -661,14 +653,10 @@ bool Encoder::init()
         motionInitialized = true;
 
         ret = motion.init(cfg);
-        if (!ret)
-        {
-            LOG_ERROR("Motion Init Failed");
-            return true;
-        }
+        LOG_DEBUG_OR_ERROR(ret, "motion.init(cfg)");
     }
 
-    return false;
+    return ret;
 }
 
 void Encoder::exit()
