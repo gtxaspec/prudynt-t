@@ -148,7 +148,7 @@ static const char *const image_keys[] = {
     "wb_rgain",
     "wb_bgain"};
 
-#if defined(AUDIO_SUPPORT)   
+#if defined(AUDIO_SUPPORT)
 /* AUDIO */
 enum
 {
@@ -217,13 +217,13 @@ static const char *const stream_keys[] = {
 /* STREAM2 (JPEG) */
 enum
 {
-    PNT_STREAM1_JPEG_ENABLED = 1,
-    PNT_STREAM1_JPEG_PATH,
-    PNT_STREAM1_JPEG_QUALITY,
-    PNT_STREAM1_JPEG_REFRESH
+    PNT_STREAM2_JPEG_ENABLED = 1,
+    PNT_STREAM2_JPEG_PATH,
+    PNT_STREAM2_JPEG_QUALITY,
+    PNT_STREAM2_JPEG_REFRESH
 };
 
-static const char *const stream1_keys[] = {
+static const char *const stream2_keys[] = {
     "jpeg_enabled",
     "jpeg_path",
     "jpeg_quality",
@@ -232,10 +232,10 @@ static const char *const stream1_keys[] = {
 /* OSD */
 enum
 {
-    PNT_OSD_TIME_TRANSPARENCY = 1,    
+    PNT_OSD_TIME_TRANSPARENCY = 1,
     PNT_OSD_USER_TEXT_TRANSPARENCY,
-    PNT_OSD_UPTIME_TRANSPARENCY,   
-    PNT_OSD_LOGO_TRANSPARENCY, 
+    PNT_OSD_UPTIME_TRANSPARENCY,
+    PNT_OSD_LOGO_TRANSPARENCY,
 
     PNT_OSD_FONT_SIZE,
     PNT_OSD_FONT_STROKE_SIZE,
@@ -253,7 +253,7 @@ enum
 
     PNT_OSD_POS_LOGO_X,
     PNT_OSD_POS_LOGO_Y,
-    PNT_OSD_LOGO_ROTATION,    
+    PNT_OSD_LOGO_ROTATION,
 
     PNT_OSD_ENABLED,
     PNT_OSD_TIME_ENABLED,
@@ -268,7 +268,7 @@ enum
     PNT_OSD_USER_TEXT_FORMAT,
     PNT_OSD_LOGO_PATH,
     PNT_OSD_FONT_COLOR,
-    PNT_OSD_FONT_STROKE_COLOR,    
+    PNT_OSD_FONT_STROKE_COLOR,
 };
 
 static const char *const osd_keys[] = {
@@ -293,7 +293,7 @@ static const char *const osd_keys[] = {
 
     "pos_logo_x",
     "pos_logo_y",
-    "logo_rotation",      
+    "logo_rotation",
 
     "enabled",
     "time_enabled",
@@ -307,8 +307,8 @@ static const char *const osd_keys[] = {
     "user_text_format",
     "logo_path",
     "font_color",
-    "font_stroke_color",  
-    };
+    "font_stroke_color",
+};
 
 /* MOTION */
 enum
@@ -447,13 +447,13 @@ signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
         case PNT_GENERAL_LOGLEVEL:
             if (reason == LEJPCB_VAL_STR_END)
             {
-                if (u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf))
+                if (u_ctx->ws->cfg->set<const char *>(u_ctx->path, strdup(ctx->buf)))
                 {
                     Logger::setLevel(ctx->buf);
                 }
             }
             append_message(
-                "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+                "\"%s\"", u_ctx->ws->cfg->get<const char *>(u_ctx->path));
             break;
         }
 
@@ -492,20 +492,20 @@ signed char WS::rtsp_callback(struct lejp_ctx *ctx, char reason)
             }
             append_message(
                 "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
-            // std::string values
+            // const char * values
         }
         else if (ctx->path_match >= PNT_RTSP_NAME && ctx->path_match <= PNT_RTSP_PASSWORD)
         {
             if (reason == LEJPCB_VAL_STR_END)
             {
-                if (u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf))
+                if (u_ctx->ws->cfg->set<const char *>(u_ctx->path, strdup(ctx->buf)))
                 {
                     // better restart rtsp manually ?
                     // u_ctx->signal = PNT_THREAD_RTSP | PNT_THREAD_ACTION_RESTART;
                 }
             }
             append_message(
-                "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+                "\"%s\"", u_ctx->ws->cfg->get<const char *>(u_ctx->path));
         }
         else
         {
@@ -587,7 +587,7 @@ signed char WS::sensor_callback(struct lejp_ctx *ctx, char reason)
                 }
                 */
                 append_message(
-                    "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+                    "\"%s\"", u_ctx->ws->cfg->get<const char *>(u_ctx->path));
                 break;
             case PNT_SENSOR_I2C_ADDRESS:
                 /* normally this cannot be set and is read from proc
@@ -629,7 +629,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
 
         if (ctx->path_match == PNT_IMAGE_DEFOG_STRENGTH)
         {
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)        
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
             if (reason == LEJPCB_VAL_NUM_INT)
             {
                 if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -694,7 +694,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
                 break;
             case PNT_IMAGE_HUE:
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)   
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
                     if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -922,7 +922,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
     return 0;
 }
 
-#if defined(AUDIO_SUPPORT)   
+#if defined(AUDIO_SUPPORT)
 signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
 {
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
@@ -1147,10 +1147,10 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
 {
     struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
     u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
-        
+
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        //LOG_DEBUG("stream_callback: " << u_ctx->path << " = " << (char *)ctx->buf);
+        // LOG_DEBUG("stream_callback: " << u_ctx->path << " = " << (char *)ctx->buf);
 
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", stream_keys[ctx->path_match - 1]);
@@ -1168,9 +1168,9 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
             {
             case PNT_STREAM_RTSP_ENDPOINT:
                 if (reason == LEJPCB_VAL_STR_END)
-                    u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf);
+                    u_ctx->ws->cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
                 append_message(
-                    "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+                    "\"%s\"", u_ctx->ws->cfg->get<const char *>(u_ctx->path));
                 break;
             case PNT_STREAM_SCALE_ENABLED:
                 if (reason == LEJPCB_VAL_TRUE)
@@ -1185,6 +1185,10 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
                     "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
                 break;
             case PNT_STREAM_FORMAT:
+                if (reason == LEJPCB_VAL_STR_END)
+                    u_ctx->ws->cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
+                append_message(
+                    "\"%s\"", u_ctx->ws->cfg->get<const char *>(u_ctx->path));
                 break;
             };
         }
@@ -1195,10 +1199,10 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
     {
 
         append_message(
-            "%s\"%s\":", u_ctx->s ? "," : "", stream_keys[ctx->path_match - 1]);
+            "%s\"%s\":{", u_ctx->s ? "," : "", stream_keys[ctx->path_match - 1]);
 
         lejp_parser_push(ctx, u_ctx,
-                        osd_keys, LWS_ARRAY_SIZE(osd_keys), osd_callback);
+                         osd_keys, LWS_ARRAY_SIZE(osd_keys), osd_callback);
     }
     else if (reason == LEJPCB_OBJECT_END)
     {
@@ -1209,7 +1213,7 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
     return 0;
 }
 
-signed char WS::stream1_callback(struct lejp_ctx *ctx, char reason)
+signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
 {
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
@@ -1218,11 +1222,11 @@ signed char WS::stream1_callback(struct lejp_ctx *ctx, char reason)
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
         append_message(
-            "%s\"%s\":", u_ctx->s ? "," : "", stream1_keys[ctx->path_match - 1]);
+            "%s\"%s\":", u_ctx->s ? "," : "", stream2_keys[ctx->path_match - 1]);
 
         switch (ctx->path_match)
         {
-        case PNT_STREAM1_JPEG_ENABLED:
+        case PNT_STREAM2_JPEG_ENABLED:
             if (reason == LEJPCB_VAL_TRUE)
             {
                 u_ctx->ws->cfg->set<bool>(u_ctx->path, true);
@@ -1234,17 +1238,17 @@ signed char WS::stream1_callback(struct lejp_ctx *ctx, char reason)
             append_message(
                 "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
             break;
-        case PNT_STREAM1_JPEG_PATH:
+        case PNT_STREAM2_JPEG_PATH:
             if (reason == LEJPCB_VAL_STR_END)
             {
-                if (u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf))
+                if (u_ctx->ws->cfg->set<const char *>(u_ctx->path, strdup(ctx->buf)))
                 {
                 }
             }
             append_message(
-                "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+                "\"%s\"", u_ctx->ws->cfg->get<const char *>(u_ctx->path));
             break;
-        case PNT_STREAM1_JPEG_QUALITY:
+        case PNT_STREAM2_JPEG_QUALITY:
             if (reason == LEJPCB_VAL_NUM_INT)
             {
                 if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -1254,7 +1258,7 @@ signed char WS::stream1_callback(struct lejp_ctx *ctx, char reason)
             append_message(
                 "%d", u_ctx->ws->cfg->get<int>(u_ctx->path));
             break;
-        case PNT_STREAM1_JPEG_REFRESH:
+        case PNT_STREAM2_JPEG_REFRESH:
             if (reason == LEJPCB_VAL_NUM_INT)
             {
                 if (u_ctx->ws->cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -1284,7 +1288,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
         u_ctx->path = u_ctx->path + "." + std::string(ctx->path);
 
-        //LOG_DEBUG("osd_callback: " << u_ctx->path << " = " << (char *)ctx->buf << ", " << ctx->path_match);
+        // LOG_DEBUG("osd_callback: " << u_ctx->path << " = " << (char *)ctx->buf << ", " << ctx->path_match);
 
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", osd_keys[ctx->path_match - 1]);
@@ -1300,10 +1304,13 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
 
                     _regions regions;
 
-                    if(u_ctx->flag==0) {
-                        regions = u_ctx->ws->cfg->stream0.osd.regions; 
-                    } else if(u_ctx->flag==1) {
-                        regions = u_ctx->ws->cfg->stream1.osd.regions; 
+                    if (u_ctx->flag == 0)
+                    {
+                        regions = u_ctx->ws->cfg->stream0.osd.regions;
+                    }
+                    else if (u_ctx->flag == 1)
+                    {
+                        regions = u_ctx->ws->cfg->stream1.osd.regions;
                     }
 
                     switch (ctx->path_match)
@@ -1315,11 +1322,13 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                         hnd = regions.user;
                         break;
                     case PNT_OSD_UPTIME_TRANSPARENCY:
-                        hnd = regions.uptime;;
+                        hnd = regions.uptime;
+                        ;
                         break;
                     case PNT_OSD_LOGO_TRANSPARENCY:
-                        hnd = regions.logo;;
-                        break;                                                                    
+                        hnd = regions.logo;
+                        ;
+                        break;
                     }
 
                     IMPOSDGrpRgnAttr grpRgnAttr;
@@ -1362,17 +1371,17 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
             append_message(
                 "%s", u_ctx->ws->cfg->get<bool>(u_ctx->path) ? "true" : "false");
         }
-        // std::string
+        // const char *
         else if (ctx->path_match >= PNT_OSD_FONT_PATH && ctx->path_match <= PNT_OSD_LOGO_PATH)
         {
             if (reason == LEJPCB_VAL_STR_END)
             {
-                if (u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf))
+                if (u_ctx->ws->cfg->set<const char *>(u_ctx->path, strdup(ctx->buf)))
                 {
                 }
             }
             append_message(
-                "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+                "\"%s\"", u_ctx->ws->cfg->get<const char *>(u_ctx->path));
         }
         // unsigned int
         else if (ctx->path_match >= PNT_OSD_FONT_COLOR && ctx->path_match <= PNT_OSD_FONT_STROKE_COLOR)
@@ -1385,7 +1394,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
             }
             append_message(
                 "\"%#x\"", u_ctx->ws->cfg->get<unsigned int>(u_ctx->path));
-        }        
+        }
         else
         {
             switch (ctx->path_match)
@@ -1398,9 +1407,12 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                     memset(&rgnAttr, u_ctx->flag, sizeof(IMPOSDRgnAttr));
                     if (IMP_OSD_GetRgnAttr(3, &rgnAttr) == 0)
                     {
-                        if(u_ctx->flag == 0) {
+                        if (u_ctx->flag == 0)
+                        {
                             OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd.pos_logo_x, u_ctx->ws->cfg->stream0.osd.pos_logo_y);
-                        } else if(u_ctx->flag == 1) {
+                        }
+                        else if (u_ctx->flag == 1)
+                        {
                             OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream1.osd.pos_logo_x, u_ctx->ws->cfg->stream1.osd.pos_logo_y);
                         }
                         IMP_OSD_SetRgnAttr(3, &rgnAttr);
@@ -1417,9 +1429,12 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                     memset(&rgnAttr, u_ctx->flag, sizeof(IMPOSDRgnAttr));
                     if (IMP_OSD_GetRgnAttr(3, &rgnAttr) == 0)
                     {
-                        if(u_ctx->flag == 0) {
+                        if (u_ctx->flag == 0)
+                        {
                             OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd.pos_logo_y, u_ctx->ws->cfg->stream0.osd.pos_logo_y);
-                        } else if(u_ctx->flag == 1) {
+                        }
+                        else if (u_ctx->flag == 1)
+                        {
                             OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream1.osd.pos_logo_y, u_ctx->ws->cfg->stream1.osd.pos_logo_y);
                         }
                         IMP_OSD_SetRgnAttr(3, &rgnAttr);
@@ -1454,7 +1469,7 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
 
     struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
     u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
-        
+
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
 
@@ -1490,19 +1505,19 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
         {
             if (reason == LEJPCB_VAL_STR_END)
             {
-                if (u_ctx->ws->cfg->set<std::string>(u_ctx->path, ctx->buf))
+                if (u_ctx->ws->cfg->set<const char *>(u_ctx->path, strdup(ctx->buf)))
                 {
                 }
             }
             append_message(
-                "\"%s\"", u_ctx->ws->cfg->get<std::string>(u_ctx->path).c_str());
+                "\"%s\"", u_ctx->ws->cfg->get<const char *>(u_ctx->path));
         }
         else if (ctx->path_match == PNT_MOTION_ROIS)
         {
             if (reason == LEJPCB_VAL_NULL)
             {
-                for (int i=0; i<u_ctx->ws->cfg->motion.roi_count; i++) {
-                    std::cout << u_ctx->ws->cfg->motion.rois[i].p0_x << std::endl;
+                for (int i = 0; i < u_ctx->ws->cfg->motion.roi_count; i++)
+                {
                 }
             }
             append_message(
@@ -1518,15 +1533,15 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
 
         u_ctx->flag = 0;
         lejp_parser_push(ctx, u_ctx,
-            motion_keys, LWS_ARRAY_SIZE(motion_keys), motion_roi_callback);            
+                         motion_keys, LWS_ARRAY_SIZE(motion_keys), motion_roi_callback);
 
-        u_ctx->s = 1;              
-    }    
+        u_ctx->s = 1;
+    }
     else if (reason == LEJPCB_OBJECT_END)
     {
         std::strcat(ws_send_msg, "}");
         lejp_parser_pop(ctx);
-    }        
+    }
 
     return 0;
 }
@@ -1535,79 +1550,94 @@ signed char WS::motion_roi_callback(struct lejp_ctx *ctx, char reason)
 {
     struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
     u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
-    
-    if (reason & LEJP_FLAG_CB_IS_VALUE) {
-        if (reason == LEJPCB_VAL_NULL)
+
+    if ((reason & LEJP_FLAG_CB_IS_VALUE) && (reason == LEJPCB_VAL_NULL))
+    {
+        std::strcat(ws_send_msg, "[");
+        for (int i = 0; i < u_ctx->ws->cfg->motion.roi_count; i++)
         {
-            std::strcat(ws_send_msg, "[");
-            for (int i=0; i<u_ctx->ws->cfg->motion.roi_count; i++) {
-                if((u_ctx->flag & 4))
-                    std::strcat(ws_send_msg, ",");        
-                append_message(
-                    "[%d,%d,%d,%d]", u_ctx->ws->cfg->motion.rois[i].p0_x, u_ctx->ws->cfg->motion.rois[i].p0_x, u_ctx->region.p0_y, 
-                        u_ctx->ws->cfg->motion.rois[i].p1_x, u_ctx->ws->cfg->motion.rois[i].p1_y);
-                u_ctx->flag |= 4;  
-            }
-            std::strcat(ws_send_msg, "]");
+            if ((u_ctx->flag & 4))
+                std::strcat(ws_send_msg, ",");
+            append_message(
+                "[%d,%d,%d,%d]", u_ctx->ws->cfg->motion.rois[i].p0_x, u_ctx->ws->cfg->motion.rois[i].p0_x, u_ctx->region.p0_y,
+                u_ctx->ws->cfg->motion.rois[i].p1_x, u_ctx->ws->cfg->motion.rois[i].p1_y);
+            u_ctx->flag |= 4;
         }
-        lejp_parser_pop(ctx);  
+        std::strcat(ws_send_msg, "]");
+        lejp_parser_pop(ctx);
     }
     else
     {
         switch (reason)
         {
-            case LEJPCB_ARRAY_START:
-                if((u_ctx->flag & 4)) {
-                    std::strcat(ws_send_msg, ",");
-                }
-                if((u_ctx->flag & 1) != 1) {
-                    u_ctx->flag |= 1; //main array
-                    u_ctx->midx = 0;  //main array index                
-                    std::strcat(ws_send_msg, "[");
-                }else {
-                    u_ctx->flag |= 2; //entry array
-                    u_ctx->vidx = 0;  //entry array index
-                    std::strcat(ws_send_msg, "[");
-                }
-                break;
+        case LEJPCB_ARRAY_START:
+            if ((u_ctx->flag & 4))
+            {
+                std::strcat(ws_send_msg, ",");
+            }
+            if ((u_ctx->flag & 1) != 1)
+            {
+                u_ctx->flag |= 1; // main array
+                u_ctx->midx = 0;  // main array index
+                std::strcat(ws_send_msg, "[");
+            }
+            else
+            {
+                u_ctx->flag |= 2; // entry array
+                u_ctx->vidx = 0;  // entry array index
+                std::strcat(ws_send_msg, "[");
+            }
+            break;
 
-            case LEJPCB_VAL_NUM_INT:
-                if(u_ctx->flag & 2) {
-                    u_ctx->vidx++;
-                    if(u_ctx->vidx == 1) {
-                        u_ctx->region.p0_x = atoi(ctx->buf);
-                    } else if(u_ctx->vidx == 2) {
-                        u_ctx->region.p0_y = atoi(ctx->buf);
-                    } else if(u_ctx->vidx == 3) {
-                        u_ctx->region.p1_x = atoi(ctx->buf);
-                    } else if(u_ctx->vidx == 4) {
-                        u_ctx->region.p1_y = atoi(ctx->buf);
-                    }
+        case LEJPCB_VAL_NUM_INT:
+            if (u_ctx->flag & 2)
+            {
+                u_ctx->vidx++;
+                if (u_ctx->vidx == 1)
+                {
+                    u_ctx->region.p0_x = atoi(ctx->buf);
                 }
-                break;
+                else if (u_ctx->vidx == 2)
+                {
+                    u_ctx->region.p0_y = atoi(ctx->buf);
+                }
+                else if (u_ctx->vidx == 3)
+                {
+                    u_ctx->region.p1_x = atoi(ctx->buf);
+                }
+                else if (u_ctx->vidx == 4)
+                {
+                    u_ctx->region.p1_y = atoi(ctx->buf);
+                }
+            }
+            break;
 
-            case LEJPCB_ARRAY_END:
-                if(u_ctx->flag & 2) {
-                    u_ctx->flag ^= 2;
-                    if(u_ctx->vidx >= 4) {
-                        append_message(
-                            "%d,%d,%d,%d", u_ctx->region.p0_x, u_ctx->region.p0_y, u_ctx->region.p1_x, u_ctx->region.p1_y);                    
-                    }
-                    std::strcat(ws_send_msg, "]");
-                    u_ctx->flag |= 4;
-                    if(u_ctx->midx <= 52) {  
-                        std::cout << "ADD " << u_ctx->midx << std::endl;
-                        u_ctx->ws->cfg->motion.rois[u_ctx->midx] = 
-                            {u_ctx->region.p0_x, u_ctx->region.p0_y, u_ctx->region.p1_x, u_ctx->region.p1_y};
-                        u_ctx->midx++;
-                    }
-                } else if(u_ctx->flag & 1) {
-                    u_ctx->flag ^= 1;
-                    u_ctx->ws->cfg->motion.roi_count = u_ctx->midx;
-                    std::strcat(ws_send_msg, "]");
-                    lejp_parser_pop(ctx);
+        case LEJPCB_ARRAY_END:
+            if (u_ctx->flag & 2)
+            {
+                u_ctx->flag ^= 2;
+                if (u_ctx->vidx >= 4)
+                {
+                    append_message(
+                        "%d,%d,%d,%d", u_ctx->region.p0_x, u_ctx->region.p0_y, u_ctx->region.p1_x, u_ctx->region.p1_y);
                 }
-                break;
+                std::strcat(ws_send_msg, "]");
+                u_ctx->flag |= 4;
+                if (u_ctx->midx <= 52)
+                {
+                    u_ctx->ws->cfg->motion.rois[u_ctx->midx] =
+                        {u_ctx->region.p0_x, u_ctx->region.p0_y, u_ctx->region.p1_x, u_ctx->region.p1_y};
+                    u_ctx->midx++;
+                }
+            }
+            else if (u_ctx->flag & 1)
+            {
+                u_ctx->flag ^= 1;
+                u_ctx->ws->cfg->motion.roi_count = u_ctx->midx;
+                std::strcat(ws_send_msg, "]");
+                lejp_parser_pop(ctx);
+            }
+            break;
         }
     }
     return 0;
@@ -1697,7 +1727,7 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
             u_ctx->ws->cfg->updateConfig();
             append_message(
                 "\"%s\"", "initiated");
-            break;            
+            break;
         }
 
         u_ctx->s = 1;
@@ -1742,8 +1772,8 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
             lejp_parser_push(ctx, u_ctx,
                              image_keys, LWS_ARRAY_SIZE(image_keys), image_callback);
             break;
-            
-#if defined(AUDIO_SUPPORT)   
+
+#if defined(AUDIO_SUPPORT)
         case PNT_AUDIO:
             lejp_parser_push(ctx, u_ctx,
                              audio_keys, LWS_ARRAY_SIZE(audio_keys), audio_callback);
@@ -1762,7 +1792,7 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
             break;
         case PNT_STREAM2:
             lejp_parser_push(ctx, u_ctx,
-                             stream1_keys, LWS_ARRAY_SIZE(stream1_keys), stream1_callback);
+                             stream2_keys, LWS_ARRAY_SIZE(stream2_keys), stream2_callback);
             break;
         case PNT_MOTION:
             lejp_parser_push(ctx, u_ctx,
@@ -1803,10 +1833,11 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
     {
     case LWS_CALLBACK_ESTABLISHED:
         LOG_DEBUG("LWS_CALLBACK_ESTABLISHED " << client_ip);
+
         url_length = lws_get_urlarg_by_name_safe(wsi, "token", url_token, sizeof(url_token));
         if (url_length != WEBSOCKET_TOKEN_LENGTH || strcmp(token, url_token) != 0)
         {
-            LOG_DEBUG("Unauthenticated websocket connect" );
+            LOG_DEBUG("Unauthenticated websocket connect");
             if (u_ctx->ws->cfg->websocket.secured)
             {
                 LOG_DEBUG("Connection refused.");
@@ -1827,7 +1858,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         break;
 
     case LWS_CALLBACK_RECEIVE:
-        LOG_DEBUG("LWS_CALLBACK_RECEIVE " << client_ip);
+        LOG_DEBUG("LWS_CALLBACK_RECEIVE " << client_ip << ", " << json_data);
 
         std::strcat(ws_send_msg, "{"); // start response json
         lejp_construct(&ctx, root_callback, u_ctx, root_keys, LWS_ARRAY_SIZE(root_keys));
@@ -1875,7 +1906,7 @@ void WS::run()
 
     lws_set_log_level(cfg->websocket.loglevel, lwsl_emit_stderr);
 
-    protocols.name = cfg->websocket.name.c_str();
+    protocols.name = cfg->websocket.name;
     protocols.callback = ws_callback;
     protocols.per_session_data_size = sizeof(user_ctx);
     protocols.rx_buffer_size = 65536;

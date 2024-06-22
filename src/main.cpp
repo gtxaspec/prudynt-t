@@ -1,11 +1,9 @@
 #include <chrono>
-#include <iostream>
 #include <thread>
 #include "Encoder.hpp"
 #include "RTSP.hpp"
 #include "Logger.hpp"
 #include "Config.hpp"
-#include "Motion.hpp"
 #include "WS.hpp"
 #include "version.hpp"
 

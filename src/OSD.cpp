@@ -170,7 +170,7 @@ int OSD::freetype_init() {
     
     error = FT_New_Face(
         freetype,
-        osd->font_path.c_str(),
+        osd->font_path,
         0,
         &fontface
     );
@@ -458,7 +458,7 @@ void OSD::init() {
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 2;        
         grpRgnAttr.gAlphaEn = 1;
-        grpRgnAttr.fgAlhpa = osd->time_transparency;
+        grpRgnAttr.fgAlhpa = osd->user_text_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUser.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
@@ -483,7 +483,7 @@ void OSD::init() {
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 3;       
         grpRgnAttr.gAlphaEn = 1;
-        grpRgnAttr.fgAlhpa = osd->time_transparency;
+        grpRgnAttr.fgAlhpa = osd->uptime_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
@@ -492,7 +492,7 @@ void OSD::init() {
         /* OSD Logo */
 
         size_t imageSize;
-        auto imageData = loadBGRAImage(osd->logo_path.c_str(), imageSize);
+        auto imageData = loadBGRAImage(osd->logo_path, imageSize);
 
         osdLogo.data = NULL;
         osdLogo.imp_rgn = IMP_OSD_CreateRgn(NULL);
@@ -641,7 +641,7 @@ void OSD::updateDisplayEverySecond() {
         if (osd->time_enabled) {
 
             char timeFormatted[256];
-            strftime(timeFormatted, sizeof(timeFormatted), osd->time_format.c_str(), ltime);
+            strftime(timeFormatted, sizeof(timeFormatted), osd->time_format, ltime);
             
             IMPOSDRgnAttr rgnAttr;
             IMP_OSD_GetRgnAttr(osdTime.imp_rgn, &rgnAttr);
@@ -685,7 +685,7 @@ void OSD::updateDisplayEverySecond() {
             unsigned long seconds = currentUptime % 60;
 
             char uptimeFormatted[256];
-            snprintf(uptimeFormatted, sizeof(uptimeFormatted), osd->uptime_format.c_str(), hours, minutes, seconds);
+            snprintf(uptimeFormatted, sizeof(uptimeFormatted), osd->uptime_format, hours, minutes, seconds);
 
             IMPOSDRgnAttr rgnAttr;
             IMP_OSD_GetRgnAttr(osdUptm.imp_rgn, &rgnAttr);

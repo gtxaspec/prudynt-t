@@ -26,8 +26,8 @@ void RTSP::run() {
             if (cfg->rtsp.auth_required) {
                 UserAuthenticationDatabase *auth = new UserAuthenticationDatabase;
                 auth->addUserRecord(
-                    cfg->rtsp.username.c_str(),
-                    cfg->rtsp.password.c_str()
+                    cfg->rtsp.username,
+                    cfg->rtsp.password
                 );
                 rtspServer = RTSPServer::createNew(*env, cfg->rtsp.port, auth);
             } else {
@@ -85,7 +85,7 @@ void RTSP::run() {
                 LOG_DEBUG("Got necessary NAL Units.");
 
                 ServerMediaSession *sms = ServerMediaSession::createNew(
-                    *env, cfg->stream0.rtsp_endpoint.c_str(), "Main", cfg->rtsp.name.c_str()
+                    *env, cfg->stream0.rtsp_endpoint, "Main", cfg->rtsp.name
                 );
                 IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
                     *env, (cfg->stream0.format == "H265" ? vps : nullptr), sps, pps, 0 // Conditional VPS

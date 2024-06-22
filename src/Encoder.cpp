@@ -15,22 +15,126 @@
 #define OSDPoolSize 200000
 
 #if defined(PLATFORM_T31)
-#define IMPEncoderCHNAttr IMPEncoderChnAttr
-#define IMPEncoderCHNStat IMPEncoderChnStat
+    #define IMPEncoderCHNAttr IMPEncoderChnAttr
+    #define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
 
 std::mutex Encoder::sinks_lock;
 std::map<uint32_t, EncoderSink> Encoder::sinks;
 uint32_t Encoder::sink_id = 0;
 
+IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
+{
+
+    IMPEncoderRcAttr *rc_attr;
+    IMPEncoderCHNAttr channel_attr;
+    memset(&channel_attr, 0, sizeof(IMPEncoderCHNAttr));
+    rc_attr = &channel_attr.rcAttr;
+
+#if defined(PLATFORM_T31)
+
+    IMPEncoderProfile encoderProfile;
+    encoderProfile = (stream.format == "H265") ? IMP_ENC_PROFILE_HEVC_MAIN : IMP_ENC_PROFILE_AVC_HIGH;
+
+    IMP_Encoder_SetDefaultParam(
+        &channel_attr, encoderProfile, IMP_ENC_RC_MODE_CAPPED_QUALITY, stream.width, stream.height,
+        stream.fps, 1, stream.gop, 2, -1, stream.bitrate);
+
+    switch (rc_attr->attrRcMode.rcMode)
+    {
+    case IMP_ENC_RC_MODE_CAPPED_QUALITY:
+        rc_attr->attrRcMode.attrVbr.uTargetBitRate = stream.bitrate;
+        rc_attr->attrRcMode.attrVbr.uMaxBitRate = stream.bitrate;
+        rc_attr->attrRcMode.attrVbr.iInitialQP = -1;
+        rc_attr->attrRcMode.attrVbr.iMinQP = 20;
+        rc_attr->attrRcMode.attrVbr.iMaxQP = 45;
+        rc_attr->attrRcMode.attrVbr.iIPDelta = 3;
+        rc_attr->attrRcMode.attrVbr.iPBDelta = 3;
+        // rc_high_attr->attrRcMode.attrVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
+        rc_attr->attrRcMode.attrVbr.uMaxPictureSize = stream.width;
+        rc_attr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
+        break;
+    }
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
+
+#if defined(PLATFORM_T30)
+    channel_attr.encAttr.enType = (stream.format == "H264") ? PT_H264 : PT_H265;
+#else
+    channel_attr.encAttr.enType = PT_H264;
+#endif
+
+    channel_attr.encAttr.bufSize = 0;
+
+    // 0 = Baseline
+    // 1 = Main
+    // 2 = High
+    // Note: The encoder seems to emit frames at half the
+    // requested framerate when the profile is set to Baseline.
+    // For this reason, Main or High are recommended.
+    channel_attr.encAttr.profile = 2;
+    channel_attr.encAttr.picWidth = stream.width;
+    channel_attr.encAttr.picHeight = stream.height;
+    channel_attr.rcAttr.outFrmRate.frmRateNum = stream.fps;
+    channel_attr.rcAttr.outFrmRate.frmRateDen = 1;
+
+    /* unknow authoŕ */
+    // Setting maxGop to a low value causes the encoder to emit frames at a much
+    // slower rate. A sufficiently low value can cause the frame emission rate to
+    // drop below the frame rate.
+    // I find that 2x the frame rate is a good setting.
+    rc_attr->maxGop = stream.gop * 2;
+
+    if (stream.format == "H264")
+    {
+        rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
+        rc_attr->attrRcMode.attrH264Smart.maxQp = 45;
+        rc_attr->attrRcMode.attrH264Smart.minQp = 24;
+        rc_attr->attrRcMode.attrH264Smart.staticTime = 2;
+        rc_attr->attrRcMode.attrH264Smart.maxBitRate = stream.bitrate;
+        rc_attr->attrRcMode.attrH264Smart.iBiasLvl = 0;
+        rc_attr->attrRcMode.attrH264Smart.changePos = 80;
+        rc_attr->attrRcMode.attrH264Smart.qualityLvl = 0;
+        rc_attr->attrRcMode.attrH264Smart.frmQPStep = 3;
+        rc_attr->attrRcMode.attrH264Smart.gopQPStep = 15;
+        rc_attr->attrRcMode.attrH264Smart.gopRelation = false;
+#if defined(PLATFORM_T30)
+    }
+    else if (stream.format == "H265")
+    {
+        rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
+        rc_attr->attrRcMode.attrH265Smart.maxQp = 45;
+        rc_attr->attrRcMode.attrH265Smart.minQp = 15;
+        rc_attr->attrRcMode.attrH265Smart.staticTime = 2;
+        rc_attr->attrRcMode.attrH265Smart.maxBitRate = stream.bitrate;
+        rc_attr->attrRcMode.attrH265Smart.iBiasLvl = 0;
+        rc_attr->attrRcMode.attrH265Smart.changePos = 80;
+        rc_attr->attrRcMode.attrH265Smart.qualityLvl = 2;
+        rc_attr->attrRcMode.attrH265Smart.frmQPStep = 3;
+        rc_attr->attrRcMode.attrH265Smart.gopQPStep = 15;
+        rc_attr->attrRcMode.attrH265Smart.flucLvl = 2;
+#endif
+    }
+
+    rc_attr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
+    rc_attr->attrHSkip.hSkipAttr.m = rc_high_attr->maxGop - 1;
+    rc_attr->attrHSkip.hSkipAttr.n = 1;
+    rc_attr->attrHSkip.hSkipAttr.maxSameSceneCnt = 6;
+    rc_attr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
+    rc_attr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
+    rc_attr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X;
+
+#endif
+    return channel_attr;
+}
+
 IMPSensorInfo Encoder::create_sensor_info(std::string sensor)
 {
     IMPSensorInfo out;
     memset(&out, 0, sizeof(IMPSensorInfo));
-    LOG_INFO("Sensor: " << cfg->sensor.model.c_str());
-    std::strcpy(out.name, cfg->sensor.model.c_str());
+    LOG_INFO("Sensor: " << cfg->sensor.model);
+    std::strcpy(out.name, cfg->sensor.model);
     out.cbus_type = TX_SENSOR_CONTROL_INTERFACE_I2C;
-    std::strcpy(out.i2c.type, cfg->sensor.model.c_str());
+    std::strcpy(out.i2c.type, cfg->sensor.model);
     out.i2c.addr = cfg->sensor.i2c_address;
     return out;
 }
@@ -86,7 +190,7 @@ int Encoder::system_init()
     ret = IMP_ISP_Open();
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Open()");
 
-    sinfo = create_sensor_info(cfg->sensor.model.c_str());
+    sinfo = create_sensor_info(cfg->sensor.model);
     ret = IMP_ISP_AddSensor(&sinfo);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_AddSensor(&sinfo)");
 
@@ -350,7 +454,6 @@ int Encoder::framesource_init()
     fs_high_chn_attr.picWidth = cfg->stream0.width; // Testing stream size sync
     fs_high_chn_attr.picHeight = cfg->stream0.height;
 
-#if defined(LOW_STREAM)
     /* FrameSource lowres channel */
     IMPFSChnAttr fs_low_chn_attr;
     memset(&fs_low_chn_attr, 0, sizeof(IMPFSChnAttr));
@@ -365,7 +468,6 @@ int Encoder::framesource_init()
     fs_low_chn_attr.scaler.enable = 1;
     fs_low_chn_attr.scaler.outwidth = 640;
     fs_low_chn_attr.scaler.outheight = 340;
-#endif
 #if !defined(KERNEL_VERSION_4)
 #if defined(PLATFORM_T31)
 
@@ -417,110 +519,6 @@ int Encoder::framesource_init()
     LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(1, 0)");
 
     return ret;
-}
-
-IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
-{
-
-    IMPEncoderRcAttr *rc_attr;
-    IMPEncoderCHNAttr channel_attr;
-    memset(&channel_attr, 0, sizeof(IMPEncoderCHNAttr));
-    rc_attr = &channel_attr.rcAttr;
-
-#if defined(PLATFORM_T31)
-
-    IMPEncoderProfile encoderProfile;
-    encoderProfile = (stream.format == "H265") ? IMP_ENC_PROFILE_HEVC_MAIN : IMP_ENC_PROFILE_AVC_HIGH;
-
-    IMP_Encoder_SetDefaultParam(
-        &channel_attr, encoderProfile, IMP_ENC_RC_MODE_CAPPED_QUALITY, stream.width, stream.height,
-        stream.fps, 1, stream.gop, 2, -1, stream.bitrate);
-
-    switch (rc_attr->attrRcMode.rcMode)
-    {
-    case IMP_ENC_RC_MODE_CAPPED_QUALITY:
-        rc_attr->attrRcMode.attrVbr.uTargetBitRate = stream.bitrate;
-        rc_attr->attrRcMode.attrVbr.uMaxBitRate = stream.bitrate;
-        rc_attr->attrRcMode.attrVbr.iInitialQP = -1;
-        rc_attr->attrRcMode.attrVbr.iMinQP = 20;
-        rc_attr->attrRcMode.attrVbr.iMaxQP = 45;
-        rc_attr->attrRcMode.attrVbr.iIPDelta = 3;
-        rc_attr->attrRcMode.attrVbr.iPBDelta = 3;
-        // rc_high_attr->attrRcMode.attrVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
-        rc_attr->attrRcMode.attrVbr.uMaxPictureSize = stream.width;
-        rc_attr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
-        break;
-    }
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
-
-#if defined(PLATFORM_T30)
-    channel_attr.encAttr.enType = (stream.format == "H264") ? PT_H264 : PT_H265;
-#else
-    channel_attr.encAttr.enType = PT_H264;
-#endif
-
-    channel_attr.encAttr.bufSize = 0;
-
-    // 0 = Baseline
-    // 1 = Main
-    // 2 = High
-    // Note: The encoder seems to emit frames at half the
-    // requested framerate when the profile is set to Baseline.
-    // For this reason, Main or High are recommended.
-    channel_attr.encAttr.profile = 2;
-    channel_attr.encAttr.picWidth = stream.width;
-    channel_attr.encAttr.picHeight = stream.height;
-    channel_attr.rcAttr.outFrmRate.frmRateNum = stream.fps;
-    channel_attr.rcAttr.outFrmRate.frmRateDen = 1;
-
-    /* unknow authoŕ */
-    // Setting maxGop to a low value causes the encoder to emit frames at a much
-    // slower rate. A sufficiently low value can cause the frame emission rate to
-    // drop below the frame rate.
-    // I find that 2x the frame rate is a good setting.
-    rc_attr->maxGop = stream.gop * 2;
-
-    if (stream.format == "H264")
-    {
-        rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
-        rc_attr->attrRcMode.attrH264Smart.maxQp = 45;
-        rc_attr->attrRcMode.attrH264Smart.minQp = 24;
-        rc_attr->attrRcMode.attrH264Smart.staticTime = 2;
-        rc_attr->attrRcMode.attrH264Smart.maxBitRate = stream.bitrate;
-        rc_attr->attrRcMode.attrH264Smart.iBiasLvl = 0;
-        rc_attr->attrRcMode.attrH264Smart.changePos = 80;
-        rc_attr->attrRcMode.attrH264Smart.qualityLvl = 0;
-        rc_attr->attrRcMode.attrH264Smart.frmQPStep = 3;
-        rc_attr->attrRcMode.attrH264Smart.gopQPStep = 15;
-        rc_attr->attrRcMode.attrH264Smart.gopRelation = false;
-#if defined(PLATFORM_T30)
-    }
-    else if (stream.format == "H265")
-    {
-        rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
-        rc_attr->attrRcMode.attrH265Smart.maxQp = 45;
-        rc_attr->attrRcMode.attrH265Smart.minQp = 15;
-        rc_attr->attrRcMode.attrH265Smart.staticTime = 2;
-        rc_attr->attrRcMode.attrH265Smart.maxBitRate = stream.bitrate;
-        rc_attr->attrRcMode.attrH265Smart.iBiasLvl = 0;
-        rc_attr->attrRcMode.attrH265Smart.changePos = 80;
-        rc_attr->attrRcMode.attrH265Smart.qualityLvl = 2;
-        rc_attr->attrRcMode.attrH265Smart.frmQPStep = 3;
-        rc_attr->attrRcMode.attrH265Smart.gopQPStep = 15;
-        rc_attr->attrRcMode.attrH265Smart.flucLvl = 2;
-#endif
-    }
-
-    rc_attr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
-    rc_attr->attrHSkip.hSkipAttr.m = rc_high_attr->maxGop - 1;
-    rc_attr->attrHSkip.hSkipAttr.n = 1;
-    rc_attr->attrHSkip.hSkipAttr.maxSameSceneCnt = 6;
-    rc_attr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
-    rc_attr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
-    rc_attr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X;
-
-#endif
-    return channel_attr;
 }
 
 int Encoder::encoder_init()
@@ -887,17 +885,17 @@ void Encoder::jpeg_snap(std::shared_ptr<CFG> &cfg)
             IMPEncoderStream stream_jpeg;
             if (IMP_Encoder_GetStream(2, &stream_jpeg, 1) == 0)
             {                                                   // Check for success
-                std::string tempPath = "/tmp/snapshot.tmp";     // Temporary path
-                std::string finalPath = cfg->stream2.jpeg_path; // Final path for the JPEG snapshot
+                const char *tempPath = "/tmp/snapshot.tmp";     // Temporary path
+                const char *finalPath = cfg->stream2.jpeg_path; // Final path for the JPEG snapshot
 
                 // Open and create temporary file with read and write permissions
-                int snap_fd = open(tempPath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+                int snap_fd = open(tempPath, O_RDWR | O_CREAT | O_TRUNC, 0777);
                 if (snap_fd >= 0)
                 {
                     // Attempt to lock the temporary file for exclusive access
                     if (flock(snap_fd, LOCK_EX) == -1)
                     {
-                        LOG_ERROR("Failed to lock JPEG snapshot for writing: " + tempPath);
+                        LOG_ERROR("Failed to lock JPEG snapshot for writing: " << tempPath);
                         close(snap_fd);
                         return; // Exit the function if unable to lock the file
                     }
@@ -910,10 +908,10 @@ void Encoder::jpeg_snap(std::shared_ptr<CFG> &cfg)
                     close(snap_fd);
 
                     // Atomically move the temporary file to the final destination
-                    if (rename(tempPath.c_str(), finalPath.c_str()) != 0)
+                    if (rename(tempPath, finalPath) != 0)
                     {
-                        LOG_ERROR("Failed to move JPEG snapshot from " + tempPath + " to " + finalPath);
-                        std::remove(tempPath.c_str()); // Attempt to remove the temporary file if rename fails
+                        LOG_ERROR("Failed to move JPEG snapshot from " << tempPath << " to " << finalPath);
+                        std::remove(tempPath); // Attempt to remove the temporary file if rename fails
                     }
                     else
                     {
@@ -922,7 +920,7 @@ void Encoder::jpeg_snap(std::shared_ptr<CFG> &cfg)
                 }
                 else
                 {
-                    LOG_ERROR("Failed to open JPEG snapshot for writing: " + tempPath);
+                    LOG_ERROR("Failed to open JPEG snapshot for writing: " << tempPath);
                 }
 
                 // Delay before we release, otherwise an overflow may occur
@@ -1017,6 +1015,7 @@ void Encoder::run()
                 // Silence for now until further tests / THINGINO
                 // LOG_WARN("The encoder 0 dropped a frame. " << (high_nal_ts - last_high_nal_ts) << ", " << (1.5 * (1000000 / cfg->stream0.fps)));
             }
+
             struct timeval high_encode_time;
             high_encode_time.tv_sec = high_nal_ts / 1000000;
             high_encode_time.tv_usec = high_nal_ts % 1000000;
