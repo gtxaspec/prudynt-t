@@ -116,7 +116,7 @@ IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
     }
 
     rc_attr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
-    rc_attr->attrHSkip.hSkipAttr.m = rc_high_attr->maxGop - 1;
+    rc_attr->attrHSkip.hSkipAttr.m = rc_attr->maxGop - 1;
     rc_attr->attrHSkip.hSkipAttr.n = 1;
     rc_attr->attrHSkip.hSkipAttr.maxSameSceneCnt = 6;
     rc_attr->attrHSkip.hSkipAttr.bEnableScenecut = 0;

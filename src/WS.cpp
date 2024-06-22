@@ -387,7 +387,7 @@ static const char *const action_keys[] = {
 #pragma endregion keys_and_enums
 
 char token[WEBSOCKET_TOKEN_LENGTH + 1]{0};
-char ws_send_msg[2048]{0};
+char ws_send_msg[2048];
 
 struct user_ctx
 {
@@ -426,7 +426,9 @@ template <typename... Args>
 void append_message(const char *t, Args &&...a)
 {
 
-    char message[128]{0};
+    char message[128];
+    memset(message, 0, sizeof(message));
+    std::cout << message << std::endl;
     snprintf(message, sizeof(message), t, std::forward<Args>(a)...);
     std::strcat(ws_send_msg, message);
 }
@@ -1859,6 +1861,9 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
     case LWS_CALLBACK_RECEIVE:
         LOG_DEBUG("LWS_CALLBACK_RECEIVE " << client_ip << ", " << json_data);
+
+        //cleanup response buffer
+        memset(ws_send_msg, 0, sizeof(ws_send_msg));
 
         std::strcat(ws_send_msg, "{"); // start response json
         lejp_construct(&ctx, root_callback, u_ctx, root_keys, LWS_ARRAY_SIZE(root_keys));
