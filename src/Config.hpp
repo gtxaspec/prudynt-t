@@ -222,8 +222,6 @@ class CFG {
         std::vector<ConfigItem<T>> *items = nullptr;
         if constexpr (std::is_same_v<T, bool>) {
             items = &boolItems;
-        //} else if constexpr (std::is_same_v<T, std::string>) {
-        //    items = &stringItems;
         } else if constexpr (std::is_same_v<T, const char*>) {
             items = &charItems;
         } else if constexpr (std::is_same_v<T, int>) {
@@ -246,8 +244,6 @@ class CFG {
         std::vector<ConfigItem<T>> *items = nullptr;
         if constexpr (std::is_same_v<T, bool>) {
             items = &boolItems;
-        //} else if constexpr (std::is_same_v<T, std::string>) {
-        //    items = &stringItems;
         } else if constexpr (std::is_same_v<T, const char*>) {
             items = &charItems;
         } else if constexpr (std::is_same_v<T, int>) {
@@ -273,13 +269,11 @@ class CFG {
     private:
 
         std::vector<ConfigItem<bool>> boolItems;
-        //std::vector<ConfigItem<std::string>> stringItems;
         std::vector<ConfigItem<const char *>> charItems;
         std::vector<ConfigItem<int>> intItems;
         std::vector<ConfigItem<unsigned int>> uintItems;
 
         std::vector<ConfigItem<bool>> getBoolItems();
-        //std::vector<ConfigItem<std::string>> getStringItems();
         std::vector<ConfigItem<const char *>> getCharItems() ;
         std::vector<ConfigItem<int>> getIntItems();
         std::vector<ConfigItem<unsigned int>> getUintItems();

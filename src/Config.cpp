@@ -46,7 +46,8 @@ bool validateBool(const bool &v)
     return true;
 }
 
-bool validateUint(const unsigned int &v) {
+bool validateUint(const unsigned int &v)
+{
     return true;
 }
 
@@ -560,7 +561,6 @@ void handleConfigItem2(libconfig::Config &lc, ConfigItem<T> &item)
 
     if (isDifferent && !readFromProc && !isDefault)
     {
-
         ensurePathExists(lc.getRoot(), item.path);
 
         libconfig::Setting &section = lc.lookup(sect);
@@ -600,11 +600,13 @@ void handleConfigItem2(libconfig::Config &lc, ConfigItem<T> &item)
     }
     else if (isDefault)
     {
-
-        libconfig::Setting &section = lc.lookup(sect);
-        if (section.exists(entr))
+        if (lc.exists(sect))
         {
-            section.remove(entr);
+            libconfig::Setting &section = lc.lookup(sect);
+            if (section.exists(entr))
+            {
+                section.remove(entr);
+            }
         }
     }
 }
@@ -614,34 +616,30 @@ bool CFG::updateConfig()
 
     config_loaded = readConfig();
 
-    if (config_loaded)
+    for (auto &item : boolItems)
+        handleConfigItem2(lc, item);
+    for (auto &item : charItems)
+        handleConfigItem2(lc, item);
+    for (auto &item : intItems)
+        handleConfigItem2(lc, item);
+    for (auto &item : uintItems)
+        handleConfigItem2(lc, item);
+
+    libconfig::Setting &root = lc.getRoot();
+
+    if (root.exists("rois"))
+        root.remove("rois");
+
+    libconfig::Setting &rois = root.add("rois", libconfig::Setting::TypeGroup);
+
+    for (int i = 0; i < motion.roi_count; i++)
     {
 
-        for (auto &item : boolItems)
-            handleConfigItem2(lc, item);
-        for (auto &item : charItems)
-            handleConfigItem2(lc, item);
-        for (auto &item : intItems)
-            handleConfigItem2(lc, item);
-        for (auto &item : uintItems)
-            handleConfigItem2(lc, item);
-
-        libconfig::Setting &root = lc.getRoot();
-
-        if (root.exists("rois"))
-            root.remove("rois");
-
-        libconfig::Setting &rois = root.add("rois", libconfig::Setting::TypeGroup);
-
-        for (int i = 0; i < motion.roi_count; i++)
-        {
-
-            libconfig::Setting &entry = rois.add("roi_" + std::to_string(i), libconfig::Setting::TypeArray);
-            entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p0_x;
-            entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p0_y;
-            entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p1_x;
-            entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p1_y;
-        }
+        libconfig::Setting &entry = rois.add("roi_" + std::to_string(i), libconfig::Setting::TypeArray);
+        entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p0_x;
+        entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p0_y;
+        entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p1_x;
+        entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p1_y;
     }
 
     lc.writeFile(filePath);
@@ -660,35 +658,31 @@ CFG::CFG()
 
     config_loaded = readConfig();
 
-    if (config_loaded)
+    for (auto &item : boolItems)
+        handleConfigItem(lc, item);
+    for (auto &item : charItems)
+        handleConfigItem(lc, item);
+    for (auto &item : intItems)
+        handleConfigItem(lc, item);
+    for (auto &item : uintItems)
+        handleConfigItem(lc, item);
+
+    libconfig::Setting &root = lc.getRoot();
+
+    if (root.exists("rois"))
     {
 
-        for (auto &item : boolItems)
-            handleConfigItem(lc, item);
-        for (auto &item : charItems)
-            handleConfigItem(lc, item);
-        for (auto &item : intItems)
-            handleConfigItem(lc, item);
-        for (auto &item : uintItems)
-            handleConfigItem(lc, item);
-
-        libconfig::Setting &root = lc.getRoot();
-
-        if (root.exists("rois"))
+        libconfig::Setting &rois = root.lookup("rois");
+        for (int i = 0; i < motion.roi_count; i++)
         {
-
-            libconfig::Setting &rois = root.lookup("rois");
-            for (int i = 0; i < motion.roi_count; i++)
+            if (rois.exists("roi_" + std::to_string(i)))
             {
-                if (rois.exists("roi_" + std::to_string(i)))
+                if (rois[i].getLength() == 4)
                 {
-                    if (rois[i].getLength() == 4)
-                    {
-                        motion.rois[i].p0_x = rois[i][0];
-                        motion.rois[i].p0_y = rois[i][1];
-                        motion.rois[i].p1_x = rois[i][2];
-                        motion.rois[i].p1_y = rois[i][3];
-                    }
+                    motion.rois[i].p0_x = rois[i][0];
+                    motion.rois[i].p0_y = rois[i][1];
+                    motion.rois[i].p1_x = rois[i][2];
+                    motion.rois[i].p1_y = rois[i][3];
                 }
             }
         }
