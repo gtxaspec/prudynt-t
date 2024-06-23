@@ -125,9 +125,9 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
          { return v > 0 && v <= 65535; }},
         {"rtsp.est_bitrate", rtsp.est_bitrate, 5000, [](const int &v)
          { return v > 0; }},
-        {"rtsp.out_buffer_size", rtsp.out_buffer_size, 500000, [](const int &v)
+        {"rtsp.out_buffer_size", rtsp.out_buffer_size, 5000000, [](const int &v)
          { return v > 0; }},
-        {"rtsp.send_buffer_size", rtsp.send_buffer_size, 307200, [](const int &v)
+        {"rtsp.send_buffer_size", rtsp.send_buffer_size, 3072000, [](const int &v)
          { return v > 0; }},
         {"sensor.fps", sensor.fps, 24, [](const int &v)
          { return v > 0 && v <= 60; }, "/proc/jz/sensor/max_fps"},
@@ -203,7 +203,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
          { return v > 0 && v <= 32; }},
         {"stream1.width", stream1.width, 640, [](const int &v)
          { return v > 0; }},
-        {"stream1.height", stream1.height, 340, [](const int &v)
+        {"stream1.height", stream1.height, 360, [](const int &v)
          { return v > 0; }},
         {"stream1.bitrate", stream1.bitrate, 500, [](const int &v)
          { return v > 0; }},

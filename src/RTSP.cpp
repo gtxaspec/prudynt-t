@@ -40,7 +40,7 @@ void RTSP::run() {
             OutPacketBuffer::maxSize = cfg->rtsp.out_buffer_size;
 
             
-            if(1) {
+            if(cfg->stream0.enabled) {
                 LOG_DEBUG("identify stream 0");
                 IMPDeviceSource* deviceSource = IMPDeviceSource::createNew(*env, 0);
                 H264NALUnit sps, pps; // Declare outside the loop!
@@ -97,7 +97,7 @@ void RTSP::run() {
                 LOG_INFO("stream 0 available at: " << url);
             }
             
-            if(1) {
+            if(cfg->stream1.enabled) {
                 LOG_DEBUG("identify stream 1");
                 IMPDeviceSource* deviceSource = IMPDeviceSource::createNew(*env, 1);
                 H264NALUnit sps, pps; // Declare outside the loop!

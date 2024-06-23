@@ -76,27 +76,27 @@ IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
     channel_attr.encAttr.picHeight = stream.height;
     channel_attr.rcAttr.outFrmRate.frmRateNum = stream.fps;
     channel_attr.rcAttr.outFrmRate.frmRateDen = 1;
-
+    
     /* unknow authoŕ */
     // Setting maxGop to a low value causes the encoder to emit frames at a much
     // slower rate. A sufficiently low value can cause the frame emission rate to
     // drop below the frame rate.
     // I find that 2x the frame rate is a good setting.
     rc_attr->maxGop = stream.max_gop;
-
+    
     if (stream.format == "H264")
     {
         rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
         rc_attr->attrRcMode.attrH264Smart.maxQp = 45;
-        rc_attr->attrRcMode.attrH264Smart.minQp = 24;
+        rc_attr->attrRcMode.attrH264Smart.minQp = 15;
         rc_attr->attrRcMode.attrH264Smart.staticTime = 2;
-        rc_attr->attrRcMode.attrH264Smart.maxBitRate = stream.bitrate;
+        rc_attr->attrRcMode.attrH264Smart.maxBitRate = 5000; //stream.bitrate;
         rc_attr->attrRcMode.attrH264Smart.iBiasLvl = 0;
         rc_attr->attrRcMode.attrH264Smart.changePos = 80;
-        rc_attr->attrRcMode.attrH264Smart.qualityLvl = 0;
+        rc_attr->attrRcMode.attrH264Smart.qualityLvl = 2;
         rc_attr->attrRcMode.attrH264Smart.frmQPStep = 3;
         rc_attr->attrRcMode.attrH264Smart.gopQPStep = 15;
-        rc_attr->attrRcMode.attrH264Smart.gopRelation = false;
+        rc_attr->attrRcMode.attrH264Smart.gopRelation = false;           
 #if defined(PLATFORM_T30)
     }
     else if (stream.format == "H265")
@@ -111,7 +111,7 @@ IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
         rc_attr->attrRcMode.attrH265Smart.qualityLvl = 2;
         rc_attr->attrRcMode.attrH265Smart.frmQPStep = 3;
         rc_attr->attrRcMode.attrH265Smart.gopQPStep = 15;
-        rc_attr->attrRcMode.attrH265Smart.flucLvl = 2;
+        rc_attr->attrRcMode.attrH265Smart.flucLvl = 2;     
 #endif
     }
 
@@ -122,8 +122,8 @@ IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
     rc_attr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
     rc_attr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
     rc_attr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X;
-
 #endif
+    
     return channel_attr;
 }
 
@@ -438,6 +438,8 @@ int Encoder::framesource_init()
     IMPFSChnAttr fs_high_chn_attr;
     memset(&fs_high_chn_attr, 0, sizeof(IMPFSChnAttr));
 
+    ret = IMP_FrameSource_GetChnAttr(0, &fs_high_chn_attr);
+
     fs_high_chn_attr.pixFmt = PIX_FMT_NV12;
     fs_high_chn_attr.outFrmRateNum = cfg->stream0.fps;
     fs_high_chn_attr.outFrmRateDen = 1;
@@ -446,28 +448,47 @@ int Encoder::framesource_init()
     fs_high_chn_attr.crop.enable = 0;
     fs_high_chn_attr.crop.top = 0;
     fs_high_chn_attr.crop.left = 0;
-    fs_high_chn_attr.crop.width = cfg->stream0.width;
-    fs_high_chn_attr.crop.height = cfg->stream0.height;
-    fs_high_chn_attr.scaler.enable = cfg->stream0.scale_enabled;
-    fs_high_chn_attr.scaler.outwidth = cfg->stream0.scale_width;
-    fs_high_chn_attr.scaler.outheight = cfg->stream0.scale_width;
+    fs_high_chn_attr.crop.width = cfg->sensor.width; // cfg->stream0.width;
+    fs_high_chn_attr.crop.height = cfg->sensor.height; //cfg->stream0.height;
+    fs_high_chn_attr.scaler.enable = 1; //cfg->stream0.scale_enabled;
+    fs_high_chn_attr.scaler.outwidth = cfg->stream0.width;
+    fs_high_chn_attr.scaler.outheight = cfg->stream0.height;
     fs_high_chn_attr.picWidth = cfg->stream0.width; // Testing stream size sync
     fs_high_chn_attr.picHeight = cfg->stream0.height;
+
+    LOG_DEBUG("fs_high_chn_attr.scaler.enable = " <<  fs_high_chn_attr.scaler.enable);
+    LOG_DEBUG("fs_high_chn_attr.scaler.outwidth = " <<  fs_high_chn_attr.scaler.outwidth);
+    LOG_DEBUG("fs_high_chn_attr.scaler.outheight = " <<  fs_high_chn_attr.scaler.outheight);
+    LOG_DEBUG("fs_high_chn_attr.picWidth = " <<  fs_high_chn_attr.picWidth);
+    LOG_DEBUG("fs_high_chn_attr.picHeight = " <<  fs_high_chn_attr.picHeight);
 
     /* FrameSource lowres channel */
     IMPFSChnAttr fs_low_chn_attr;
     memset(&fs_low_chn_attr, 0, sizeof(IMPFSChnAttr));
 
+    ret = IMP_FrameSource_GetChnAttr(1, &fs_low_chn_attr);
+
     fs_low_chn_attr.pixFmt = PIX_FMT_NV12;
-    fs_low_chn_attr.outFrmRateNum = cfg->stream0.fps;
+    fs_low_chn_attr.outFrmRateNum = cfg->stream1.fps;
     fs_low_chn_attr.outFrmRateDen = 1;
-    fs_low_chn_attr.nrVBs = 1;
+    fs_low_chn_attr.nrVBs = 3;
     fs_low_chn_attr.type = FS_PHY_CHANNEL;
-    fs_low_chn_attr.picWidth = 640;
-    fs_low_chn_attr.picHeight = 340;
-    fs_low_chn_attr.scaler.enable = 1;
-    fs_low_chn_attr.scaler.outwidth = 640;
-    fs_low_chn_attr.scaler.outheight = 340;
+    fs_low_chn_attr.crop.enable = 0;
+    fs_low_chn_attr.crop.top = 0;
+    fs_low_chn_attr.crop.left = 0;
+    fs_low_chn_attr.crop.width = cfg->sensor.width;
+    fs_low_chn_attr.crop.height = cfg->sensor.height;
+    fs_low_chn_attr.scaler.enable = 1; //cfg->stream1.scale_enabled;
+    fs_low_chn_attr.scaler.outwidth = cfg->stream1.width;
+    fs_low_chn_attr.scaler.outheight = cfg->stream1.height;
+    fs_low_chn_attr.picWidth = cfg->stream1.width; // Testing stream size sync
+    fs_low_chn_attr.picHeight = cfg->stream1.height;
+
+    LOG_DEBUG("fs_low_chn_attr.scaler.enable = " <<  fs_low_chn_attr.scaler.enable);
+    LOG_DEBUG("fs_low_chn_attr.scaler.outwidth = " <<  fs_low_chn_attr.scaler.outwidth);
+    LOG_DEBUG("fs_low_chn_attr.scaler.outheight = " <<  fs_low_chn_attr.scaler.outheight);
+    LOG_DEBUG("fs_low_chn_attr.picWidth = " <<  fs_low_chn_attr.picWidth);
+    LOG_DEBUG("fs_low_chn_attr.picHeight = " <<  fs_low_chn_attr.picHeight);    
 #if !defined(KERNEL_VERSION_4)
 #if defined(PLATFORM_T31)
 
@@ -482,41 +503,49 @@ int Encoder::framesource_init()
 #endif
 #endif
 
-    /* FrameSource lowres channel */
-    ret = IMP_FrameSource_CreateChn(0, &fs_high_chn_attr);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_CreateChn(0, &fs_high_chn_attr)");
+    if(cfg->stream0.enabled) {
+        /* FrameSource highres channel */
+        ret = IMP_FrameSource_CreateChn(0, &fs_high_chn_attr);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_CreateChn(0, &fs_high_chn_attr)");
 
-    ret = IMP_FrameSource_SetChnAttr(0, &fs_high_chn_attr);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnAttr(0, &fs_high_chn_attr)");
+        ret = IMP_FrameSource_SetChnAttr(0, &fs_high_chn_attr);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnAttr(0, &fs_high_chn_attr)");
 
-    IMPFSChnFifoAttr fifo;
-    ret = IMP_FrameSource_GetChnFifoAttr(0, &fifo);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_GetChnFifoAttr(0, &fifo)");
+        /*
+        IMPFSChnFifoAttr fifo;
+        ret = IMP_FrameSource_GetChnFifoAttr(0, &fifo);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_GetChnFifoAttr(0, &fifo)");
 
-    fifo.maxdepth = 0;
-    ret = IMP_FrameSource_SetChnFifoAttr(0, &fifo);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnFifoAttr(0, &fifo)");
+        fifo.maxdepth = 0;
+        ret = IMP_FrameSource_SetChnFifoAttr(0, &fifo);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnFifoAttr(0, &fifo)");
 
-    ret = IMP_FrameSource_SetFrameDepth(0, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(0, 0)");
+        ret = IMP_FrameSource_SetFrameDepth(0, 0);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(0, 0)");
+        */
+    }
 
-    /* FrameSource lowres channel */
-    ret = IMP_FrameSource_CreateChn(1, &fs_low_chn_attr);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_CreateChn(1, &fs_low_chn_attr)");
+    if(cfg->stream1.enabled) {
+        /* FrameSource lowres channel */
+        ret = IMP_FrameSource_CreateChn(1, &fs_low_chn_attr);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_CreateChn(1, &fs_low_chn_attr)");
 
-    ret = IMP_FrameSource_SetChnAttr(1, &fs_low_chn_attr);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnAttr(1, &fs_low_chn_attr)");
+        ret = IMP_FrameSource_SetChnAttr(1, &fs_low_chn_attr);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnAttr(1, &fs_low_chn_attr)");
 
-    IMPFSChnFifoAttr low_fifo;
-    ret = IMP_FrameSource_GetChnFifoAttr(1, &low_fifo);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_GetChnFifoAttr(1, &low_fifo)");
+        /*
+        IMPFSChnFifoAttr low_fifo;
+        ret = IMP_FrameSource_GetChnFifoAttr(1, &low_fifo);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_GetChnFifoAttr(1, &low_fifo)");
 
-    fifo.maxdepth = 0;
-    ret = IMP_FrameSource_SetChnFifoAttr(1, &low_fifo);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnFifoAttr(1, &low_fifo)");
+        low_fifo.maxdepth = 0;
+        ret = IMP_FrameSource_SetChnFifoAttr(1, &low_fifo);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnFifoAttr(1, &low_fifo)");
 
-    ret = IMP_FrameSource_SetFrameDepth(1, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(1, 0)");
+        ret = IMP_FrameSource_SetFrameDepth(1, 0);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(1, 0)");        
+        */
+    }
 
     return ret;
 }
@@ -638,10 +667,10 @@ bool Encoder::init()
             // low OSD -> low Encoder
             ret = IMP_System_Bind(&low_osd_cell, &low_enc);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&low_osd_cell, &low_enc)");            
+        }    
 
-            ret = IMP_FrameSource_EnableChn(1);
-            LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_FrameSource_EnableChn(1)");
-        }        
+        ret = IMP_FrameSource_EnableChn(1);
+        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_FrameSource_EnableChn(1)");            
     }
 
     if (cfg->motion.enabled)
@@ -880,7 +909,7 @@ void Encoder::jpeg_snap(std::shared_ptr<CFG> &cfg)
             IMP_Encoder_SetJpegeQl(2, &pstJpegeQl);
 #endif
 
-            IMP_Encoder_PollingStream(2, 10000); // Wait for frame
+            IMP_Encoder_PollingStream(2, 1000); // Wait for frame
 
             IMPEncoderStream stream_jpeg;
             if (IMP_Encoder_GetStream(2, &stream_jpeg, 1) == 0)
@@ -952,7 +981,7 @@ void Encoder::run()
     // want sink threads to have higher priority.
     nice(-19);
 
-    int ret;
+    int ret, xx;
     int64_t last_high_nal_ts;
     int64_t last_low_nal_ts;
 
@@ -975,15 +1004,21 @@ void Encoder::run()
             gettimeofday(&high_imp_time_base, NULL);
             gettimeofday(&low_imp_time_base, NULL);
 
-            IMP_Encoder_StartRecvPic(0);
-            LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(0)");
-            if(ret != 0) return;
+            if(cfg->stream0.enabled) {
+            
+                IMP_Encoder_StartRecvPic(0);
+                LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(0)");
+                if(ret != 0) return;
+            }
 
-            IMP_Encoder_StartRecvPic(1);
-            LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(1)");
-            if(ret != 0) return;
+            if(cfg->stream1.enabled) {
 
-            if (cfg->stream2.enabled)
+                IMP_Encoder_StartRecvPic(1);
+                LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(1)");
+                if(ret != 0) return;
+            }
+
+            if (cfg->stream2.enabled&&1==2)
             {
 
                 LOG_DEBUG("JPEG support enabled");
@@ -1005,275 +1040,290 @@ void Encoder::run()
         while (cfg->encoder_thread_signal.load() & 2)
         {
 
-            IMPEncoderStream stream0;
-            if (IMP_Encoder_GetStream(0, &stream0, false) != 0)
-            {
-                LOG_ERROR("IMP_Encoder_GetStream(0) failed");
-                usleep(1000*1000);
-                continue;
-            }
-            LOG_ERROR("IMP_Encoder_GetStream(0) ok");
-            // The I/P NAL is always last, but it doesn't
-            // really matter which NAL we select here as they
-            // all have identical timestamps.
-            int64_t high_nal_ts = stream0.pack[stream0.packCount - 1].timestamp;
-            if (high_nal_ts - last_high_nal_ts > 1.5 * (1000000 / cfg->stream0.fps))
-            {
-                // Silence for now until further tests / THINGINO
-                // LOG_WARN("The encoder 0 dropped a frame. " << (high_nal_ts - last_high_nal_ts) << ", " << (1.5 * (1000000 / cfg->stream0.fps)));
-            }
+            if(cfg->stream0.enabled) {
 
-            struct timeval high_encode_time;
-            high_encode_time.tv_sec = high_nal_ts / 1000000;
-            high_encode_time.tv_usec = high_nal_ts % 1000000;
+                IMP_Encoder_PollingStream(0, 200);
 
-            for (unsigned int i = 0; i < stream0.packCount; ++i)
-            {
-                // std::cout << last_high_nal_ts << " " << stream0.pack[i].timestamp << " " << (high_nal_ts - last_high_nal_ts) <<std::endl;
+                IMPEncoderStream stream0;
+                if (IMP_Encoder_GetStream(0, &stream0, true) != 0)
+                {
+                    LOG_ERROR("IMP_Encoder_GetStream(0) failed");
+                    errorCount++;
+                    continue;
+                }
+
+                // The I/P NAL is always last, but it doesn't
+                // really matter which NAL we select here as they
+                // all have identical timestamps.
+                int64_t high_nal_ts = stream0.pack[stream0.packCount - 1].timestamp;
+                if (high_nal_ts - last_high_nal_ts > 1.5 * (1000000 / cfg->stream0.fps))
+                {
+                    // Silence for now until further tests / THINGINO
+                    // LOG_WARN("The encoder 0 dropped a frame. " << (high_nal_ts - last_high_nal_ts) << ", " << (1.5 * (1000000 / cfg->stream0.fps)));
+                }
+
+                struct timeval high_encode_time;
+                high_encode_time.tv_sec = high_nal_ts / 1000000;
+                high_encode_time.tv_usec = high_nal_ts % 1000000;
+
+                for (unsigned int i = 0; i < stream0.packCount; ++i)
+                {
+                    // std::cout << last_high_nal_ts << " " << stream0.pack[i].timestamp << " " << (high_nal_ts - last_high_nal_ts) <<std::endl;
 
 #if defined(PLATFORM_T31)
-                uint8_t *start0 = (uint8_t *)stream0.virAddr + stream0.pack[i].offset;
-                uint8_t *end0 = start0 + stream0.pack[i].length;
+                    uint8_t *start0 = (uint8_t *)stream0.virAddr + stream0.pack[i].offset;
+                    uint8_t *end0 = start0 + stream0.pack[i].length;
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
-                uint8_t *start0 = (uint8_t *)stream0.pack[i].virAddr;
-                uint8_t *end0 = (uint8_t *)stream0.pack[i].virAddr + stream0.pack[i].length;
+                    uint8_t *start0 = (uint8_t *)stream0.pack[i].virAddr;
+                    uint8_t *end0 = (uint8_t *)stream0.pack[i].virAddr + stream0.pack[i].length;
 #endif
 
-                H264NALUnit nalu0;
-                nalu0.imp_ts = stream0.pack[i].timestamp;
-                timeradd(&high_imp_time_base, &high_encode_time, &nalu0.time);
-                nalu0.duration = 0;
+                    H264NALUnit nalu0;
+                    nalu0.imp_ts = stream0.pack[i].timestamp;
+                    timeradd(&high_imp_time_base, &high_encode_time, &nalu0.time);
+                    nalu0.duration = 0;
 #if defined(PLATFORM_T31)
-                if (stream0.pack[i].nalType.h264NalType == 5 || stream0.pack[i].nalType.h264NalType == 1)
-                {
-                    nalu0.duration = high_nal_ts - last_high_nal_ts;
-                }
-                else if (stream0.pack[i].nalType.h265NalType == 19 ||
-                         stream0.pack[i].nalType.h265NalType == 20 ||
-                         stream0.pack[i].nalType.h265NalType == 1)
-                {
-                    nalu0.duration = high_nal_ts - last_high_nal_ts;
-                }
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
-                if (stream0.pack[i].dataType.h264Type == 5 || stream0.pack[i].dataType.h264Type == 1)
-                {
-                    nalu0.duration = high_nal_ts - last_high_nal_ts;
-                }
-#elif defined(PLATFORM_T30)
-                if (stream0.pack[i].dataType.h264Type == 5 || stream0.pack[i].dataType.h264Type == 1)
-                {
-                    nalu0.duration = high_nal_ts - last_high_nal_ts;
-                }
-                else if (stream0.pack[i].dataType.h265Type == 19 ||
-                         stream0.pack[i].dataType.h265Type == 20 ||
-                         stream0.pack[i].dataType.h265Type == 1)
-                {
-                    nalu0.duration = high_nal_ts - last_high_nal_ts;
-                }
-#endif
-                // We use start+4 because the encoder inserts 4-byte MPEG
-                //'startcodes' at the beginning of each NAL. Live555 complains
-                // if those are present.
-                nalu0.data.insert(nalu0.data.end(), start0 + 4, end0);
-
-                std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-                // for (std::map<uint32_t, EncoderSink>::iterator it = Encoder::sinks.begin();
-                //      it != Encoder::sinks.end(); ++it)
-                //{
-                for (auto &[sinkId, sink] : Encoder::sinks)
-                {
-                    if (sink.encChn == 0)
+                    if (stream0.pack[i].nalType.h264NalType == 5 || stream0.pack[i].nalType.h264NalType == 1)
                     {
-                        if (!sink.IDR)
-                        {
-#if defined(PLATFORM_T31)
-                            if (stream0.pack[i].nalType.h264NalType == 7 ||
-                                stream0.pack[i].nalType.h264NalType == 8 ||
-                                stream0.pack[i].nalType.h264NalType == 5)
-                            {
-                                sink.IDR = true;
-                            }
-                            else if (stream0.pack[i].nalType.h265NalType == 32)
-                            {
-                                sink.IDR = true;
-                            }
+                        nalu0.duration = high_nal_ts - last_high_nal_ts;
+                    }
+                    else if (stream0.pack[i].nalType.h265NalType == 19 ||
+                            stream0.pack[i].nalType.h265NalType == 20 ||
+                            stream0.pack[i].nalType.h265NalType == 1)
+                    {
+                        nalu0.duration = high_nal_ts - last_high_nal_ts;
+                    }
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
-                            if (stream0.pack[i].dataType.h264Type == 7 ||
-                                stream0.pack[i].dataType.h264Type == 8 ||
-                                stream0.pack[i].dataType.h264Type == 5)
-                            {
-                                sink.IDR = true;
-                            }
+                    if (stream0.pack[i].dataType.h264Type == 5 || stream0.pack[i].dataType.h264Type == 1)
+                    {
+                        nalu0.duration = high_nal_ts - last_high_nal_ts;
+                    }
 #elif defined(PLATFORM_T30)
-                            if (stream0.pack[i].dataType.h264Type == 7 ||
-                                stream0.pack[i].dataType.h264Type == 8 ||
-                                stream0.pack[i].dataType.h264Type == 5)
-                            {
-                                sink.IDR = true;
-                            }
-                            else if (stream0.pack[i].dataType.h265Type == 32)
-                            {
-                                sink.IDR = true;
-                            }
+                    if (stream0.pack[i].dataType.h264Type == 5 || stream0.pack[i].dataType.h264Type == 1)
+                    {
+                        nalu0.duration = high_nal_ts - last_high_nal_ts;
+                    }
+                    else if (stream0.pack[i].dataType.h265Type == 19 ||
+                            stream0.pack[i].dataType.h265Type == 20 ||
+                            stream0.pack[i].dataType.h265Type == 1)
+                    {
+                        nalu0.duration = high_nal_ts - last_high_nal_ts;
+                    }
 #endif
-                        }
-                        if (sink.IDR)
-                        {
+                    // We use start+4 because the encoder inserts 4-byte MPEG
+                    //'startcodes' at the beginning of each NAL. Live555 complains
+                    // if those are present.
+                    nalu0.data.insert(nalu0.data.end(), start0 + 4, end0);
 
-                            if (sink.data_available_callback(nalu0))
+                    std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
+                    // for (std::map<uint32_t, EncoderSink>::iterator it = Encoder::sinks.begin();
+                    //      it != Encoder::sinks.end(); ++it)
+                    //{
+                    for (auto &[sinkId, sink] : Encoder::sinks)
+                    {
+                        if (sink.encChn == 0)
+                        {
+                            if (!sink.IDR)
+                            {
+#if defined(PLATFORM_T31)
+                                if (stream0.pack[i].nalType.h264NalType == 7 ||
+                                    stream0.pack[i].nalType.h264NalType == 8 ||
+                                    stream0.pack[i].nalType.h264NalType == 5)
+                                {
+                                    sink.IDR = true;
+                                }
+                                else if (stream0.pack[i].nalType.h265NalType == 32)
+                                {
+                                    sink.IDR = true;
+                                }
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
+                                if (stream0.pack[i].dataType.h264Type == 7 ||
+                                    stream0.pack[i].dataType.h264Type == 8 ||
+                                    stream0.pack[i].dataType.h264Type == 5)
+                                {
+                                    sink.IDR = true;
+                                }
+#elif defined(PLATFORM_T30)
+                                if (stream0.pack[i].dataType.h264Type == 7 ||
+                                    stream0.pack[i].dataType.h264Type == 8 ||
+                                    stream0.pack[i].dataType.h264Type == 5)
+                                {
+                                    sink.IDR = true;
+                                }
+                                else if (stream0.pack[i].dataType.h265Type == 32)
+                                {
+                                    sink.IDR = true;
+                                }
+#endif
+                            }
+                            if (sink.IDR)
                             {
 
-                                LOG_ERROR("stream 0, eC:" << sink.encChn << ", id:" << sinkId << ", size:" << nalu0.data.size() << ", pC:" << stream0.packCount << ", pS:" << nalu0.data.size() << ", pN:" << i << ", sC:" << Encoder::sinks.size() << " clogged!");
+                                if (sink.data_available_callback(nalu0))
+                                {
+
+                                    LOG_ERROR("stream 0, eC:" << sink.encChn << ", id:" << sinkId << ", size:" << nalu0.data.size() << ", pC:" << stream0.packCount << ", pS:" << nalu0.data.size() << ", pN:" << i << ", sC:" << Encoder::sinks.size() << " clogged!");
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            IMP_Encoder_ReleaseStream(0, &stream0);
+                IMP_Encoder_ReleaseStream(0, &stream0);
+                last_high_nal_ts = high_nal_ts;
 
-            IMPEncoderStream stream1;
-            if (IMP_Encoder_GetStream(1, &stream1, false) != 0)
-            {
-                LOG_ERROR("IMP_Encoder_GetStream(1) failed");
-                usleep(1000*1000);
-                continue;
-            }
+                if (cfg->stream0.osd.enabled)
+                {
+                    stream0_osd->update();
+                }                
+            } //if(cfg->stream0.enabled) {
 
-            // The I/P NAL is always last, but it doesn't
-            // really matter which NAL we select here as they
-            // all have identical timestamps.
-            int64_t low_nal_ts = stream1.pack[stream1.packCount - 1].timestamp;
-            if (low_nal_ts - last_low_nal_ts > 1.5 * (1000000 / cfg->stream0.fps))
-            {
-                // Silence for now until further tests / THINGINO
-                // LOG_WARN("The encoder 1 dropped a frame. " << (low_nal_ts - last_low_nal_ts) << ", " << (1.5 * (1000000 / cfg->stream0.fps)));
-            }
-            struct timeval low_encode_time;
-            low_encode_time.tv_sec = low_nal_ts / 1000000;
-            low_encode_time.tv_usec = low_nal_ts % 1000000;
+            if(cfg->stream1.enabled) {
 
-            for (unsigned int i = 0; i < stream1.packCount; ++i)
-            {
+                //IMP_Encoder_PollingStream(1, 100);
+
+                IMPEncoderStream stream1;
+                if (IMP_Encoder_GetStream(1, &stream1, false) != 0)
+                {
+                    LOG_ERROR("IMP_Encoder_GetStream(1) failed");
+                    errorCount++;
+                    continue;
+                }
+
+                // The I/P NAL is always last, but it doesn't
+                // really matter which NAL we select here as they
+                // all have identical timestamps.
+                int64_t low_nal_ts = stream1.pack[stream1.packCount - 1].timestamp;
+                if (low_nal_ts - last_low_nal_ts > 1.5 * (1000000 / cfg->stream0.fps))
+                {
+                    // Silence for now until further tests / THINGINO
+                    // LOG_WARN("The encoder 1 dropped a frame. " << (low_nal_ts - last_low_nal_ts) << ", " << (1.5 * (1000000 / cfg->stream0.fps)));
+                }
+                struct timeval low_encode_time;
+                low_encode_time.tv_sec = low_nal_ts / 1000000;
+                low_encode_time.tv_usec = low_nal_ts % 1000000;
+
+                for (unsigned int i = 0; i < stream1.packCount; ++i)
+                {
 #if defined(PLATFORM_T31)
-                uint8_t *start1 = (uint8_t *)stream1.virAddr + stream1.pack[i].offset;
-                uint8_t *end1 = start1 + stream1.pack[i].length;
+                    uint8_t *start1 = (uint8_t *)stream1.virAddr + stream1.pack[i].offset;
+                    uint8_t *end1 = start1 + stream1.pack[i].length;
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
-                uint8_t *start1 = (uint8_t *)stream1.pack[i].virAddr;
-                uint8_t *end1 = (uint8_t *)stream1.pack[i].virAddr + stream1.pack[i].length;
+                    uint8_t *start1 = (uint8_t *)stream1.pack[i].virAddr;
+                    uint8_t *end1 = (uint8_t *)stream1.pack[i].virAddr + stream1.pack[i].length;
 #endif
 
-                H264NALUnit nalu1;
-                nalu1.imp_ts = stream1.pack[i].timestamp;
-                timeradd(&low_imp_time_base, &low_encode_time, &nalu1.time);
-                nalu1.duration = 0;
+                    H264NALUnit nalu1;
+                    nalu1.imp_ts = stream1.pack[i].timestamp;
+                    timeradd(&low_imp_time_base, &low_encode_time, &nalu1.time);
+                    nalu1.duration = 0;
 #if defined(PLATFORM_T31)
-                if (stream1.pack[i].nalType.h264NalType == 5 || stream1.pack[i].nalType.h264NalType == 1)
-                {
-                    nalu1.duration = low_nal_ts - last_low_nal_ts;
-                }
-                else if (stream1.pack[i].nalType.h265NalType == 19 ||
-                         stream1.pack[i].nalType.h265NalType == 20 ||
-                         stream1.pack[i].nalType.h265NalType == 1)
-                {
-                    nalu1.duration = low_nal_ts - last_low_nal_ts;
-                }
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
-                if (stream1.pack[i].dataType.h264Type == 5 || stream1.pack[i].dataType.h264Type == 1)
-                {
-                    nalu1.duration = low_nal_ts - last_low_nal_ts;
-                }
-#elif defined(PLATFORM_T30)
-                if (stream1.pack[i].dataType.h264Type == 5 || stream1.pack[i].dataType.h264Type == 1)
-                {
-                    nalu1.duration = low_nal_ts - last_low_nal_ts;
-                }
-                else if (stream1.pack[i].dataType.h265Type == 19 ||
-                         stream1.pack[i].dataType.h265Type == 20 ||
-                         stream1.pack[i].dataType.h265Type == 1)
-                {
-                    nalu1.duration = low_nal_ts - last_low_nal_ts;
-                }
-#endif
-                // We use start+4 because the encoder inserts 4-byte MPEG
-                //'startcodes' at the beginning of each NAL. Live555 complains
-                // if those are present.
-                nalu1.data.insert(nalu1.data.end(), start1 + 4, end1);
-
-                std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-                // for (std::map<uint32_t, EncoderSink>::iterator it = Encoder::sinks.begin();
-                //      it != Encoder::sinks.end(); ++it)
-                //{
-                for (auto &[sinkId, sink] : Encoder::sinks)
-                {
-                    if (sink.encChn == 1)
+                    if (stream1.pack[i].nalType.h264NalType == 5 || stream1.pack[i].nalType.h264NalType == 1)
                     {
-                        if (!sink.IDR)
-                        {
-#if defined(PLATFORM_T31)
-                            if (stream1.pack[i].nalType.h264NalType == 7 ||
-                                stream1.pack[i].nalType.h264NalType == 8 ||
-                                stream1.pack[i].nalType.h264NalType == 5)
-                            {
-                                sink.IDR = true;
-                            }
-                            else if (stream1.pack[i].nalType.h265NalType == 32)
-                            {
-                                sink.IDR = true;
-                            }
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
-                            if (stream1.pack[i].dataType.h264Type == 7 ||
-                                stream1.pack[i].dataType.h264Type == 8 ||
-                                stream1.pack[i].dataType.h264Type == 5)
-                            {
-                                sink.IDR = true;
-                            }
-#elif defined(PLATFORM_T30)
-                            if (stream1.pack[i].dataType.h264Type == 7 ||
-                                stream1.pack[i].dataType.h264Type == 8 ||
-                                stream1.pack[i].dataType.h264Type == 5)
-                            {
-                                sink.IDR = true;
-                            }
-                            else if (stream1.pack[i].dataType.h265Type == 32)
-                            {
-                                sink.IDR = true;
-                            }
-#endif
-                        }
-                        if (sink.IDR)
-                        {
-                            if (sink.data_available_callback(nalu1))
-                            {
-
-                                LOG_ERROR("stream 0, eC:" << sink.encChn << ", id:" << sinkId << ", size:" << nalu1.data.size() << ", pC:" << stream1.packCount << ", pS:" << nalu1.data.size() << ", pN:" << i << ", sC:" << Encoder::sinks.size() << " clogged!");
-                            }
-                        }
+                        nalu1.duration = low_nal_ts - last_low_nal_ts;
                     }
+                    else if (stream1.pack[i].nalType.h265NalType == 19 ||
+                            stream1.pack[i].nalType.h265NalType == 20 ||
+                            stream1.pack[i].nalType.h265NalType == 1)
+                    {
+                        nalu1.duration = low_nal_ts - last_low_nal_ts;
+                    }
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
+                    if (stream1.pack[i].dataType.h264Type == 5 || stream1.pack[i].dataType.h264Type == 1)
+                    {
+                        nalu1.duration = low_nal_ts - last_low_nal_ts;
+                    }
+#elif defined(PLATFORM_T30)
+                    if (stream1.pack[i].dataType.h264Type == 5 || stream1.pack[i].dataType.h264Type == 1)
+                    {
+                        nalu1.duration = low_nal_ts - last_low_nal_ts;
+                    }
+                    else if (stream1.pack[i].dataType.h265Type == 19 ||
+                            stream1.pack[i].dataType.h265Type == 20 ||
+                            stream1.pack[i].dataType.h265Type == 1)
+                    {
+                        nalu1.duration = low_nal_ts - last_low_nal_ts;
+                    }
+#endif
+                    // We use start+4 because the encoder inserts 4-byte MPEG
+                    //'startcodes' at the beginning of each NAL. Live555 complains
+                    // if those are present.
+                    nalu1.data.insert(nalu1.data.end(), start1 + 4, end1);
+
+                    std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
+                    // for (std::map<uint32_t, EncoderSink>::iterator it = Encoder::sinks.begin();
+                    //      it != Encoder::sinks.end(); ++it)
+                    //{
+                    for (auto &[sinkId, sink] : Encoder::sinks)
+                    {
+                        if (sink.encChn == 1)
+                        {
+                            if (!sink.IDR)
+                            {
+#if defined(PLATFORM_T31)
+                                if (stream1.pack[i].nalType.h264NalType == 7 ||
+                                    stream1.pack[i].nalType.h264NalType == 8 ||
+                                    stream1.pack[i].nalType.h264NalType == 5)
+                                {
+                                    sink.IDR = true;
+                                }
+                                else if (stream1.pack[i].nalType.h265NalType == 32)
+                                {
+                                    sink.IDR = true;
+                                }
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
+                                if (stream1.pack[i].dataType.h264Type == 7 ||
+                                    stream1.pack[i].dataType.h264Type == 8 ||
+                                    stream1.pack[i].dataType.h264Type == 5)
+                                {
+                                    sink.IDR = true;
+                                }
+#elif defined(PLATFORM_T30)
+                                if (stream1.pack[i].dataType.h264Type == 7 ||
+                                    stream1.pack[i].dataType.h264Type == 8 ||
+                                    stream1.pack[i].dataType.h264Type == 5)
+                                {
+                                    sink.IDR = true;
+                                }
+                                else if (stream1.pack[i].dataType.h265Type == 32)
+                                {
+                                    sink.IDR = true;
+                                }
+#endif
+                            }
+                            if (sink.IDR)
+                            {
+                                if (sink.data_available_callback(nalu1))
+                                {
+
+                                    LOG_ERROR("stream 0, eC:" << sink.encChn << ", id:" << sinkId << ", size:" << nalu1.data.size() << ", pC:" << stream1.packCount << ", pS:" << nalu1.data.size() << ", pN:" << i << ", sC:" << Encoder::sinks.size() << " clogged!");
+                                }
+                            }
+                        }
+                    }                   
                 }
-            }
 
-            IMP_Encoder_ReleaseStream(1, &stream1);
+                IMP_Encoder_ReleaseStream(1, &stream1);
+                last_low_nal_ts = low_nal_ts;
 
-            if (cfg->stream0.osd.enabled)
-            {
-                stream0_osd->update();
-            }
-
-            if (cfg->stream1.osd.enabled)
-            {
-                stream1_osd->update();
-            }            
-
-            last_high_nal_ts = high_nal_ts;
-            last_low_nal_ts = low_nal_ts;
+                if (cfg->stream1.osd.enabled)
+                {
+                    stream1_osd->update();
+                }                   
+            } //if(cfg->stream1.enabled) {          
         }
 
         // 4 = Stop thread
         if (cfg->encoder_thread_signal.load() & 4)
         {
-            IMP_Encoder_StopRecvPic(0);
-            IMP_Encoder_StopRecvPic(1);
+            if(cfg->stream0.enabled) {
+                IMP_Encoder_StopRecvPic(0);
+            }
+
+            if(cfg->stream1.enabled) {    
+                IMP_Encoder_StopRecvPic(1);
+            }
+
             exit();
         }
     }

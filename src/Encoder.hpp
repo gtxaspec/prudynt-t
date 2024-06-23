@@ -136,6 +136,11 @@ class Encoder {
 		bool osdStream0 = false;
 		bool osdStream1 = false;
 		bool motionInitialized{0};
+		
+		int stream0Status = 0;
+		int stream1Status = 0;
+
+		int errorCount = 0;
 };
 
 #endif
