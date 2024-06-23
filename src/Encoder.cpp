@@ -82,7 +82,7 @@ IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
     // slower rate. A sufficiently low value can cause the frame emission rate to
     // drop below the frame rate.
     // I find that 2x the frame rate is a good setting.
-    rc_attr->maxGop = stream.gop * 2;
+    rc_attr->maxGop = stream.max_gop;
 
     if (stream.format == "H264")
     {
@@ -572,13 +572,13 @@ bool Encoder::init()
     int ret = 0;
 
     ret = system_init();
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "system_init(0)");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "system_init()");
 
     ret = framesource_init();
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "framesource_init(0)");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "framesource_init()");
 
     ret = encoder_init();
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "encoder_init(0)");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "encoder_init()");
 
     /* Encoder highres channel */
     if (cfg->stream0.enabled)
@@ -952,6 +952,7 @@ void Encoder::run()
     // want sink threads to have higher priority.
     nice(-19);
 
+    int ret;
     int64_t last_high_nal_ts;
     int64_t last_low_nal_ts;
 
@@ -966,17 +967,21 @@ void Encoder::run()
         if (cfg->encoder_thread_signal.load() & 1)
         {
 
-            init();
+            ret = init();
+            LOG_DEBUG_OR_ERROR(ret, "init()");
+            if(ret != 0) return;
 
             IMP_System_RebaseTimeStamp(0);
-
             gettimeofday(&high_imp_time_base, NULL);
-            IMP_Encoder_StartRecvPic(0);
-
             gettimeofday(&low_imp_time_base, NULL);
-            IMP_Encoder_StartRecvPic(1);
 
-            LOG_DEBUG("Encoder StartRecvPic(0) success");
+            IMP_Encoder_StartRecvPic(0);
+            LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(0)");
+            if(ret != 0) return;
+
+            IMP_Encoder_StartRecvPic(1);
+            LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(1)");
+            if(ret != 0) return;
 
             if (cfg->stream2.enabled)
             {
@@ -1004,8 +1009,10 @@ void Encoder::run()
             if (IMP_Encoder_GetStream(0, &stream0, false) != 0)
             {
                 LOG_ERROR("IMP_Encoder_GetStream(0) failed");
-                break;
+                usleep(1000*1000);
+                continue;
             }
+            LOG_ERROR("IMP_Encoder_GetStream(0) ok");
             // The I/P NAL is always last, but it doesn't
             // really matter which NAL we select here as they
             // all have identical timestamps.
@@ -1129,7 +1136,8 @@ void Encoder::run()
             if (IMP_Encoder_GetStream(1, &stream1, false) != 0)
             {
                 LOG_ERROR("IMP_Encoder_GetStream(1) failed");
-                break;
+                usleep(1000*1000);
+                continue;
             }
 
             // The I/P NAL is always last, but it doesn't
