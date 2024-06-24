@@ -141,9 +141,9 @@ struct _stream {
     int rotation;
     int scale_width;
     int scale_height;
-    int profile;
     bool enabled;
     bool scale_enabled;
+    const char *profile;
     const char *rtsp_endpoint;
     const char *format;
     /* JPEG stream*/

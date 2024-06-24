@@ -39,7 +39,11 @@ void RTSP::run() {
             }
             OutPacketBuffer::maxSize = cfg->rtsp.out_buffer_size;
 
-            
+            _stream streams[2] = {cfg->stream0, cfg->stream1};
+            for( _stream stream : {cfg->stream0, cfg->stream1} ) {
+
+                LOG_DEBUG(stream.profile);
+            }
             if(cfg->stream0.enabled) {
                 LOG_DEBUG("identify stream 0");
                 IMPDeviceSource* deviceSource = IMPDeviceSource::createNew(*env, 0);
@@ -88,7 +92,7 @@ void RTSP::run() {
                     *env, cfg->stream0.rtsp_endpoint, "Main", cfg->rtsp.name
                 );
                 IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
-                    *env, (cfg->stream0.format == "H265" ? vps : nullptr), sps, pps, 0 // Conditional VPS
+                    *env, (strcmp(cfg->stream0.format, "H265")==0?vps:nullptr), sps, pps, 0 // Conditional VPS
                 );
                 sms->addSubsession(sub);
                 rtspServer->addServerMediaSession(sms);
@@ -140,10 +144,10 @@ void RTSP::run() {
                 LOG_DEBUG("Got necessary NAL Units.");
 
                 ServerMediaSession *sms = ServerMediaSession::createNew(
-                    *env, "ch1", "ch1", "ch1"
+                    *env, cfg->stream1.rtsp_endpoint, "Sub", cfg->rtsp.name
                 );
                 IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
-                    *env, (cfg->stream0.format == "H265" ? vps : nullptr), sps, pps, 1 // Conditional VPS
+                    *env, (strcmp(cfg->stream0.format, "H265")==0?vps:nullptr), sps, pps, 1 // Conditional VPS
                 );
                 
                 sms->addSubsession(sub);

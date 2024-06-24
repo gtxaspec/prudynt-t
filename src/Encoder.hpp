@@ -65,6 +65,14 @@ struct EncoderSink {
 	std::function<int(const H264NALUnit&)> data_available_callback;
 };
 
+struct CHN {
+	bool enabled;
+	int encChn = -1;
+	int64_t lastNalTs = 0;
+	struct timeval impTimeBase;
+	std::function<void()> updateOsd = nullptr;
+};
+
 class Encoder {
 	public:
 		Encoder(std::shared_ptr<CFG> cfg) : cfg(cfg) {};
@@ -141,6 +149,7 @@ class Encoder {
 		int stream1Status = 0;
 
 		int errorCount = 0;
+		CHN channels[2] = {{false, 0, 0},{false, 1, 0}};
 };
 
 #endif

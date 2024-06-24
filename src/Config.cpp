@@ -103,11 +103,15 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
         {"stream1.format", stream1.format, "H264", [](const char *v)
          { return strcmp(v, "H264") == 0 || strcmp(v, "H265") == 0; }},
         {"stream2.jpeg_path", stream2.jpeg_path, "/tmp/snapshot.jpg", validateCharNotEmpty},
+        {"stream0.profile", stream0.profile, "SMART", [](const char *v)
+         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQB",}; return a.count(std::string(v)) == 1; }},
         {"stream0.osd.font_path", stream0.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", validateCharNotEmpty},
         {"stream0.osd.time_format", stream0.osd.time_format, "%I:%M:%S%p %m/%d/%Y", validateCharNotEmpty},
         {"stream0.osd.uptime_format", stream0.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", validateCharNotEmpty},
         {"stream0.osd.user_text_format", stream0.osd.user_text_format, "thingino", validateCharNotEmpty},
         {"stream0.osd.logo_path", stream0.osd.logo_path, "/usr/share/thingino_logo_1.bgra", validateCharNotEmpty},
+        {"stream1.profile", stream1.profile, "SMART", [](const char *v)
+         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQB",}; return a.count(std::string(v)) == 1; }},        
         {"stream1.osd.font_path", stream1.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", validateCharNotEmpty},
         {"stream1.osd.time_format", stream1.osd.time_format, "%I:%M:%S%p %m/%d/%Y", validateCharNotEmpty},
         {"stream1.osd.uptime_format", stream1.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", validateCharNotEmpty},
@@ -191,8 +195,6 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
          { return v > 0; }, "/proc/jz/sensor/height"},
         {"stream0.bitrate", stream0.bitrate, 1500, [](const int &v)
          { return v > 0; }},
-        {"stream0.profile", stream0.profile, 2, [](const int &v)
-         { return v >= 0 && v <= 2; }},
         {"stream1.gop", stream1.gop, 20, [](const int &v)
          { return v > 0; }},
         {"stream1.max_gop", stream1.max_gop, 60, [](const int &v)
@@ -207,8 +209,6 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
          { return v > 0; }},
         {"stream1.bitrate", stream1.bitrate, 500, [](const int &v)
          { return v > 0; }},
-        {"stream1.profile", stream1.profile, 2, [](const int &v)
-         { return v >= 0 && v <= 2; }},
         {"stream0.osd.pos_time_x", stream0.osd.pos_time_x, 15, validateInt15360},
         {"stream0.osd.pos_time_y", stream0.osd.pos_time_y, 10, validateInt15360},
         {"stream0.osd.time_transparency", stream0.osd.time_transparency, 255, validateInt255},
