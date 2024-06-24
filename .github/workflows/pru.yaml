@@ -44,6 +44,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'true'
+          fetch-depth: "1"
   
       - name: Setup cache directories
         run: |
@@ -59,17 +60,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ccache-
 
-      - name: Update system sources
-        run: sudo apt-get update
-
       - name: Install build dependencies
         run: |
-          sudo apt-get install -y --no-install-recommends --no-install-suggests build-essential bc bison cpio curl file flex git libncurses-dev make rsync unzip wget whiptail gcc lzop u-boot-tools ca-certificates ccache
+          sudo apt-get install -y --no-install-recommends --no-install-suggests ccache
 
       - name: Download toolchain
         run: |
-          wget https://github.com/themactep/thingino-firmware/releases/download/toolchain/thingino-toolchain_xburst1_musl_gcc13-linux-mipsel.tar.gz
-          tar -xf thingino-toolchain_xburst1_musl_gcc13-linux-mipsel.tar.gz
+          wget https://github.com/themactep/thingino-firmware/releases/download/toolchain/thingino-toolchain_xburst1_musl_gcc14-linux-mipsel.tar.gz
+          tar -xf thingino-toolchain_xburst1_musl_gcc14-linux-mipsel.tar.gz
           cd mipsel-thingino-linux-musl_sdk-buildroot; ./relocate-sdk.sh
           cd ../
 
@@ -79,7 +77,7 @@ jobs:
 
       - name: Build prudynt for target
         run: |
-          PRUDYNT_CROSS="$TOOLCHAIN_MUSL" ./build.sh prudynt ${{ matrix.target }} ${{ matrix.build_type == 'static' && '-static' || '' }}
+          PRUDYNT_CROSS="ccache $TOOLCHAIN_MUSL" ./build.sh prudynt ${{ matrix.target }} ${{ matrix.build_type == 'static' && '-static' || '' }}
 
       - name: Rename prudynt for release
         run: |

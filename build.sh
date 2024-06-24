@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PRUDYNT_CROSS="ccache mipsel-linux-"
+PRUDYNT_CROSS="${PRUDYNT_CROSS:-mipsel-linux-}"
 TOP=$(pwd)
 
 prudynt(){
