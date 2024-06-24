@@ -1018,7 +1018,7 @@ void Encoder::run()
                 if(ret != 0) return;
             }
 
-            if (cfg->stream2.enabled&&1==2)
+            if (cfg->stream2.enabled)
             {
 
                 LOG_DEBUG("JPEG support enabled");
