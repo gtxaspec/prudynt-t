@@ -26,20 +26,87 @@ uint32_t Encoder::sink_id = 0;
 IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
 {
 
-    IMPEncoderRcAttr *rc_attr;
+    IMPEncoderRcAttr *rcAttr;
     IMPEncoderCHNAttr channel_attr;
     memset(&channel_attr, 0, sizeof(IMPEncoderCHNAttr));
-    rc_attr = &channel_attr.rcAttr;
+    rcAttr = &channel_attr.rcAttr;
 
 #if defined(PLATFORM_T31)
 
+    IMPEncoderRcMode rcMode = IMP_ENC_RC_MODE_CAPPED_QUALITY;
     IMPEncoderProfile encoderProfile;
     encoderProfile = (strcmp(stream.format, "H265")==0) ? IMP_ENC_PROFILE_HEVC_MAIN : IMP_ENC_PROFILE_AVC_HIGH;
 
+    if(strcmp(stream.mode, "FIXQB")==0) {
+        rcMode = IMP_ENC_RC_MODE_FIXQP;
+    } else if(strcmp(stream.mode, "VBR")==0) {
+        rcMode = IMP_ENC_RC_MODE_VBR;
+    } else if(strcmp(stream.mode, "CBR")==0) {
+        rcMode = IMP_ENC_RC_MODE_CBR;
+    } else if(strcmp(stream.mode, "CAPPED_VBR")==0) {
+        rcMode = IMP_ENC_RC_MODE_CAPPED_VBR;
+    } else if(strcmp(stream.mode, "CAPPED_QUALITY")==0) {
+        rcMode = IMP_ENC_RC_MODE_CAPPED_QUALITY;
+    } else {
+        LOG_ERROR("unsupported stream.mode ("<< stream.mode <<"). we only support FIXQB, CBR, VBR, CAPPED_VBR and CAPPED_QUALITY on T31");
+    }
+
     IMP_Encoder_SetDefaultParam(
-        &channel_attr, encoderProfile, IMP_ENC_RC_MODE_CAPPED_QUALITY, stream.width, stream.height,
+        &channel_attr, encoderProfile, rcMode, stream.width, stream.height,
         stream.fps, 1, stream.gop, 2, -1, stream.bitrate);
 
+    switch (rcMode) {
+        case IMP_ENC_RC_MODE_FIXQP:
+            rcAttr->attrRcMode.attrFixQp.iInitialQP = 38;
+            break;
+        case IMP_ENC_RC_MODE_CBR:
+            rcAttr->attrRcMode.attrCbr.uTargetBitRate = stream.bitrate;
+            rcAttr->attrRcMode.attrCbr.iInitialQP = -1;
+            rcAttr->attrRcMode.attrCbr.iMinQP = 34;
+            rcAttr->attrRcMode.attrCbr.iMaxQP = 51;
+            rcAttr->attrRcMode.attrCbr.iIPDelta = -1;
+            rcAttr->attrRcMode.attrCbr.iPBDelta = -1;
+            rcAttr->attrRcMode.attrCbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
+            rcAttr->attrRcMode.attrCbr.uMaxPictureSize = stream.bitrate * 4 / 3;
+            break;
+        case IMP_ENC_RC_MODE_VBR:
+            rcAttr->attrRcMode.attrVbr.uTargetBitRate = stream.bitrate;
+            rcAttr->attrRcMode.attrVbr.uMaxBitRate = stream.bitrate * 4 / 3;
+            rcAttr->attrRcMode.attrVbr.iInitialQP = -1;
+            rcAttr->attrRcMode.attrVbr.iMinQP = 34;
+            rcAttr->attrRcMode.attrVbr.iMaxQP = 51;
+            rcAttr->attrRcMode.attrVbr.iIPDelta = -1;
+            rcAttr->attrRcMode.attrVbr.iPBDelta = -1;
+            rcAttr->attrRcMode.attrVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
+            rcAttr->attrRcMode.attrVbr.uMaxPictureSize = stream.bitrate * 4 / 3;
+            break;
+        case IMP_ENC_RC_MODE_CAPPED_VBR:
+            rcAttr->attrRcMode.attrCappedVbr.uTargetBitRate = stream.bitrate;
+            rcAttr->attrRcMode.attrCappedVbr.uMaxBitRate = stream.bitrate * 4 / 3;
+            rcAttr->attrRcMode.attrCappedVbr.iInitialQP = -1;
+            rcAttr->attrRcMode.attrCappedVbr.iMinQP = 34;
+            rcAttr->attrRcMode.attrCappedVbr.iMaxQP = 51;
+            rcAttr->attrRcMode.attrCappedVbr.iIPDelta = -1;
+            rcAttr->attrRcMode.attrCappedVbr.iPBDelta = -1;
+            rcAttr->attrRcMode.attrCappedVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
+            rcAttr->attrRcMode.attrCappedVbr.uMaxPictureSize = stream.bitrate * 4 / 3;
+            rcAttr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
+            break;
+        case IMP_ENC_RC_MODE_CAPPED_QUALITY:
+            rcAttr->attrRcMode.attrCappedQuality.uTargetBitRate = stream.bitrate;
+            rcAttr->attrRcMode.attrCappedQuality.uMaxBitRate = stream.bitrate * 4 / 3;
+            rcAttr->attrRcMode.attrCappedQuality.iInitialQP = -1;
+            rcAttr->attrRcMode.attrCappedQuality.iMinQP = 34;
+            rcAttr->attrRcMode.attrCappedQuality.iMaxQP = 51;
+            rcAttr->attrRcMode.attrCappedQuality.iIPDelta = -1;
+            rcAttr->attrRcMode.attrCappedQuality.iPBDelta = -1;
+            rcAttr->attrRcMode.attrCappedQuality.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
+            rcAttr->attrRcMode.attrCappedQuality.uMaxPictureSize = stream.bitrate * 4 / 3;
+            rcAttr->attrRcMode.attrCappedQuality.uMaxPSNR = 42;
+            break;
+    }
+    
+    /*
     switch (rc_attr->attrRcMode.rcMode)
     {
     case IMP_ENC_RC_MODE_CAPPED_QUALITY:
@@ -55,15 +122,28 @@ IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
         rc_attr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
         break;
     }
+    */
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
 
 #if defined(PLATFORM_T30)
-    channel_attr.encAttr.enType = (stream.format == "H264") ? PT_H264 : PT_H265;
+    channel_attr.encAttr.enType = (strcmp(stream.format, "H264")==0) ? PT_H264 : PT_H265;
 #else
     channel_attr.encAttr.enType = PT_H264;
 #endif
 
-    channel_attr.encAttr.bufSize = 0;
+    IMPEncoderRcMode rcMode = ENC_RC_MODE_SMART;
+
+    if(strcmp(stream.mode, "FIXQB")==0) {
+        rcMode = ENC_RC_MODE_FIXQP;
+    } else if(strcmp(stream.mode, "VBR")==0) {
+        rcMode = ENC_RC_MODE_CBR;
+    } else if(strcmp(stream.mode, "CBR")==0) {
+        rcMode = ENC_RC_MODE_VBR;
+    } else if(strcmp(stream.mode, "SMART")==0) {
+        rcMode = ENC_RC_MODE_SMART;
+    } else {
+        LOG_ERROR("unsupported stream.mode ("<< stream.mode <<"). we only support FIXQB, CBR, VBR and SMART");
+    }
 
     // 0 = Baseline
     // 1 = Main
@@ -71,57 +151,90 @@ IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
     // Note: The encoder seems to emit frames at half the
     // requested framerate when the profile is set to Baseline.
     // For this reason, Main or High are recommended.
-    channel_attr.encAttr.profile = 2;
+    channel_attr.encAttr.profile = stream.profile;
+    channel_attr.encAttr.bufSize = 0;
     channel_attr.encAttr.picWidth = stream.width;
     channel_attr.encAttr.picHeight = stream.height;
     channel_attr.rcAttr.outFrmRate.frmRateNum = stream.fps;
     channel_attr.rcAttr.outFrmRate.frmRateDen = 1;
+    rcAttr->maxGop = stream.max_gop;
     
-    /* unknow authoŕ */
-    // Setting maxGop to a low value causes the encoder to emit frames at a much
-    // slower rate. A sufficiently low value can cause the frame emission rate to
-    // drop below the frame rate.
-    // I find that 2x the frame rate is a good setting.
-    rc_attr->maxGop = stream.max_gop;
-    
-    if (strcmp(stream.format, "H264")==0)
-    {
-        rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
-        rc_attr->attrRcMode.attrH264Smart.maxQp = 45;
-        rc_attr->attrRcMode.attrH264Smart.minQp = 15;
-        rc_attr->attrRcMode.attrH264Smart.staticTime = 2;
-        rc_attr->attrRcMode.attrH264Smart.maxBitRate = stream.bitrate;
-        rc_attr->attrRcMode.attrH264Smart.iBiasLvl = 0;
-        rc_attr->attrRcMode.attrH264Smart.changePos = 80;
-        rc_attr->attrRcMode.attrH264Smart.qualityLvl = 2;
-        rc_attr->attrRcMode.attrH264Smart.frmQPStep = 3;
-        rc_attr->attrRcMode.attrH264Smart.gopQPStep = 15;
-        rc_attr->attrRcMode.attrH264Smart.gopRelation = false;           
+    if(channel_attr.encAttr.enType = PT_H264) {
+        switch (rcMode) {
+            case ENC_RC_MODE_FIXQP:
+                rcAttr->attrRcMode.rcMode = ENC_RC_MODE_FIXQP;
+                rcAttr->attrRcMode.attrH264FixQp.qp = 42;
+                rcAttr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
+                rcAttr->attrHSkip.hSkipAttr.m = 0;
+                rcAttr->attrHSkip.hSkipAttr.n = 0;
+                rcAttr->attrHSkip.hSkipAttr.maxSameSceneCnt = 0;
+                rcAttr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
+                rcAttr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
+                rcAttr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X;
+                break;
+            case ENC_RC_MODE_CBR:
+                rcAttr->attrRcMode.rcMode = ENC_RC_MODE_CBR;
+                rcAttr->attrRcMode.attrH264Cbr.outBitRate = stream.bitrate;
+                rcAttr->attrRcMode.attrH264Cbr.maxQp = 45;
+                rcAttr->attrRcMode.attrH264Cbr.minQp = 15;
+                rcAttr->attrRcMode.attrH264Cbr.iBiasLvl = 0;
+                rcAttr->attrRcMode.attrH264Cbr.frmQPStep = 3;
+                rcAttr->attrRcMode.attrH264Cbr.gopQPStep = 15;
+                rcAttr->attrRcMode.attrH264Cbr.adaptiveMode = false;
+                rcAttr->attrRcMode.attrH264Cbr.gopRelation = false;
+                break;
+            case ENC_RC_MODE_VBR:
+                rcAttr->attrRcMode.rcMode = ENC_RC_MODE_VBR;
+                rcAttr->attrRcMode.attrH264Vbr.maxQp = 45;
+                rcAttr->attrRcMode.attrH264Vbr.minQp = 15;
+                rcAttr->attrRcMode.attrH264Vbr.staticTime = 2;
+                rcAttr->attrRcMode.attrH264Vbr.maxBitRate = stream.bitrate;
+                rcAttr->attrRcMode.attrH264Vbr.iBiasLvl = 0;
+                rcAttr->attrRcMode.attrH264Vbr.changePos = 80;
+                rcAttr->attrRcMode.attrH264Vbr.qualityLvl = 2;
+                rcAttr->attrRcMode.attrH264Vbr.frmQPStep = 3;
+                rcAttr->attrRcMode.attrH264Vbr.gopQPStep = 15;
+                rcAttr->attrRcMode.attrH264Vbr.gopRelation = false;
+                break;
+            case ENC_RC_MODE_SMART:
+                rcAttr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
+                rcAttr->attrRcMode.attrH264Smart.maxQp = 45;
+                rcAttr->attrRcMode.attrH264Smart.minQp = 15;
+                rcAttr->attrRcMode.attrH264Smart.staticTime = 2;
+                rcAttr->attrRcMode.attrH264Smart.maxBitRate = stream.bitrate;
+                rcAttr->attrRcMode.attrH264Smart.iBiasLvl = 0;
+                rcAttr->attrRcMode.attrH264Smart.changePos = 80;
+                rcAttr->attrRcMode.attrH264Smart.qualityLvl = 2;
+                rcAttr->attrRcMode.attrH264Smart.frmQPStep = 3;
+                rcAttr->attrRcMode.attrH264Smart.gopQPStep = 15;
+                rcAttr->attrRcMode.attrH264Smart.gopRelation = false;
+                break;
+        }     
 #if defined(PLATFORM_T30)
     }
-    else if (strcmp(stream.format, "H265")==0)
+    else if(channel_attr.encAttr.enType = PT_H265) {
     {
-        rc_attr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
-        rc_attr->attrRcMode.attrH265Smart.maxQp = 45;
-        rc_attr->attrRcMode.attrH265Smart.minQp = 15;
-        rc_attr->attrRcMode.attrH265Smart.staticTime = 2;
-        rc_attr->attrRcMode.attrH265Smart.maxBitRate = stream.bitrate;
-        rc_attr->attrRcMode.attrH265Smart.iBiasLvl = 0;
-        rc_attr->attrRcMode.attrH265Smart.changePos = 80;
-        rc_attr->attrRcMode.attrH265Smart.qualityLvl = 2;
-        rc_attr->attrRcMode.attrH265Smart.frmQPStep = 3;
-        rc_attr->attrRcMode.attrH265Smart.gopQPStep = 15;
-        rc_attr->attrRcMode.attrH265Smart.flucLvl = 2;     
+        rcAttr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
+        rcAttr->attrRcMode.attrH265Smart.maxQp = 45;
+        rcAttr->attrRcMode.attrH265Smart.minQp = 15;
+        rcAttr->attrRcMode.attrH265Smart.staticTime = 2;
+        rcAttr->attrRcMode.attrH265Smart.maxBitRate = stream.bitrate;
+        rcAttr->attrRcMode.attrH265Smart.iBiasLvl = 0;
+        rcAttr->attrRcMode.attrH265Smart.changePos = 80;
+        rcAttr->attrRcMode.attrH265Smart.qualityLvl = 2;
+        rcAttr->attrRcMode.attrH265Smart.frmQPStep = 3;
+        rcAttr->attrRcMode.attrH265Smart.gopQPStep = 15;
+        rcAttr->attrRcMode.attrH265Smart.flucLvl = 2;     
 #endif
     }
 
-    rc_attr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
-    rc_attr->attrHSkip.hSkipAttr.m = rc_attr->maxGop - 1;
-    rc_attr->attrHSkip.hSkipAttr.n = 1;
-    rc_attr->attrHSkip.hSkipAttr.maxSameSceneCnt = 6;
-    rc_attr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
-    rc_attr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
-    rc_attr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X;
+    rcAttr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
+    rcAttr->attrHSkip.hSkipAttr.m = rcAttr->maxGop - 1;
+    rcAttr->attrHSkip.hSkipAttr.n = 1;
+    rcAttr->attrHSkip.hSkipAttr.maxSameSceneCnt = 6;
+    rcAttr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
+    rcAttr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
+    rcAttr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X;
 #endif
     
     return channel_attr;

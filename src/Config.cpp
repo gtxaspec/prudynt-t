@@ -9,6 +9,12 @@
 
 #define MODULE "CONFIG"
 
+#if defined(PLATFORM_T31)
+    #define DEFAULT_ENC_MODE "VBR"
+#else
+    #define DEFAULT_ENC_MODE "CAPPED_QUALITY"
+#endif
+
 namespace fs = std::filesystem;
 
 bool validateIntGt0(const int &v)
@@ -28,7 +34,7 @@ bool validateInt360(const int &v)
 
 bool validateInt15360(const int &v)
 {
-    return v >= 0 && v <= 15360;
+    return v >= -15360 && v <= 15360;
 }
 
 bool validateCharDummy(const char *v)
@@ -103,20 +109,20 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
         {"stream1.format", stream1.format, "H264", [](const char *v)
          { return strcmp(v, "H264") == 0 || strcmp(v, "H265") == 0; }},
         {"stream2.jpeg_path", stream2.jpeg_path, "/tmp/snapshot.jpg", validateCharNotEmpty},
-        {"stream0.profile", stream0.profile, "SMART", [](const char *v)
-         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQB",}; return a.count(std::string(v)) == 1; }},
         {"stream0.osd.font_path", stream0.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", validateCharNotEmpty},
         {"stream0.osd.time_format", stream0.osd.time_format, "%I:%M:%S%p %m/%d/%Y", validateCharNotEmpty},
         {"stream0.osd.uptime_format", stream0.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", validateCharNotEmpty},
         {"stream0.osd.user_text_format", stream0.osd.user_text_format, "thingino", validateCharNotEmpty},
         {"stream0.osd.logo_path", stream0.osd.logo_path, "/usr/share/thingino_logo_1.bgra", validateCharNotEmpty},
-        {"stream1.profile", stream1.profile, "SMART", [](const char *v)
-         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQB",}; return a.count(std::string(v)) == 1; }},        
+        {"stream0.mode", stream0.mode, DEFAULT_ENC_MODE, [](const char *v)
+         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQB", "CAPPED_VBR", "CAPPED_QUALITY"}; return a.count(std::string(v)) == 1; }},
         {"stream1.osd.font_path", stream1.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", validateCharNotEmpty},
         {"stream1.osd.time_format", stream1.osd.time_format, "%I:%M:%S%p %m/%d/%Y", validateCharNotEmpty},
         {"stream1.osd.uptime_format", stream1.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", validateCharNotEmpty},
         {"stream1.osd.user_text_format", stream1.osd.user_text_format, "thingino", validateCharNotEmpty},
         {"stream1.osd.logo_path", stream1.osd.logo_path, "/usr/share/thingino_logo_1.bgra", validateCharNotEmpty},
+        {"stream1.mode", stream1.mode, DEFAULT_ENC_MODE, [](const char *v)
+         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQB", "CAPPED_VBR", "CAPPED_QUALITY"}; return a.count(std::string(v)) == 1; }},        
         {"motion.script_path", motion.script_path, "/usr/sbin/motion", validateCharNotEmpty},
         {"websocket.name", websocket.name, "wss prudynt", validateCharNotEmpty},
     };
@@ -129,9 +135,9 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
          { return v > 0 && v <= 65535; }},
         {"rtsp.est_bitrate", rtsp.est_bitrate, 5000, [](const int &v)
          { return v > 0; }},
-        {"rtsp.out_buffer_size", rtsp.out_buffer_size, 5000000, [](const int &v)
+        {"rtsp.out_buffer_size", rtsp.out_buffer_size, 500000, [](const int &v)
          { return v > 0; }},
-        {"rtsp.send_buffer_size", rtsp.send_buffer_size, 3072000, [](const int &v)
+        {"rtsp.send_buffer_size", rtsp.send_buffer_size, 307200, [](const int &v)
          { return v > 0; }},
         {"sensor.fps", sensor.fps, 24, [](const int &v)
          { return v > 0 && v <= 60; }, "/proc/jz/sensor/max_fps"},
@@ -195,6 +201,8 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
          { return v > 0; }, "/proc/jz/sensor/height"},
         {"stream0.bitrate", stream0.bitrate, 1500, [](const int &v)
          { return v > 0; }},
+        {"stream0.profile", stream0.profile, 2, [](const int &v)
+         { return v >= 0 && v <= 2; }},
         {"stream1.gop", stream1.gop, 20, [](const int &v)
          { return v > 0; }},
         {"stream1.max_gop", stream1.max_gop, 60, [](const int &v)
@@ -209,6 +217,8 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
          { return v > 0; }},
         {"stream1.bitrate", stream1.bitrate, 500, [](const int &v)
          { return v > 0; }},
+        {"stream1.profile", stream1.profile, 2, [](const int &v)
+         { return v >= 0 && v <= 2; }},
         {"stream0.osd.pos_time_x", stream0.osd.pos_time_x, 15, validateInt15360},
         {"stream0.osd.pos_time_y", stream0.osd.pos_time_y, 10, validateInt15360},
         {"stream0.osd.time_transparency", stream0.osd.time_transparency, 255, validateInt255},

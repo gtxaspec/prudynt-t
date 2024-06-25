@@ -137,13 +137,14 @@ struct _stream {
     int buffers;
     int width;
     int height;
+    int profile;
     int bitrate;
     int rotation;
     int scale_width;
     int scale_height;
     bool enabled;
     bool scale_enabled;
-    const char *profile;
+    const char *mode;
     const char *rtsp_endpoint;
     const char *format;
     /* JPEG stream*/
