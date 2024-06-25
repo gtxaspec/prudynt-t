@@ -388,6 +388,12 @@ OSD* OSD::createNew(
     return new OSD(osd, osdGrp, encChn);
 }
 
+int autoFontSize(int pWidth) {
+    double m = 1.0 / 60.0;
+    double b = 21.33;
+    return m * pWidth + b;
+}
+
 void OSD::init() {
 
     int ret;
@@ -396,25 +402,40 @@ void OSD::init() {
     //cfg = _cfg;
     last_updated_second = -1;
     
-    if (freetype_init()) {
-        LOG_DEBUG("FREETYPE init failed.");
-        //return true;
-    }
-
     ret = IMP_Encoder_GetChnAttr(osdGrp, &channelAttributes);
     if (ret < 0) {
         LOG_DEBUG("IMP_Encoder_GetChnAttr() == " + std::to_string(ret));
         //return true;
     }
      //picWidth, picHeight cpp macro !!
-    LOG_DEBUG("IMP_Encoder_GetChnAttr read. Stream resolution: " << channelAttributes.encAttr.picWidth << "x" << channelAttributes.encAttr.picHeight);
+    LOG_DEBUG("IMP_Encoder_GetChnAttr read. Stream resolution: " << channelAttributes.encAttr.picWidth 
+        << "x" << channelAttributes.encAttr.picHeight);
 
     ret = IMP_OSD_CreateGroup(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_CreateGroup(" << osdGrp << ")");
 
+    int autoOffset = round((float)(channelAttributes.encAttr.picWidth * 0.004));
+    if(osd->font_size == 0) {
+        osd->font_size = autoFontSize(channelAttributes.encAttr.picWidth);
+        osd->font_stroke_size = osd->font_size;
+    }
+
+    if (freetype_init()) {
+        LOG_DEBUG("FREETYPE init failed.");
+        //return true;
+    }
+
     if (osd->time_enabled) {
 
         /* OSD Time */
+        if(osd->pos_time_x == OSD_AUTO_POS_INDICATOR) {
+            osd->pos_time_x = autoOffset;
+        }
+        if(osd->pos_time_y == OSD_AUTO_POS_INDICATOR) {
+            osd->pos_time_y = autoOffset;
+        }      
+        LOG_DEBUG("OSD time x: " << osd->pos_time_x << " y:" << osd->pos_time_y)  ;
+
         osdTime.data = NULL;
         osdTime.imp_rgn = IMP_OSD_CreateRgn(NULL);
         IMP_OSD_RegisterRgn(osdTime.imp_rgn, osdGrp, NULL);
@@ -440,6 +461,14 @@ void OSD::init() {
     if (osd->user_text_enabled) {
 
         /* OSD Usertext */
+        if(osd->pos_user_text_x == OSD_AUTO_POS_INDICATOR) {
+            osd->pos_user_text_x = 0;
+        }
+        if(osd->pos_user_text_y == OSD_AUTO_POS_INDICATOR) {
+            osd->pos_user_text_y = autoOffset;
+        }
+        LOG_DEBUG("OSD user text x: " << osd->pos_user_text_x << " y:" << osd->pos_user_text_y);
+
         osdUser.data = NULL;
         osdUser.imp_rgn = IMP_OSD_CreateRgn(NULL);
         IMP_OSD_RegisterRgn(osdUser.imp_rgn, osdGrp, NULL);
@@ -465,6 +494,14 @@ void OSD::init() {
     if (osd->uptime_enabled) {
 
         /* OSD Uptime */
+        if(osd->pos_uptime_x == OSD_AUTO_POS_INDICATOR) {
+            osd->pos_uptime_x = -autoOffset;
+        }
+        if(osd->pos_uptime_y == OSD_AUTO_POS_INDICATOR) {
+            osd->pos_uptime_y = autoOffset;
+        }
+        LOG_DEBUG("OSD uptime x: " << osd->pos_uptime_x << " y:" << osd->pos_uptime_y);
+
         osdUptm.data = NULL;
         osdUptm.imp_rgn = IMP_OSD_CreateRgn(NULL);
         IMP_OSD_RegisterRgn(osdUptm.imp_rgn, osdGrp, NULL);
@@ -487,10 +524,16 @@ void OSD::init() {
         IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
-   if (osd->logo_enabled) {
+    if (osd->logo_enabled) {
 
         /* OSD Logo */
-
+        if(osd->pos_logo_x == OSD_AUTO_POS_INDICATOR) { 
+            osd->pos_logo_x = -autoOffset;
+        }
+        if(osd->pos_logo_y == OSD_AUTO_POS_INDICATOR) {
+            osd->pos_logo_y = -autoOffset;
+        }    
+        
         size_t imageSize;
         auto imageData = loadBGRAImage(osd->logo_path, imageSize);
 

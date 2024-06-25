@@ -12,6 +12,8 @@
 //~10k
 //#define AUDIO_SUPPORT
 
+#define OSD_AUTO_POS_INDICATOR 16384
+
 struct roi{
     int p0_x;
     int p0_y;

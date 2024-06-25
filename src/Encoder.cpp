@@ -5,11 +5,6 @@
 #include "Encoder.hpp"
 #include "Config.hpp"
 
-/*
-    todo:
-        add channel_attr.encAttr.profile to config
-        ad rcMode config to cfg
-*/
 #define MODULE "ENCODER"
 
 #define OSDPoolSize 200000
@@ -66,42 +61,42 @@ IMPEncoderCHNAttr createEncoderProfile(_stream &stream)
             rcAttr->attrRcMode.attrCbr.iMaxQP = 51;
             rcAttr->attrRcMode.attrCbr.iIPDelta = -1;
             rcAttr->attrRcMode.attrCbr.iPBDelta = -1;
-            rcAttr->attrRcMode.attrCbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
-            rcAttr->attrRcMode.attrCbr.uMaxPictureSize = stream.bitrate * 4 / 3;
+            //rcAttr->attrRcMode.attrCbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
+            rcAttr->attrRcMode.attrCbr.uMaxPictureSize = stream.bitrate;
             break;
         case IMP_ENC_RC_MODE_VBR:
             rcAttr->attrRcMode.attrVbr.uTargetBitRate = stream.bitrate;
-            rcAttr->attrRcMode.attrVbr.uMaxBitRate = stream.bitrate * 4 / 3;
+            rcAttr->attrRcMode.attrVbr.uMaxBitRate = stream.bitrate;
             rcAttr->attrRcMode.attrVbr.iInitialQP = -1;
-            rcAttr->attrRcMode.attrVbr.iMinQP = 34;
-            rcAttr->attrRcMode.attrVbr.iMaxQP = 51;
-            rcAttr->attrRcMode.attrVbr.iIPDelta = -1;
-            rcAttr->attrRcMode.attrVbr.iPBDelta = -1;
-            rcAttr->attrRcMode.attrVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
-            rcAttr->attrRcMode.attrVbr.uMaxPictureSize = stream.bitrate * 4 / 3;
+            rcAttr->attrRcMode.attrVbr.iMinQP = 20;
+            rcAttr->attrRcMode.attrVbr.iMaxQP = 45;
+            rcAttr->attrRcMode.attrVbr.iIPDelta = 3;
+            rcAttr->attrRcMode.attrVbr.iPBDelta = 3;
+            //rcAttr->attrRcMode.attrVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
+            rcAttr->attrRcMode.attrVbr.uMaxPictureSize = stream.bitrate;
             break;
         case IMP_ENC_RC_MODE_CAPPED_VBR:
             rcAttr->attrRcMode.attrCappedVbr.uTargetBitRate = stream.bitrate;
-            rcAttr->attrRcMode.attrCappedVbr.uMaxBitRate = stream.bitrate * 4 / 3;
+            rcAttr->attrRcMode.attrCappedVbr.uMaxBitRate = stream.bitrate;
             rcAttr->attrRcMode.attrCappedVbr.iInitialQP = -1;
-            rcAttr->attrRcMode.attrCappedVbr.iMinQP = 34;
-            rcAttr->attrRcMode.attrCappedVbr.iMaxQP = 51;
-            rcAttr->attrRcMode.attrCappedVbr.iIPDelta = -1;
-            rcAttr->attrRcMode.attrCappedVbr.iPBDelta = -1;
-            rcAttr->attrRcMode.attrCappedVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
-            rcAttr->attrRcMode.attrCappedVbr.uMaxPictureSize = stream.bitrate * 4 / 3;
+            rcAttr->attrRcMode.attrCappedVbr.iMinQP = 20;
+            rcAttr->attrRcMode.attrCappedVbr.iMaxQP = 45;
+            rcAttr->attrRcMode.attrCappedVbr.iIPDelta = 3;
+            rcAttr->attrRcMode.attrCappedVbr.iPBDelta = 3;
+            //rcAttr->attrRcMode.attrCappedVbr.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
+            rcAttr->attrRcMode.attrCappedVbr.uMaxPictureSize = stream.bitrate;
             rcAttr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
             break;
         case IMP_ENC_RC_MODE_CAPPED_QUALITY:
             rcAttr->attrRcMode.attrCappedQuality.uTargetBitRate = stream.bitrate;
-            rcAttr->attrRcMode.attrCappedQuality.uMaxBitRate = stream.bitrate * 4 / 3;
+            rcAttr->attrRcMode.attrCappedQuality.uMaxBitRate = stream.bitrate;
             rcAttr->attrRcMode.attrCappedQuality.iInitialQP = -1;
-            rcAttr->attrRcMode.attrCappedQuality.iMinQP = 34;
-            rcAttr->attrRcMode.attrCappedQuality.iMaxQP = 51;
-            rcAttr->attrRcMode.attrCappedQuality.iIPDelta = -1;
-            rcAttr->attrRcMode.attrCappedQuality.iPBDelta = -1;
-            rcAttr->attrRcMode.attrCappedQuality.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
-            rcAttr->attrRcMode.attrCappedQuality.uMaxPictureSize = stream.bitrate * 4 / 3;
+            rcAttr->attrRcMode.attrCappedQuality.iMinQP = 20;
+            rcAttr->attrRcMode.attrCappedQuality.iMaxQP = 45;
+            rcAttr->attrRcMode.attrCappedQuality.iIPDelta = 3;
+            rcAttr->attrRcMode.attrCappedQuality.iPBDelta = 4;
+            //rcAttr->attrRcMode.attrCappedQuality.eRcOptions = IMP_ENC_RC_SCN_CHG_RES | IMP_ENC_RC_OPT_SC_PREVENTION;
+            rcAttr->attrRcMode.attrCappedQuality.uMaxPictureSize = stream.bitrate;
             rcAttr->attrRcMode.attrCappedQuality.uMaxPSNR = 42;
             break;
     }
@@ -583,8 +578,8 @@ int Encoder::framesource_init()
     fs_low_chn_attr.crop.enable = 0;
     fs_low_chn_attr.crop.top = 0;
     fs_low_chn_attr.crop.left = 0;
-    fs_low_chn_attr.crop.width = cfg->sensor.width;
-    fs_low_chn_attr.crop.height = cfg->sensor.height;
+    fs_low_chn_attr.crop.width = cfg->stream0.width;
+    fs_low_chn_attr.crop.height = cfg->stream0.height;
     fs_low_chn_attr.scaler.enable = 1; //cfg->stream1.scale_enabled;
     fs_low_chn_attr.scaler.outwidth = cfg->stream1.width;
     fs_low_chn_attr.scaler.outheight = cfg->stream1.height;
@@ -598,8 +593,11 @@ int Encoder::framesource_init()
     int rot_width = cfg->stream0.width;
 
     // Set rotate before FS creation
-    // IMP_Encoder_SetFisheyeEnableStatus(0, 1);
-    // ret = IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width);
+    //IMP_Encoder_SetFisheyeEnableStatus(0, 1);
+    //IMP_Encoder_SetFisheyeEnableStatus(1, 1);
+
+
+    //ret = IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width);
     // LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width)");
 #endif
 #endif
@@ -643,6 +641,7 @@ int Encoder::framesource_init()
         ret = IMP_FrameSource_SetFrameDepth(1, 0);
         LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(1, 0)");        
     }
+    int x;
 
     return ret;
 }
@@ -723,7 +722,7 @@ bool Encoder::init()
         {
             osdStream0 = true;
 
-            stream0_osd = OSD::createNew(&cfg->stream0.osd, 0, 0);
+            stream0_osd = OSD::createNew(&(cfg->stream0.osd), 0, 0);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "osd.init(cfg, 0)");
 
             // high framesource -> high OSD
@@ -754,7 +753,7 @@ bool Encoder::init()
         {
             osdStream1 = true;
 
-            stream1_osd = OSD::createNew(&cfg->stream1.osd, 1, 1);
+            stream1_osd = OSD::createNew(&(cfg->stream1.osd), 1, 1);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "osd.init(cfg, 1)");
 
             // low framesource -> low OSD

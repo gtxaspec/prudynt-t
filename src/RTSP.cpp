@@ -44,6 +44,7 @@ void RTSP::run() {
 
                 LOG_DEBUG(stream.profile);
             }
+            
             if(cfg->stream0.enabled) {
                 LOG_DEBUG("identify stream 0");
                 IMPDeviceSource* deviceSource = IMPDeviceSource::createNew(*env, 0);

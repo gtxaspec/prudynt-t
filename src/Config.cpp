@@ -10,9 +10,9 @@
 #define MODULE "CONFIG"
 
 #if defined(PLATFORM_T31)
-    #define DEFAULT_ENC_MODE "VBR"
-#else
     #define DEFAULT_ENC_MODE "CAPPED_QUALITY"
+#else
+    #define DEFAULT_ENC_MODE "VBR"
 #endif
 
 namespace fs = std::filesystem;
@@ -215,40 +215,40 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
          { return v > 0; }},
         {"stream1.height", stream1.height, 360, [](const int &v)
          { return v > 0; }},
-        {"stream1.bitrate", stream1.bitrate, 500, [](const int &v)
+        {"stream1.bitrate", stream1.bitrate, 1000, [](const int &v)
          { return v > 0; }},
         {"stream1.profile", stream1.profile, 2, [](const int &v)
          { return v >= 0 && v <= 2; }},
-        {"stream0.osd.pos_time_x", stream0.osd.pos_time_x, 15, validateInt15360},
-        {"stream0.osd.pos_time_y", stream0.osd.pos_time_y, 10, validateInt15360},
+        {"stream0.osd.pos_time_x", stream0.osd.pos_time_x, 16384, validateInt15360},
+        {"stream0.osd.pos_time_y", stream0.osd.pos_time_y, 16384, validateInt15360},
         {"stream0.osd.time_transparency", stream0.osd.time_transparency, 255, validateInt255},
         {"stream0.osd.time_rotation", stream0.osd.time_rotation, 0, validateInt360},
-        {"stream0.osd.pos_user_text_x", stream0.osd.pos_user_text_x, 0, validateInt15360},
-        {"stream0.osd.pos_user_text_y", stream0.osd.pos_user_text_y, 10, validateInt15360},
+        {"stream0.osd.pos_user_text_x", stream0.osd.pos_user_text_x, 16384, validateInt15360},
+        {"stream0.osd.pos_user_text_y", stream0.osd.pos_user_text_y, 16384, validateInt15360},
         {"stream0.osd.user_text_transparency", stream0.osd.user_text_transparency, 255, validateInt255},
         {"stream0.osd.user_text_rotation", stream0.osd.user_text_rotation, 0, validateInt360},
-        {"stream0.osd.pos_uptime_x", stream0.osd.pos_uptime_x, -15, validateInt15360},
-        {"stream0.osd.pos_uptime_y", stream0.osd.pos_uptime_y, 10, validateInt15360},
+        {"stream0.osd.pos_uptime_x", stream0.osd.pos_uptime_x, 16384, validateInt15360},
+        {"stream0.osd.pos_uptime_y", stream0.osd.pos_uptime_y, 16384, validateInt15360},
         {"stream0.osd.uptime_transparency", stream0.osd.uptime_transparency, 255, validateInt255},
         {"stream0.osd.uptime_rotation", stream0.osd.uptime_rotation, 0, validateInt360},
-        {"stream0.osd.pos_logo_x", stream0.osd.pos_logo_x, -15, validateInt15360},
-        {"stream0.osd.pos_logo_y", stream0.osd.pos_logo_y, -10, validateInt15360},
+        {"stream0.osd.pos_logo_x", stream0.osd.pos_logo_x, 16384, validateInt15360},
+        {"stream0.osd.pos_logo_y", stream0.osd.pos_logo_y, 16384, validateInt15360},
         {"stream0.osd.logo_transparency", stream0.osd.logo_transparency, 255, validateInt255},
         {"stream0.osd.logo_rotation", stream0.osd.logo_rotation, 0, validateInt360},
-        {"stream1.osd.pos_time_x", stream1.osd.pos_time_x, 15, validateInt15360},
-        {"stream1.osd.pos_time_y", stream1.osd.pos_time_y, 10, validateInt15360},
+        {"stream1.osd.pos_time_x", stream1.osd.pos_time_x, 16384, validateInt15360},
+        {"stream1.osd.pos_time_y", stream1.osd.pos_time_y, 16384, validateInt15360},
         {"stream1.osd.time_transparency", stream1.osd.time_transparency, 255, validateInt255},
         {"stream1.osd.time_rotation", stream1.osd.time_rotation, 0, validateInt360},
-        {"stream1.osd.pos_user_text_x", stream1.osd.pos_user_text_x, 0, validateInt15360},
-        {"stream1.osd.pos_user_text_y", stream1.osd.pos_user_text_y, 10, validateInt15360},
+        {"stream1.osd.pos_user_text_x", stream1.osd.pos_user_text_x, 16384, validateInt15360},
+        {"stream1.osd.pos_user_text_y", stream1.osd.pos_user_text_y, 16384, validateInt15360},
         {"stream1.osd.user_text_transparency", stream1.osd.user_text_transparency, 255, validateInt255},
         {"stream1.osd.user_text_rotation", stream1.osd.user_text_rotation, 0, validateInt360},
-        {"stream1.osd.pos_uptime_x", stream1.osd.pos_uptime_x, -15, validateInt15360},
-        {"stream1.osd.pos_uptime_y", stream1.osd.pos_uptime_y, 10, validateInt15360},
+        {"stream1.osd.pos_uptime_x", stream1.osd.pos_uptime_x, 16384, validateInt15360},
+        {"stream1.osd.pos_uptime_y", stream1.osd.pos_uptime_y, 16384, validateInt15360},
         {"stream1.osd.uptime_transparency", stream1.osd.uptime_transparency, 255, validateInt255},
         {"stream1.osd.uptime_rotation", stream1.osd.uptime_rotation, 0, validateInt360},
-        {"stream1.osd.pos_logo_x", stream1.osd.pos_logo_x, -15, validateInt15360},
-        {"stream1.osd.pos_logo_y", stream1.osd.pos_logo_y, -10, validateInt15360},
+        {"stream1.osd.pos_logo_x", stream1.osd.pos_logo_x, 16384, validateInt15360},
+        {"stream1.osd.pos_logo_y", stream1.osd.pos_logo_y, 16384, validateInt15360},
         {"stream1.osd.logo_transparency", stream1.osd.logo_transparency, 255, validateInt255},
         {"stream1.osd.logo_rotation", stream1.osd.logo_rotation, 0, validateInt360},
         {"stream0.rotation", stream0.rotation, 0, [](const int &v)
@@ -261,16 +261,16 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
          { return v > 0 && v <= 100; }},
         {"stream2.jpeg_refresh", stream2.jpeg_refresh, 1000, [](const int &v)
          { return v > 0; }},
-        {"stream0.osd.font_size", stream0.osd.font_size, 64, [](const int &v)
+        {"stream0.osd.font_size", stream0.osd.font_size, 0, [](const int &v)
          { return v > 0; }},
-        {"stream0.osd.font_stroke_size", stream0.osd.font_stroke_size, 64, validateIntGt0},
+        {"stream0.osd.font_stroke_size", stream0.osd.font_stroke_size, 0, validateIntGt0},
         {"stream0.osd.logo_height", stream0.osd.logo_height, 30, [](const int &v)
          { return v > 0; }},
         {"stream0.osd.logo_width", stream0.osd.logo_width, 100, [](const int &v)
          { return v > 0; }},
-        {"stream1.osd.font_size", stream1.osd.font_size, 32, [](const int &v)
+        {"stream1.osd.font_size", stream1.osd.font_size, 0, [](const int &v)
          { return v > 0; }},
-        {"stream1.osd.font_stroke_size", stream1.osd.font_stroke_size, 32, validateIntGt0},
+        {"stream1.osd.font_stroke_size", stream1.osd.font_stroke_size, 0, validateIntGt0},
         {"stream1.osd.logo_height", stream1.osd.logo_height, 30, [](const int &v)
          { return v > 0; }},
         {"stream1.osd.logo_width", stream1.osd.logo_width, 100, [](const int &v)
