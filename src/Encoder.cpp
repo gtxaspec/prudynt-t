@@ -620,6 +620,8 @@ int Encoder::framesource_init()
 
         ret = IMP_FrameSource_SetFrameDepth(0, 0);
         LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(0, 0)");
+
+        stream0Status |= 1;
     }
 
     if(cfg->stream1.enabled) {
@@ -639,7 +641,9 @@ int Encoder::framesource_init()
         LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnFifoAttr(1, &low_fifo)");
 
         ret = IMP_FrameSource_SetFrameDepth(1, 0);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(1, 0)");        
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(1, 0)");  
+
+        stream1Status |= 1;      
     }
     int x;
 
@@ -652,7 +656,7 @@ int Encoder::encoder_init()
 
 #if defined(PLATFORM_T31)
     /* Encoder preview channel */
-    if (cfg->stream2.enabled)
+    if (cfg->stream2.enabled && cfg->stream0.enabled)
     {
         ret = IMP_Encoder_SetbufshareChn(2, 0);
         LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_SetbufshareChn(2, 0)")
@@ -665,6 +669,8 @@ int Encoder::encoder_init()
         IMPEncoderCHNAttr chn_attr_high = createEncoderProfile(cfg->stream0);
         ret = channel_init(0, 0, &chn_attr_high);
         LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "channel_init(0, 0, &chn_attr_high)")
+
+        stream0Status |= 2;
     }
 
     /* Encoder lowres channel */
@@ -673,6 +679,8 @@ int Encoder::encoder_init()
         IMPEncoderCHNAttr chn_attr_low = createEncoderProfile(cfg->stream1);
         ret = channel_init(1, 1, &chn_attr_low);
         LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "channel_init(1, 1, &chn_attr_high)")
+
+        stream1Status |= 2;
     }
 
 #if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
@@ -711,12 +719,14 @@ bool Encoder::init()
 
         ret = IMP_Encoder_CreateGroup(0);
         LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_CreateGroup(0)");
+        stream0Status |= 4;
 
         if (!cfg->stream0.osd.enabled)
         {
 
             ret = IMP_System_Bind(&high_fs, &high_enc);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&high_fs, &high_enc)");
+            stream0Status |= 8;
         }
         else
         {
@@ -732,10 +742,14 @@ bool Encoder::init()
             // high OSD -> high Encoder
             ret = IMP_System_Bind(&high_osd_cell, &high_enc);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&high_osd_cell, &high_enc)");
+
+            stream0Status |= 16;
         }     
 
         ret = IMP_FrameSource_EnableChn(0);
-        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_FrameSource_EnableChn(0)");           
+        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_FrameSource_EnableChn(0)"); 
+
+        stream0Status |= 32;          
     }
 
     /* Encoder lowres channel */
@@ -743,11 +757,13 @@ bool Encoder::init()
     {
         ret = IMP_Encoder_CreateGroup(1);
         LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_CreateGroup(1)");
+        stream1Status |= 4; 
 
         if (!cfg->stream1.osd.enabled)
         {
             ret = IMP_System_Bind(&low_fs, &low_enc);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&low_fs, &low_enc)");
+            stream1Status |= 8; 
         }
         else
         {
@@ -763,10 +779,13 @@ bool Encoder::init()
             // low OSD -> low Encoder
             ret = IMP_System_Bind(&low_osd_cell, &low_enc);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&low_osd_cell, &low_enc)");            
+
+            stream1Status |= 16; 
         }    
 
         ret = IMP_FrameSource_EnableChn(1);
         LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_FrameSource_EnableChn(1)");            
+        stream1Status |= 32; 
     }
 
     if (cfg->motion.enabled)
@@ -792,14 +811,21 @@ void Encoder::exit()
         cfg->jpg_thread_signal.fetch_or(4);
     }
 
-    for (int i = 1; i >= 0; i--)
-    {
-        ret = ret = IMP_FrameSource_DisableChn(i);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DisableChn(" << i << ")");
+    /* deinit disable framesources */
+    if(stream0Status & 32) {
+        ret = IMP_FrameSource_DisableChn(0);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DisableChn(0)");
+        stream0Status ^= 32;
     }
 
+    if(stream1Status & 32) {
+        ret = IMP_FrameSource_DisableChn(0);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DisableChn(0)");
+        stream1Status ^= 32;
+    }
 
-    if(osdStream0) {
+    /* deinit bindings stream0 */
+    if(stream0Status & 16) {
 
         stream0_osd->exit();
         
@@ -808,13 +834,16 @@ void Encoder::exit()
 
         ret = IMP_System_UnBind(&high_osd_cell, &high_enc);
         LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&high_osd_cell, &high_enc)");
-    } else {
+        stream0Status ^= 16;
+    } else if (stream0Status & 8) {
 
         ret = IMP_System_UnBind(&high_fs, &high_enc);
         LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&high_fs, &high_enc)");
+        stream0Status ^= 8;
     }
 
-    if(osdStream1) {
+    /* deinit bindings stream1 */
+    if(stream1Status & 16) {
 
         stream1_osd->exit();
 
@@ -823,24 +852,59 @@ void Encoder::exit()
 
         ret = IMP_System_UnBind(&low_osd_cell, &low_enc);
         LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&low_osd_cell, &low_enc)");
-    } else {
+        stream1Status ^= 16;
+    } else if (stream1Status & 8) {
 
         ret = IMP_System_UnBind(&low_fs, &low_enc);
         LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&low_fs, &low_enc)");
+        stream1Status ^= 8;
     }
 
-    for (int i = 2; i >= 0; i--)
-    {
-        channel_deinit(i);
+    /* deinit destroy framesource & destroy encoder channel */
+    if(stream0Status & 2) {
 
-        ret = IMP_FrameSource_DestroyChn(i);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DestroyChn(" << i << ")");
+        channel_deinit(0);
+        stream0Status ^= 2;
     }
 
-    for (int i = 2; i >= 0; i--)
-    {
-        ret = IMP_Encoder_DestroyGroup(i);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_DestroyGroup(" << i << ")");
+    if(stream0Status & 1) {
+
+        ret = IMP_FrameSource_DestroyChn(0);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DestroyChn(0)");
+        stream0Status ^= 1;
+    }
+
+    if(stream1Status & 2) {
+
+        channel_deinit(1);
+        stream1Status ^= 2;
+    }
+
+    if(stream1Status & 1) {
+
+        ret = IMP_FrameSource_DestroyChn(1);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DestroyChn(1)");
+        stream1Status ^= 1;
+    }
+
+    /* deinit jpeg */
+    channel_deinit(2);
+    ret = IMP_FrameSource_DestroyChn(2);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_DestroyChn(2)");
+
+    /* deinit destroy groups */
+    if(stream0Status & 4) {
+
+        ret = IMP_Encoder_DestroyGroup(0);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_DestroyGroup(0)");
+        stream1Status ^= 4;
+    }
+
+    if(stream1Status & 4) {
+
+        ret = IMP_Encoder_DestroyGroup(1);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_DestroyGroup(1)");
+        stream1Status ^= 4;
     }
 
     if (motionInitialized)
