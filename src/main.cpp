@@ -1,19 +1,21 @@
 #include <chrono>
 #include <thread>
-#include "Encoder.hpp"
 #include "RTSP.hpp"
 #include "Logger.hpp"
 #include "Config.hpp"
 #include "WS.hpp"
 #include "version.hpp"
+#include "worker.hpp"
 
 auto main_thread_signal = std::make_shared<std::atomic<int>>(0);
 std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
 
 WS ws(cfg, main_thread_signal);
-Encoder enc(cfg);
-Encoder jpg(cfg);
+
+//Encoder enc(cfg);
+//Encoder jpg(cfg);
 RTSP rtsp(cfg);
+Worker worker(cfg);
 
 void stop_encoder() {
 
@@ -22,10 +24,11 @@ void stop_encoder() {
     std::chrono::milliseconds duration;
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    cfg->encoder_thread_signal.fetch_xor(3);
-    cfg->encoder_thread_signal.fetch_or(4);
+    cfg->worker_thread_signal.fetch_xor(3);
+    cfg->worker_thread_signal.fetch_or(4);
+    cfg->worker_thread_signal.notify_one();
 
-    while((cfg->encoder_thread_signal.load() & 8) != 8) {
+    while((cfg->worker_thread_signal.load() & 8) != 8) {
 
         usleep(1000);
         duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
@@ -44,10 +47,10 @@ void start_encoder() {
     std::chrono::milliseconds duration;
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    cfg->encoder_thread_signal.fetch_xor(8);
-    cfg->encoder_thread_signal.fetch_or(1);
+    cfg->worker_thread_signal.fetch_xor(8);
+    cfg->worker_thread_signal.fetch_or(1);
 
-    while((cfg->encoder_thread_signal.load() & 2) != 2) {
+    while((cfg->worker_thread_signal.load() & 2) != 2) {
 
         usleep(1000);
         duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
@@ -120,19 +123,23 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
     
+    usleep(1000*1000);
+    
     cfg->rtsp_thread_signal = 2;
 
     ws_thread = std::thread(&WS::run, ws);
-    enc_thread = std::thread(&Encoder::run, &enc);
+    enc_thread = std::thread(&Worker::run, &worker);
     rtsp_thread = std::thread(&RTSP::run, rtsp);
 
     while(1) {
 
         usleep(1000*1000);
 
+        std::cout << "MAIN BACK TO SLEEP" << std::endl;
+
         cfg->main_thread_signal.wait(1);
 
-        std::cout << "MAIN SIGNAL" << std::endl;
+        std::cout << "MAIN WAKEUP SIGNAL" << std::endl;
 
         if(cfg->main_thread_signal & 8) { // 8 = stop action
             cfg->main_thread_signal.fetch_xor(8);
@@ -143,6 +150,7 @@ int main(int argc, const char *argv[]) {
                 stop_encoder();
             }                              
         }
+
 
         if(cfg->main_thread_signal & 16) { // 16 = start action
             cfg->main_thread_signal.fetch_xor(16);

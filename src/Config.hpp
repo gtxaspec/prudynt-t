@@ -2,15 +2,20 @@
 
 #include <set>
 #include <atomic>
+#include <chrono>
 #include <iostream>
 #include <functional>
 #include <libconfig.h++>
+#include <sys/time.h>
 
 //~65k
 #define ENABLE_LOG_DEBUG
 
 //~10k
 //#define AUDIO_SUPPORT
+
+//use FIFO buffer
+//#define FIFO
 
 #define OSD_AUTO_POS_INDICATOR 16384
 
@@ -27,7 +32,14 @@ struct ConfigItem {
     T& value;
     T defaultValue;
     std::function<bool(const T&)> validate;
+    bool noSave;
     const char *procPath;
+};
+
+struct _stream_stats {
+    uint32_t bps;
+	uint8_t fps;
+	struct timeval ts;
 };
 
 struct _regions {
@@ -131,6 +143,7 @@ struct _osd {
     unsigned int font_color;
     unsigned int font_stroke_color;
     _regions regions;
+    _stream_stats stats;   
 };  
 struct _stream {
     int gop;
@@ -152,8 +165,9 @@ struct _stream {
     /* JPEG stream*/
     int jpeg_quality;
     int jpeg_refresh;
-    const char *jpeg_path;  
-    _osd osd;          
+    int jpeg_channel;
+    const char *jpeg_path;
+    _osd osd;
 };	
 struct _motion {
     int debounce_time;
@@ -211,14 +225,16 @@ class CFG {
         std::atomic<int> main_thread_signal{1};
 
         // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
-        std::atomic<int> encoder_thread_signal{1};
+        //std::atomic<int> encoder_thread_signal{1};
         // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
-        std::atomic<int> jpg_thread_signal{1};
+        //std::atomic<int> jpg_thread_signal{1};
         // bit 0 = start, 1 = stop, 2 = stopped, 256 = exit
         char volatile rtsp_thread_signal{0};
         // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
         std::atomic<int> motion_thread_signal{1};
 
+        std::atomic<int> worker_thread_signal{1};
+        
     template <typename T>
     T get(const std::string &name) {
         T result;
@@ -243,7 +259,7 @@ class CFG {
     }
 
     template <typename T>
-    bool set(const std::string &name, T value) {
+    bool set(const std::string &name, T value, bool no_save = false) {
         std::vector<ConfigItem<T>> *items = nullptr;
         if constexpr (std::is_same_v<T, bool>) {
             items = &boolItems;
@@ -260,6 +276,7 @@ class CFG {
             if (item.path == name) {
                 if (item.validate(value)) {
                     item.value = value;
+                    item.noSave = no_save;
                     return true;
                 } else {
                     return false;

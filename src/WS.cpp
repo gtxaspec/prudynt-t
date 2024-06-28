@@ -1862,7 +1862,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
     case LWS_CALLBACK_RECEIVE:
         LOG_DEBUG("LWS_CALLBACK_RECEIVE " << client_ip << ", " << json_data);
 
-        //cleanup response buffer
+        // cleanup response buffer
         memset(ws_send_msg, 0, sizeof(ws_send_msg));
 
         std::strcat(ws_send_msg, "{"); // start response json

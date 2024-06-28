@@ -10,16 +10,38 @@
 #define MODULE "CONFIG"
 
 #if defined(PLATFORM_T31)
-    #define DEFAULT_ENC_MODE "CAPPED_QUALITY"
+#define DEFAULT_ENC_MODE_0 "FIXQB"
+#define DEFAULT_ENC_MODE_1 "CAPPED_QUALITY"
 #else
-    #define DEFAULT_ENC_MODE "VBR"
+#define DEFAULT_ENC_MODE_0 "VBR"
+#define DEFAULT_ENC_MODE_1 "VBR"
 #endif
 
 namespace fs = std::filesystem;
 
-bool validateIntGt0(const int &v)
+bool validateIntGe0(const int &v)
 {
     return v >= 0;
+}
+
+bool validateInt1(const int &v)
+{
+    return v >= 0 && v <= 2;
+}
+
+bool validateInt2(const int &v)
+{
+    return v >= 0 && v <= 1;
+}
+
+bool validateInt32(const int &v)
+{
+    return v >= 0 && v <= 32;
+}
+
+bool validateInt60(const int &v)
+{
+    return v >= 0 && v <= 60;
 }
 
 bool validateInt255(const int &v)
@@ -35,6 +57,11 @@ bool validateInt360(const int &v)
 bool validateInt15360(const int &v)
 {
     return v >= -15360 && v <= 15360;
+}
+
+bool validateInt65535(const int &v)
+{
+    return v >= 0 && v <= 65535;
 }
 
 bool validateCharDummy(const char *v)
@@ -101,7 +128,7 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
         {"rtsp.username", rtsp.username, "thingino", validateCharNotEmpty},
         {"rtsp.password", rtsp.password, "thingino", validateCharNotEmpty},
         {"rtsp.name", rtsp.name, "thingino prudynt", validateCharNotEmpty},
-        {"sensor.model", sensor.model, "gc2053", validateCharNotEmpty, "/proc/jz/sensor/name"},
+        {"sensor.model", sensor.model, "gc2053", validateCharNotEmpty, false, "/proc/jz/sensor/name"},
         {"stream0.rtsp_endpoint", stream0.rtsp_endpoint, "ch0", validateCharNotEmpty},
         {"stream0.format", stream0.format, "H264", [](const char *v)
          { return strcmp(v, "H264") == 0 || strcmp(v, "H265") == 0; }},
@@ -112,17 +139,19 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
         {"stream0.osd.font_path", stream0.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", validateCharNotEmpty},
         {"stream0.osd.time_format", stream0.osd.time_format, "%I:%M:%S%p %m/%d/%Y", validateCharNotEmpty},
         {"stream0.osd.uptime_format", stream0.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", validateCharNotEmpty},
-        {"stream0.osd.user_text_format", stream0.osd.user_text_format, "thingino", validateCharNotEmpty},
+        {"stream0.osd.user_text_format", stream0.osd.user_text_format, "%hostname, fps:%fps, bps:%bps", validateCharNotEmpty},
         {"stream0.osd.logo_path", stream0.osd.logo_path, "/usr/share/thingino_logo_1.bgra", validateCharNotEmpty},
-        {"stream0.mode", stream0.mode, DEFAULT_ENC_MODE, [](const char *v)
+        {"stream0.mode", stream0.mode, DEFAULT_ENC_MODE_0, [](const char *v)
          { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQB", "CAPPED_VBR", "CAPPED_QUALITY"}; return a.count(std::string(v)) == 1; }},
         {"stream1.osd.font_path", stream1.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", validateCharNotEmpty},
         {"stream1.osd.time_format", stream1.osd.time_format, "%I:%M:%S%p %m/%d/%Y", validateCharNotEmpty},
         {"stream1.osd.uptime_format", stream1.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", validateCharNotEmpty},
-        {"stream1.osd.user_text_format", stream1.osd.user_text_format, "thingino", validateCharNotEmpty},
+        {"stream1.osd.user_text_format", stream1.osd.user_text_format, "%hostname, fps:%fps, bps:%bps", validateCharNotEmpty},
         {"stream1.osd.logo_path", stream1.osd.logo_path, "/usr/share/thingino_logo_1.bgra", validateCharNotEmpty},
-        {"stream1.mode", stream1.mode, DEFAULT_ENC_MODE, [](const char *v)
-         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQB", "CAPPED_VBR", "CAPPED_QUALITY"}; return a.count(std::string(v)) == 1; }},        
+        {"stream1.mode", stream1.mode, DEFAULT_ENC_MODE_1, [](const char *v)
+         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQB", "CAPPED_VBR", "CAPPED_QUALITY"}; return a.count(std::string(v)) == 1; }},
+        {"stream2.format", stream2.format, "JPEG", [](const char *v)
+         { std::set<std::string> a = {"JPEG"}; return a.count(std::string(v)) == 1; }},
         {"motion.script_path", motion.script_path, "/usr/sbin/motion", validateCharNotEmpty},
         {"websocket.name", websocket.name, "wss prudynt", validateCharNotEmpty},
     };
@@ -131,20 +160,13 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
 std::vector<ConfigItem<int>> CFG::getIntItems()
 {
     return {
-        {"rtsp.port", rtsp.port, 554, [](const int &v)
-         { return v > 0 && v <= 65535; }},
-        {"rtsp.est_bitrate", rtsp.est_bitrate, 5000, [](const int &v)
-         { return v > 0; }},
-        {"rtsp.out_buffer_size", rtsp.out_buffer_size, 500000, [](const int &v)
-         { return v > 0; }},
-        {"rtsp.send_buffer_size", rtsp.send_buffer_size, 307200, [](const int &v)
-         { return v > 0; }},
-        {"sensor.fps", sensor.fps, 24, [](const int &v)
-         { return v > 0 && v <= 60; }, "/proc/jz/sensor/max_fps"},
-        {"sensor.width", sensor.width, 1920, [](const int &v)
-         { return v > 0; }, "/proc/jz/sensor/width"},
-        {"sensor.height", sensor.height, 1080, [](const int &v)
-         { return v > 0; }, "/proc/jz/sensor/height"},
+        {"rtsp.port", rtsp.port, 554, validateInt65535},
+        {"rtsp.est_bitrate", rtsp.est_bitrate, 5000, validateIntGe0},
+        {"rtsp.out_buffer_size", rtsp.out_buffer_size, 500000, validateIntGe0},
+        {"rtsp.send_buffer_size", rtsp.send_buffer_size, 307200, validateIntGe0},
+        {"sensor.fps", sensor.fps, 24, validateInt60, false, "/proc/jz/sensor/max_fps"},
+        {"sensor.width", sensor.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},
+        {"sensor.height", sensor.height, 1080, validateIntGe0, false, "/proc/jz/sensor/height"},
         {"image.brightness", image.brightness, 128, validateInt255},
         {"image.contrast", image.contrast, 128, validateInt255},
         {"image.hue", image.hue, 128, validateInt255},
@@ -152,10 +174,8 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"image.saturation", image.saturation, 128, validateInt255},
         {"image.sinter_strength", image.sinter_strength, 128, validateInt255},
         {"image.temper_strength", image.temper_strength, 128, validateInt255},
-        {"image.running_mode", image.running_mode, 0, [](const int &v)
-         { return v >= 0 && v <= 1; }},
-        {"image.anti_flicker", image.anti_flicker, 2, [](const int &v)
-         { return v >= 0 && v <= 2; }},
+        {"image.running_mode", image.running_mode, 0, validateInt1},
+        {"image.anti_flicker", image.anti_flicker, 2, validateInt2},
         {"image.ae_compensation", image.ae_compensation, 128, validateInt255},
         {"image.dpc_strength", image.dpc_strength, 128, validateInt255},
         {"image.defog_strength", image.defog_strength, 128, validateInt255},
@@ -187,38 +207,25 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v)
          { return v >= 0 && v <= 3; }},
 #endif
-        {"stream0.gop", stream0.gop, 20, [](const int &v)
-         { return v > 0; }},
-        {"stream0.max_gop", stream0.max_gop, 60, [](const int &v)
-         { return v > 0; }},
-        {"stream0.fps", stream0.fps, 24, [](const int &v)
-         { return v > 0 && v <= 60; }},
-        {"stream0.buffers", stream0.buffers, 1, [](const int &v)
-         { return v > 0 && v <= 32; }},
-        {"stream0.width", stream0.width, 1920, [](const int &v)
-         { return v > 0; }, "/proc/jz/sensor/width"},
-        {"stream0.height", stream0.height, 1080, [](const int &v)
-         { return v > 0; }, "/proc/jz/sensor/height"},
-        {"stream0.bitrate", stream0.bitrate, 1500, [](const int &v)
-         { return v > 0; }},
-        {"stream0.profile", stream0.profile, 2, [](const int &v)
-         { return v >= 0 && v <= 2; }},
-        {"stream1.gop", stream1.gop, 20, [](const int &v)
-         { return v > 0; }},
-        {"stream1.max_gop", stream1.max_gop, 60, [](const int &v)
-         { return v > 0; }},
-        {"stream1.fps", stream1.fps, 24, [](const int &v)
-         { return v > 0 && v <= 60; }},
-        {"stream1.buffers", stream1.buffers, 1, [](const int &v)
-         { return v > 0 && v <= 32; }},
-        {"stream1.width", stream1.width, 640, [](const int &v)
-         { return v > 0; }},
-        {"stream1.height", stream1.height, 360, [](const int &v)
-         { return v > 0; }},
-        {"stream1.bitrate", stream1.bitrate, 1000, [](const int &v)
-         { return v > 0; }},
-        {"stream1.profile", stream1.profile, 2, [](const int &v)
-         { return v >= 0 && v <= 2; }},
+        {"stream0.gop", stream0.gop, 10, validateIntGe0},
+        {"stream0.max_gop", stream0.max_gop, 60, validateIntGe0},
+        {"stream0.fps", stream0.fps, 24, validateInt60},
+        {"stream0.buffers", stream0.buffers, 4, validateInt32},
+        {"stream0.width", stream0.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},
+        {"stream0.height", stream0.height, 1080, validateIntGe0, false, "/proc/jz/sensor/height"},
+        {"stream0.bitrate", stream0.bitrate, 3000, validateIntGe0},
+        {"stream0.profile", stream0.profile, 1, validateInt2},
+        {"stream1.gop", stream1.gop, 20, validateIntGe0},
+        {"stream1.max_gop", stream1.max_gop, 60, validateIntGe0},
+        {"stream1.fps", stream1.fps, 24, validateInt60},
+        {"stream1.buffers", stream1.buffers, 2, validateInt32},
+        {"stream1.width", stream1.width, 640, validateIntGe0},
+        {"stream1.height", stream1.height, 360, validateIntGe0},
+        {"stream1.bitrate", stream1.bitrate, 1000, validateIntGe0},
+        {"stream1.profile", stream1.profile, 2, validateInt2},
+        {"stream2.jpeg_channel", stream2.jpeg_channel, 0, validateIntGe0},
+        {"stream2.width", stream2.width, 1920, validateIntGe0},
+        {"stream2.height", stream2.height, 1080, validateIntGe0},
         {"stream0.osd.pos_time_x", stream0.osd.pos_time_x, 16384, validateInt15360},
         {"stream0.osd.pos_time_y", stream0.osd.pos_time_y, 16384, validateInt15360},
         {"stream0.osd.time_transparency", stream0.osd.time_transparency, 255, validateInt255},
@@ -251,50 +258,37 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream1.osd.pos_logo_y", stream1.osd.pos_logo_y, 16384, validateInt15360},
         {"stream1.osd.logo_transparency", stream1.osd.logo_transparency, 255, validateInt255},
         {"stream1.osd.logo_rotation", stream1.osd.logo_rotation, 0, validateInt360},
-        {"stream0.rotation", stream0.rotation, 0, [](const int &v)
-         { return v >= 0 && v <= 2; }},
-        {"stream0.scale_width", stream0.scale_width, 640, [](const int &v)
-         { return v > 0; }},
-        {"stream0.scale_height", stream0.scale_height, 360, [](const int &v)
-         { return v > 0; }},
+        {"stream0.rotation", stream0.rotation, 0, validateInt2},
+        {"stream0.scale_width", stream0.scale_width, 640, validateIntGe0},
+        {"stream0.scale_height", stream0.scale_height, 360, validateIntGe0},
         {"stream2.jpeg_quality", stream2.jpeg_quality, 75, [](const int &v)
          { return v > 0 && v <= 100; }},
-        {"stream2.jpeg_refresh", stream2.jpeg_refresh, 1000, [](const int &v)
-         { return v > 0; }},
-        {"stream0.osd.font_size", stream0.osd.font_size, 0, [](const int &v)
-         { return v > 0; }},
-        {"stream0.osd.font_stroke_size", stream0.osd.font_stroke_size, 0, validateIntGt0},
-        {"stream0.osd.logo_height", stream0.osd.logo_height, 30, [](const int &v)
-         { return v > 0; }},
-        {"stream0.osd.logo_width", stream0.osd.logo_width, 100, [](const int &v)
-         { return v > 0; }},
-        {"stream1.osd.font_size", stream1.osd.font_size, 0, [](const int &v)
-         { return v > 0; }},
-        {"stream1.osd.font_stroke_size", stream1.osd.font_stroke_size, 0, validateIntGt0},
-        {"stream1.osd.logo_height", stream1.osd.logo_height, 30, [](const int &v)
-         { return v > 0; }},
-        {"stream1.osd.logo_width", stream1.osd.logo_width, 100, [](const int &v)
-         { return v > 0; }},
-        {"motion.debounce_time", motion.debounce_time, 0, validateIntGt0},
-        {"motion.post_time", motion.post_time, 0, validateIntGt0},
+        {"stream2.jpeg_refresh", stream2.jpeg_refresh, 1000, validateIntGe0},
+        {"stream0.osd.font_size", stream0.osd.font_size, 0, validateIntGe0},
+        {"stream0.osd.font_stroke_size", stream0.osd.font_stroke_size, 0, validateIntGe0},
+        {"stream0.osd.logo_height", stream0.osd.logo_height, 30, validateIntGe0},
+        {"stream0.osd.logo_width", stream0.osd.logo_width, 100, validateIntGe0},
+        {"stream1.osd.font_size", stream1.osd.font_size, 0, validateIntGe0},
+        {"stream1.osd.font_stroke_size", stream1.osd.font_stroke_size, 0, validateIntGe0},
+        {"stream1.osd.logo_height", stream1.osd.logo_height, 30, validateIntGe0},
+        {"stream1.osd.logo_width", stream1.osd.logo_width, 100, validateIntGe0},
+        {"motion.debounce_time", motion.debounce_time, 0, validateIntGe0},
+        {"motion.post_time", motion.post_time, 0, validateIntGe0},
         {"motion.thread_wait", motion.thread_wait, 5000, [](const int &v)
          { return v >= 1000 && v <= 10000; }},
-        {"motion.cooldown_time", motion.cooldown_time, 5, validateIntGt0},
-        {"motion.init_time", motion.init_time, 5, validateIntGt0},
-        {"motion.sensitivity", motion.sensitivity, 1, validateIntGt0},
-        {"motion.skip_frame_count", motion.skip_frame_count, 5, validateIntGt0},
-        {"motion.frame_width", motion.frame_width, 1920, [](const int &v)
-         { return v > 0; }},
-        {"motion.frame_height", motion.frame_height, 1080, [](const int &v)
-         { return v > 0; }},
-        {"motion.roi_0_x", motion.roi_0_x, 0, validateIntGt0},
-        {"motion.roi_0_y", motion.roi_0_y, 0, validateIntGt0},
-        {"motion.roi_1_x", motion.roi_1_x, 1920, validateIntGt0},
-        {"motion.roi_1_y", motion.roi_1_y, 1080, validateIntGt0},
+        {"motion.cooldown_time", motion.cooldown_time, 5, validateIntGe0},
+        {"motion.init_time", motion.init_time, 5, validateIntGe0},
+        {"motion.sensitivity", motion.sensitivity, 1, validateIntGe0},
+        {"motion.skip_frame_count", motion.skip_frame_count, 5, validateIntGe0},
+        {"motion.frame_width", motion.frame_width, 1920, validateIntGe0},
+        {"motion.frame_height", motion.frame_height, 1080, validateIntGe0},
+        {"motion.roi_0_x", motion.roi_0_x, 0, validateIntGe0},
+        {"motion.roi_0_y", motion.roi_0_y, 0, validateIntGe0},
+        {"motion.roi_1_x", motion.roi_1_x, 1920, validateIntGe0},
+        {"motion.roi_1_y", motion.roi_1_y, 1080, validateIntGe0},
         {"motion.roi_count", motion.roi_count, 1, [](const int &v)
          { return v >= 1 && v <= 52; }},
-        {"websocket.port", websocket.port, 8089, [](const int &v)
-         { return v > 0 && v <= 65535; }},
+        {"websocket.port", websocket.port, 8089, validateInt65535},
         {"websocket.loglevel", websocket.loglevel, 4096, [](const int &v)
          { return v > 0 && v <= 1024; }},
     };
@@ -304,7 +298,7 @@ std::vector<ConfigItem<unsigned int>> CFG::getUintItems()
 {
     return {
         {"sensor.i2c_address", sensor.i2c_address, 0x37, [](const unsigned int &v)
-         { return v <= 0x7F; }, "/proc/jz/sensor/i2c_addr"},
+         { return v <= 0x7F; }, false, "/proc/jz/sensor/i2c_addr"},
         {"stream0.osd.font_color", stream0.osd.font_color, 0xFFFFFFFF, validateUint},
         {"stream0.font_stroke_color", stream0.osd.font_stroke_color, 0xFF000000, validateUint},
         {"stream1.font_color", stream1.osd.font_color, 0xFFFFFFFF, validateUint},
@@ -676,6 +670,17 @@ CFG::CFG()
         handleConfigItem(lc, item);
     for (auto &item : uintItems)
         handleConfigItem(lc, item);
+
+    if (stream2.jpeg_channel == 0)
+    {
+        stream2.width = stream0.width;
+        stream2.height = stream0.height;
+    }
+    if (stream2.jpeg_channel == 1)
+    {
+        stream1.width = stream0.width;
+        stream1.height = stream0.height;
+    }
 
     libconfig::Setting &root = lc.getRoot();
 

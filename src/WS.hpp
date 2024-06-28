@@ -13,21 +13,20 @@
 #define WEBSOCKET_TOKEN_LENGTH 32
 
 // WebSocket
-class WS {
-    
-    public:
-        void run();  
+class WS
+{
+public:
+        void run();
         WS(std::shared_ptr<CFG> _cfg, std::shared_ptr<std::atomic<int>> _mts) : cfg(_cfg), main_thread_signal(_mts) {}
         void restartEncoder();
 
-    private:
-        
+private:
         std::shared_ptr<CFG> cfg;
         std::shared_ptr<std::atomic<int>> main_thread_signal;
-        
+
         lws_protocols protocols;
-        struct lws_context_creation_info info;     
-        struct lws_context *context;  
+        struct lws_context_creation_info info;
+        struct lws_context *context;
 
         static int ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
 
@@ -36,7 +35,7 @@ class WS {
         static signed char rtsp_callback(struct lejp_ctx *ctx, char reason);
         static signed char sensor_callback(struct lejp_ctx *ctx, char reason);
         static signed char image_callback(struct lejp_ctx *ctx, char reason);
-#if defined(AUDIO_SUPPORT)           
+#if defined(AUDIO_SUPPORT)
         static signed char audio_callback(struct lejp_ctx *ctx, char reason);
 #endif
         static signed char stream_callback(struct lejp_ctx *ctx, char reason);
@@ -46,7 +45,6 @@ class WS {
         static signed char motion_roi_callback(struct lejp_ctx *ctx, char reason);
         static signed char info_callback(struct lejp_ctx *ctx, char reason);
         static signed char action_callback(struct lejp_ctx *ctx, char reason);
-
 };
 
 #endif

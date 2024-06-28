@@ -4,15 +4,14 @@
 #include <array>
 #include <memory>
 #include <ctime>
-#include <map>
 
 #include <sys/file.h>
 
 #include <imp/imp_framesource.h>
-#include <imp/imp_system.h>
+//#include <imp/imp_system.h>
 #include <imp/imp_common.h>
 #include <imp/imp_encoder.h>
-#include <imp/imp_isp.h>
+//#include <imp/imp_isp.h>
 #include <imp/imp_osd.h>
 #include <imp/imp_audio.h>
 
@@ -20,14 +19,17 @@
 #include "Config.hpp"
 #include "OSD.hpp"
 #include "Motion.hpp"
+#include "IMPFramesource.hpp"
+#include "IMPSystem.hpp"
 
-#include <../sysutils/su_base.h>
+//#include <pthread.h>
+
+//#include <../sysutils/su_base.h>
 
 #if defined(PLATFORM_T31)
 	#define IMPEncoderCHNAttr IMPEncoderChnAttr
 	#define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
-
 
 static const std::array<int, 64> jpeg_chroma_quantizer = {{
 	17, 18, 24, 47, 99, 99, 99, 99,
@@ -63,14 +65,14 @@ struct EncoderSink {
 	int encChn;
 	bool IDR;
 	std::function<int(const H264NALUnit&)> data_available_callback;
+	bool online;
 };
 
-struct CHN {
-	bool enabled;
-	int encChn = -1;
-	int64_t lastNalTs = 0;
-	struct timeval impTimeBase;
+struct Channel {
+	const int encChn;
+	_stream *stream;
 	std::function<void()> updateOsd = nullptr;
+	std::atomic<bool> thread_signal;
 };
 
 class Encoder {
@@ -85,25 +87,32 @@ class Encoder {
 		}
 
 		template <class T>
-		static uint32_t connect_sink(T* c, std::string name, int encChn) {
-			LOG_DEBUG("Create Sink: " << Encoder::sink_id << ", encChn:" << encChn);
-			std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-			Encoder::sinks[Encoder::sink_id] = EncoderSink{name, encChn, false, [c](const H264NALUnit& nalu) { return c->on_data_available(nalu); }};
+		static void connect_sink(T* c, const char *name, int encChn) {
+			LOG_DEBUG("Create Sink: " << encChn);
+			pthread_mutex_lock(&stream_locks[encChn]);
+			Encoder::stream_sinks[encChn] = new EncoderSink{name, encChn, false, [c](const H264NALUnit& nalu) { return c->on_data_available(nalu); }};
+			pthread_mutex_unlock(&stream_locks[encChn]);
 			Encoder::flush(encChn);
-			return Encoder::sink_id++;
 		}
 
-		static void remove_sink(uint32_t sink_id) {
-			LOG_DEBUG("Remove Sink: " << sink_id);
-			std::unique_lock<std::mutex> lck(sinks_lock);
-			sinks.erase(sink_id);
+		static void remove_sink(int encChn) {
+			LOG_DEBUG("Remove Sink: " << encChn);
+			pthread_mutex_lock(&stream_locks[encChn]);
+			if(stream_sinks[encChn]){
+				delete stream_sinks[encChn];
+				stream_sinks[encChn] = nullptr;
+			}
+			pthread_mutex_unlock(&stream_locks[encChn]);
 		}
+
+		
 
 	private:
 		std::shared_ptr<CFG> cfg;
 		OSD *stream0_osd;
 		OSD *stream1_osd;
 		Motion motion;
+		
 
 		bool init();
 		void exit();
@@ -114,13 +123,9 @@ class Encoder {
 		int channel_init(int chn_nr, int grp_nr, IMPEncoderCHNAttr *chn_attr);
 		int channel_deinit(int chn_nr);
 
-		static std::mutex cv_mtx;
-		static std::mutex sinks_lock;
-		static uint32_t sink_id;
-
 	public:
-		static std::map<uint32_t, EncoderSink> sinks;
-
+		static EncoderSink *stream_sinks[2];
+		
 	private:
 		struct timeval high_imp_time_base;
 		struct timeval low_imp_time_base;
@@ -141,6 +146,11 @@ class Encoder {
 		std::thread jpeg_thread;
 		void jpeg_snap(std::shared_ptr<CFG>& cfg);
 
+		std::thread stream_threads[3];
+		static pthread_mutex_t stream_locks[2];
+
+		void stream_grabber(Channel *channel);
+
 		bool osdStream0 = false;
 		bool osdStream1 = false;
 		bool motionInitialized{0};
@@ -149,7 +159,11 @@ class Encoder {
 		int stream1Status = 0;
 
 		int errorCount = 0;
-		CHN channels[2] = {{false, 0, 0},{false, 1, 0}};
+
+		Channel *channels[3] = { nullptr, nullptr, nullptr };
+		IMPSystem *impsystem = nullptr;
+		IMPFramesource *framesources[2] = { nullptr, nullptr };
+		std::mutex thread_locks[3];
 };
 
 #endif
