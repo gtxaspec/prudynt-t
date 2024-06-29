@@ -26,13 +26,13 @@ unsigned long getSystemUptime()
 
 int getIp(char *addressBuffer)
 {
-    struct ifaddrs *ifAddrStruct = NULL;
-    struct ifaddrs *ifa = NULL;
-    void *tmpAddrPtr = NULL;
+    struct ifaddrs *ifAddrStruct = nullptr;
+    struct ifaddrs *ifa = nullptr;
+    void *tmpAddrPtr = nullptr;
 
     getifaddrs(&ifAddrStruct);
 
-    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next)
+    for (ifa = ifAddrStruct; ifa != nullptr; ifa = ifa->ifa_next)
     {
         if (!ifa->ifa_addr)
         {
@@ -44,7 +44,7 @@ int getIp(char *addressBuffer)
             inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
         }
     }
-    if (ifAddrStruct != NULL)
+    if (ifAddrStruct != nullptr)
         freeifaddrs(ifAddrStruct);
     return 0;
 }
@@ -219,11 +219,11 @@ void OSD::set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width, int height, i
         height = rgnAttr->rect.p1.y - rgnAttr->rect.p0.y + 1;
     }
 
-    if (x > chnAttr.encAttr.picWidth - width)
-        x = chnAttr.encAttr.picWidth - width;
+    if (x > (int)chnAttr.encAttr.picWidth - width)
+        x = (int)chnAttr.encAttr.picWidth - width;
 
-    if (y > chnAttr.encAttr.picHeight - height)
-        y = chnAttr.encAttr.picHeight - height;
+    if (y > (int)chnAttr.encAttr.picHeight - height)
+        y = (int)chnAttr.encAttr.picHeight - height;
 
     rgnAttr->rect.p0.x = get_abs_pos(chnAttr.encAttr.picWidth, width, x);
     rgnAttr->rect.p0.y = get_abs_pos(chnAttr.encAttr.picHeight, height, y);
