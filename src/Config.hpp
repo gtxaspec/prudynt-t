@@ -7,7 +7,7 @@
 #include <functional>
 #include <libconfig.h++>
 #include <sys/time.h>
-
+#include <any>
 //~65k
 #define ENABLE_LOG_DEBUG
 
@@ -17,7 +17,7 @@
 //use FIFO buffer
 //#define FIFO
 
-#define OSD_AUTO_POS_INDICATOR 16384
+#define OSD_AUTO_VALUE 16384
 
 struct roi{
     int p0_x;
@@ -143,7 +143,7 @@ struct _osd {
     unsigned int font_color;
     unsigned int font_stroke_color;
     _regions regions;
-    _stream_stats stats;   
+    _stream_stats stats;
 };  
 struct _stream {
     int gop;
@@ -224,15 +224,13 @@ class CFG {
 
         std::atomic<int> main_thread_signal{1};
 
-        // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
-        //std::atomic<int> encoder_thread_signal{1};
-        // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
-        //std::atomic<int> jpg_thread_signal{1};
-        // bit 0 = start, 1 = stop, 2 = stopped, 256 = exit
-        char volatile rtsp_thread_signal{0};
+        //initialized stopped so that the worker can start it initially
+        char volatile rtsp_thread_signal{2};
+
         // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
         std::atomic<int> motion_thread_signal{1};
 
+        // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
         std::atomic<int> worker_thread_signal{1};
         
     template <typename T>
@@ -259,7 +257,8 @@ class CFG {
     }
 
     template <typename T>
-    bool set(const std::string &name, T value, bool no_save = false) {
+    bool set(const std::string &name, T value, bool noSave = false) {
+        std::cout << name << "=" << value << std::endl; 
         std::vector<ConfigItem<T>> *items = nullptr;
         if constexpr (std::is_same_v<T, bool>) {
             items = &boolItems;
@@ -276,7 +275,7 @@ class CFG {
             if (item.path == name) {
                 if (item.validate(value)) {
                     item.value = value;
-                    item.noSave = no_save;
+                    item.noSave = noSave;
                     return true;
                 } else {
                     return false;

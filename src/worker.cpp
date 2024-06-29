@@ -41,30 +41,27 @@ Worker *Worker::createNew(
 
 int Worker::init()
 {
-
     LOG_DEBUG("Worker::init()");
-
     int ret;
-
     impsystem = IMPSystem::createNew(&cfg->image, &cfg->sensor);
 
     if (cfg->stream0.enabled)
     {
         framesources[0] = IMPFramesource::createNew(&cfg->stream0, &cfg->sensor, 0);
-        encoder[0] = IMPEncoder::createNew(&cfg->stream0, 0, 0);
+        encoder[0] = IMPEncoder::createNew(&cfg->stream0, cfg, 0, 0, "stream0");
         framesources[0]->enable();
     }
 
     if (cfg->stream1.enabled)
     {
         framesources[1] = IMPFramesource::createNew(&cfg->stream1, &cfg->sensor, 1);
-        encoder[1] = IMPEncoder::createNew(&cfg->stream1, 1, 1);
+        encoder[1] = IMPEncoder::createNew(&cfg->stream1, cfg, 1, 1, "stream1");
         framesources[1]->enable();
     }
 
     if (cfg->stream2.enabled)
     {
-        encoder[2] = IMPEncoder::createNew(&cfg->stream2, 2, 0);
+        encoder[2] = IMPEncoder::createNew(&cfg->stream2, cfg, 2, cfg->stream2.jpeg_channel, "stream2");
     }
 
     ret = IMP_OSD_SetPoolSize(OSDPoolSize);
@@ -72,59 +69,47 @@ int Worker::init()
 
     if (cfg->motion.enabled)
     {
-
         LOG_DEBUG("Motion enabled");
-
         ret = motion.init(cfg);
         LOG_DEBUG_OR_ERROR(ret, "motion.init(cfg)");
     }
 
     return ret;
-
-    return 0;
 }
 
 int Worker::deinit()
 {
 
     int ret;
-    for (int i = 2; i >= 0; i--)
+    for (int i = 1; i >= 0; i--)
     {
-        LOG_DEBUG(i);
         if (framesources[i])
         {
-
             framesources[i]->disable();
+        }
+    }
+
+    for (int i = 2; i >= 0; i--)
+    {
+        if (encoder[i])
+        {
+            encoder[i]->deinit();
         }
     }
 
     for (int i = 1; i >= 0; i--)
     {
-
-        if (encoder[i])
-        {
-
-            encoder[i]->deinit();
-        }
-    }
-
-    for (int i = 2; i >= 0; i--)
-    {
-
         if (framesources[i])
         {
-
             delete framesources[i];
             framesources[i] = nullptr;
         }
     }
 
-    for (int i = 1; i >= 0; i--)
+    for (int i = 2; i >= 0; i--)
     {
-
         if (encoder[i])
         {
-
             delete encoder[i];
             encoder[i] = nullptr;
         }
@@ -288,10 +273,10 @@ void *Worker::stream_grabber(void *arg)
 
     while (channel->thread_signal.load())
     {
-        if (IMP_Encoder_PollingStream(channel->encChn, 1000) == 0)
+        if (IMP_Encoder_PollingStream(channel->encChn, 1500) == 0)
         {
             IMPEncoderStream stream;
-            if (IMP_Encoder_GetStream(channel->encChn, &stream, false) != 0)
+            if (IMP_Encoder_GetStream(channel->encChn, &stream, true) != 0)
             {
                 LOG_ERROR("IMP_Encoder_GetStream(" << channel->encChn << ") failed");
                 errorCount++;
@@ -426,7 +411,7 @@ void *Worker::stream_grabber(void *arg)
         }
         else
         {
-            LOG_DEBUG("IMP_Encoder_PollingStream(" << channel->encChn << ", 5000) timeout !");
+            LOG_DEBUG("IMP_Encoder_PollingStream(" << channel->encChn << ", 1500) timeout !");
         }
     }
 
@@ -440,20 +425,14 @@ void Worker::run()
 {
     LOG_DEBUG("Worker::run()");
 
-    int ret, xx;
-    int64_t last_high_nal_ts;
-    int64_t last_low_nal_ts;
+    int ret;
 
     // 256 = exit thread
     while ((cfg->worker_thread_signal.load() & 256) != 256)
     {
-
-        LOG_DEBUG(cfg->worker_thread_signal.load());
-
         // 1 = init and start
         if (cfg->worker_thread_signal.load() & 1)
         {
-
             ret = init();
             LOG_DEBUG_OR_ERROR(ret, "init()");
             if (ret != 0)
@@ -465,7 +444,6 @@ void Worker::run()
             {
                 channels[2] = new Channel{2, &cfg->stream2};
                 pthread_create(&worker_threads[2], nullptr, jpeg_grabber, channels[2]);
-                // worker_threads[2] = std::thread(&Worker::jpeg_grabber, this, channels[2]);
             }
 
             if (cfg->stream1.enabled)
@@ -478,7 +456,6 @@ void Worker::run()
                     channels[1]->updateOsd = std::bind(&OSD::update, encoder[1]->osd);
                 }
                 pthread_create(&worker_threads[1], nullptr, stream_grabber, channels[1]);
-                // worker_threads[1] = std::thread(&Worker::stream_grabber, this, channels[1]);
             }
 
             if (cfg->stream0.enabled)
@@ -491,78 +468,70 @@ void Worker::run()
                     channels[0]->updateOsd = std::bind(&OSD::update, encoder[0]->osd);
                 }
                 pthread_create(&worker_threads[0], nullptr, stream_grabber, channels[0]);
-                // worker_threads[0] = std::thread(&Worker::stream_grabber, this, channels[0]);
             }
 
             cfg->rtsp_thread_signal = 0;
             cfg->worker_thread_signal.fetch_or(2);
         }
 
-        LOG_DEBUG("PRE cfg->worker_thread_signal.wait(3);");
-
-        cfg->worker_thread_signal.wait(3);
-
-        LOG_DEBUG("POST cfg->worker_thread_signal.wait(3);");
+        // 1 & 2 = the threads are running, we can go to sleep
+        if (cfg->worker_thread_signal.load() == 3)
+        {
+            LOG_DEBUG("The worker control thread goes into sleep mode");
+            cfg->worker_thread_signal.wait(3);
+            LOG_DEBUG("Worker control thread wakeup");
+        }
 
         // 4 = Stop threads
         if (cfg->worker_thread_signal.load() & 4)
         {
-
             if (channels[0])
             {
-                LOG_DEBUG("WAIT FOR THREAD EXIT " << channels[0]->encChn);
+                LOG_DEBUG("stop signal is sent to stream_grabber for stream0");
                 channels[0]->thread_signal.store(false);
-                /*
-                if (worker_threads[0].joinable())
+                if (pthread_join(worker_threads[0], NULL) == 0)
                 {
-                    LOG_DEBUG("THREAD JOIN 0");
-                    worker_threads[0].join();
+                    LOG_DEBUG("wait for stream_grabber exit stream0");
                 }
-                */
-                LOG_DEBUG("THREAD EXIT 0");
+                LOG_DEBUG("stream_grabber for stream0 has been terminated");
+                pthread_mutex_destroy(&sink_lock0);
                 delete channels[0];
                 channels[0] = nullptr;
             }
 
             if (channels[1])
             {
-                LOG_DEBUG("WAIT FOR THREAD EXIT 1");
+                LOG_DEBUG("stop signal is sent to stream_grabber for stream1");
                 channels[1]->thread_signal.store(false);
-                /*
-                if (worker_threads[1].joinable())
+                if (pthread_join(worker_threads[1], NULL) == 0)
                 {
-                    LOG_DEBUG("THREAD JOIN 1");
-                    worker_threads[1].join();
+                    LOG_DEBUG("wait for stream_grabber exit stream1");
                 }
-                */
-                LOG_DEBUG("THREAD EXIT 1");
+                LOG_DEBUG("stream_grabber for stream1 has been terminated");
+                pthread_mutex_destroy(&sink_lock1);
                 delete channels[1];
                 channels[1] = nullptr;
             }
 
             if (channels[2])
             {
-                LOG_DEBUG("WAIT FOR THREAD EXIT 2");
+                LOG_DEBUG("stop signal is sent to jpeg_grabber");
                 channels[2]->thread_signal.store(false);
-                /*
-                if (worker_threads[2].joinable())
+                if (pthread_join(worker_threads[2], NULL) == 0)
                 {
-                    LOG_DEBUG("THREAD JOIN 0");
-                    worker_threads[2].join();
+                    LOG_DEBUG("wait for jpeg_grabber exit");
                 }
-                */
-                LOG_DEBUG("THREAD EXIT 2");
+                LOG_DEBUG("jpeg_grabber has been terminated");
                 delete channels[2];
                 channels[2] = nullptr;
             }
 
             deinit();
+
+            // remove stop and set stopped, will be handled in main
+            cfg->worker_thread_signal.fetch_xor(4);
+            cfg->worker_thread_signal.fetch_or(8);
         }
-
-        cfg->worker_thread_signal.fetch_xor(4);
-        cfg->worker_thread_signal.fetch_or(8);
-
-        usleep(1000);
-        LOG_DEBUG("LOOP");
     }
+    usleep(1000);
 }

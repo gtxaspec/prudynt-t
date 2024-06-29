@@ -12,9 +12,13 @@
 #if defined(PLATFORM_T31)
 #define DEFAULT_ENC_MODE_0 "FIXQB"
 #define DEFAULT_ENC_MODE_1 "CAPPED_QUALITY"
+#define DEFAULT_BUFFERS_0 4
+#define DEFAULT_BUFFERS_1 2
 #else
-#define DEFAULT_ENC_MODE_0 "VBR"
-#define DEFAULT_ENC_MODE_1 "VBR"
+#define DEFAULT_ENC_MODE_0 "SMART"
+#define DEFAULT_ENC_MODE_1 "SMART"
+#define DEFAULT_BUFFERS_0 3
+#define DEFAULT_BUFFERS_1 2
 #endif
 
 namespace fs = std::filesystem;
@@ -97,8 +101,6 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
         {"audio.output_high_pass_filter", audio.input_high_pass_filter, false, validateBool},
         {"audio.output_high_pass_filter", audio.output_high_pass_filter, false, validateBool},
 #endif
-        {"stream0.scale_enabled", stream0.scale_enabled, false, validateBool},
-        {"stream1.scale_enabled", stream1.scale_enabled, false, validateBool},
         {"stream0.enabled", stream0.enabled, true, validateBool},
         {"stream1.enabled", stream1.enabled, true, validateBool},
         {"stream2.enabled", stream2.enabled, true, validateBool},
@@ -210,7 +212,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream0.gop", stream0.gop, 10, validateIntGe0},
         {"stream0.max_gop", stream0.max_gop, 60, validateIntGe0},
         {"stream0.fps", stream0.fps, 24, validateInt60},
-        {"stream0.buffers", stream0.buffers, 4, validateInt32},
+        {"stream0.buffers", stream0.buffers, DEFAULT_BUFFERS_0, validateInt32},
         {"stream0.width", stream0.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},
         {"stream0.height", stream0.height, 1080, validateIntGe0, false, "/proc/jz/sensor/height"},
         {"stream0.bitrate", stream0.bitrate, 3000, validateIntGe0},
@@ -218,44 +220,44 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream1.gop", stream1.gop, 20, validateIntGe0},
         {"stream1.max_gop", stream1.max_gop, 60, validateIntGe0},
         {"stream1.fps", stream1.fps, 24, validateInt60},
-        {"stream1.buffers", stream1.buffers, 2, validateInt32},
+        {"stream1.buffers", stream1.buffers, DEFAULT_BUFFERS_1, validateInt32},
         {"stream1.width", stream1.width, 640, validateIntGe0},
         {"stream1.height", stream1.height, 360, validateIntGe0},
         {"stream1.bitrate", stream1.bitrate, 1000, validateIntGe0},
         {"stream1.profile", stream1.profile, 2, validateInt2},
         {"stream2.jpeg_channel", stream2.jpeg_channel, 0, validateIntGe0},
-        {"stream2.width", stream2.width, 1920, validateIntGe0},
-        {"stream2.height", stream2.height, 1080, validateIntGe0},
-        {"stream0.osd.pos_time_x", stream0.osd.pos_time_x, 16384, validateInt15360},
-        {"stream0.osd.pos_time_y", stream0.osd.pos_time_y, 16384, validateInt15360},
+        {"stream2.width", stream2.width, OSD_AUTO_VALUE, validateIntGe0},
+        {"stream2.height", stream2.height, OSD_AUTO_VALUE, validateIntGe0},
+        {"stream0.osd.pos_time_x", stream0.osd.pos_time_x, OSD_AUTO_VALUE, validateInt15360},
+        {"stream0.osd.pos_time_y", stream0.osd.pos_time_y, OSD_AUTO_VALUE, validateInt15360},
         {"stream0.osd.time_transparency", stream0.osd.time_transparency, 255, validateInt255},
         {"stream0.osd.time_rotation", stream0.osd.time_rotation, 0, validateInt360},
-        {"stream0.osd.pos_user_text_x", stream0.osd.pos_user_text_x, 16384, validateInt15360},
-        {"stream0.osd.pos_user_text_y", stream0.osd.pos_user_text_y, 16384, validateInt15360},
+        {"stream0.osd.pos_user_text_x", stream0.osd.pos_user_text_x, OSD_AUTO_VALUE, validateInt15360},
+        {"stream0.osd.pos_user_text_y", stream0.osd.pos_user_text_y, OSD_AUTO_VALUE, validateInt15360},
         {"stream0.osd.user_text_transparency", stream0.osd.user_text_transparency, 255, validateInt255},
         {"stream0.osd.user_text_rotation", stream0.osd.user_text_rotation, 0, validateInt360},
-        {"stream0.osd.pos_uptime_x", stream0.osd.pos_uptime_x, 16384, validateInt15360},
-        {"stream0.osd.pos_uptime_y", stream0.osd.pos_uptime_y, 16384, validateInt15360},
+        {"stream0.osd.pos_uptime_x", stream0.osd.pos_uptime_x, OSD_AUTO_VALUE, validateInt15360},
+        {"stream0.osd.pos_uptime_y", stream0.osd.pos_uptime_y, OSD_AUTO_VALUE, validateInt15360},
         {"stream0.osd.uptime_transparency", stream0.osd.uptime_transparency, 255, validateInt255},
         {"stream0.osd.uptime_rotation", stream0.osd.uptime_rotation, 0, validateInt360},
-        {"stream0.osd.pos_logo_x", stream0.osd.pos_logo_x, 16384, validateInt15360},
-        {"stream0.osd.pos_logo_y", stream0.osd.pos_logo_y, 16384, validateInt15360},
+        {"stream0.osd.pos_logo_x", stream0.osd.pos_logo_x, OSD_AUTO_VALUE, validateInt15360},
+        {"stream0.osd.pos_logo_y", stream0.osd.pos_logo_y, OSD_AUTO_VALUE, validateInt15360},
         {"stream0.osd.logo_transparency", stream0.osd.logo_transparency, 255, validateInt255},
         {"stream0.osd.logo_rotation", stream0.osd.logo_rotation, 0, validateInt360},
-        {"stream1.osd.pos_time_x", stream1.osd.pos_time_x, 16384, validateInt15360},
-        {"stream1.osd.pos_time_y", stream1.osd.pos_time_y, 16384, validateInt15360},
+        {"stream1.osd.pos_time_x", stream1.osd.pos_time_x, OSD_AUTO_VALUE, validateInt15360},
+        {"stream1.osd.pos_time_y", stream1.osd.pos_time_y, OSD_AUTO_VALUE, validateInt15360},
         {"stream1.osd.time_transparency", stream1.osd.time_transparency, 255, validateInt255},
         {"stream1.osd.time_rotation", stream1.osd.time_rotation, 0, validateInt360},
-        {"stream1.osd.pos_user_text_x", stream1.osd.pos_user_text_x, 16384, validateInt15360},
-        {"stream1.osd.pos_user_text_y", stream1.osd.pos_user_text_y, 16384, validateInt15360},
+        {"stream1.osd.pos_user_text_x", stream1.osd.pos_user_text_x, OSD_AUTO_VALUE, validateInt15360},
+        {"stream1.osd.pos_user_text_y", stream1.osd.pos_user_text_y, OSD_AUTO_VALUE, validateInt15360},
         {"stream1.osd.user_text_transparency", stream1.osd.user_text_transparency, 255, validateInt255},
         {"stream1.osd.user_text_rotation", stream1.osd.user_text_rotation, 0, validateInt360},
-        {"stream1.osd.pos_uptime_x", stream1.osd.pos_uptime_x, 16384, validateInt15360},
-        {"stream1.osd.pos_uptime_y", stream1.osd.pos_uptime_y, 16384, validateInt15360},
+        {"stream1.osd.pos_uptime_x", stream1.osd.pos_uptime_x, OSD_AUTO_VALUE, validateInt15360},
+        {"stream1.osd.pos_uptime_y", stream1.osd.pos_uptime_y, OSD_AUTO_VALUE, validateInt15360},
         {"stream1.osd.uptime_transparency", stream1.osd.uptime_transparency, 255, validateInt255},
         {"stream1.osd.uptime_rotation", stream1.osd.uptime_rotation, 0, validateInt360},
-        {"stream1.osd.pos_logo_x", stream1.osd.pos_logo_x, 16384, validateInt15360},
-        {"stream1.osd.pos_logo_y", stream1.osd.pos_logo_y, 16384, validateInt15360},
+        {"stream1.osd.pos_logo_x", stream1.osd.pos_logo_x, OSD_AUTO_VALUE, validateInt15360},
+        {"stream1.osd.pos_logo_y", stream1.osd.pos_logo_y, OSD_AUTO_VALUE, validateInt15360},
         {"stream1.osd.logo_transparency", stream1.osd.logo_transparency, 255, validateInt255},
         {"stream1.osd.logo_rotation", stream1.osd.logo_rotation, 0, validateInt360},
         {"stream0.rotation", stream0.rotation, 0, validateInt2},
@@ -264,12 +266,12 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream2.jpeg_quality", stream2.jpeg_quality, 75, [](const int &v)
          { return v > 0 && v <= 100; }},
         {"stream2.jpeg_refresh", stream2.jpeg_refresh, 1000, validateIntGe0},
-        {"stream0.osd.font_size", stream0.osd.font_size, 0, validateIntGe0},
-        {"stream0.osd.font_stroke_size", stream0.osd.font_stroke_size, 0, validateIntGe0},
+        {"stream0.osd.font_size", stream0.osd.font_size, OSD_AUTO_VALUE, validateIntGe0},
+        {"stream0.osd.font_stroke_size", stream0.osd.font_stroke_size, OSD_AUTO_VALUE, validateIntGe0},
         {"stream0.osd.logo_height", stream0.osd.logo_height, 30, validateIntGe0},
         {"stream0.osd.logo_width", stream0.osd.logo_width, 100, validateIntGe0},
-        {"stream1.osd.font_size", stream1.osd.font_size, 0, validateIntGe0},
-        {"stream1.osd.font_stroke_size", stream1.osd.font_stroke_size, 0, validateIntGe0},
+        {"stream1.osd.font_size", stream1.osd.font_size, OSD_AUTO_VALUE, validateIntGe0},
+        {"stream1.osd.font_stroke_size", stream1.osd.font_stroke_size, OSD_AUTO_VALUE, validateIntGe0},
         {"stream1.osd.logo_height", stream1.osd.logo_height, 30, validateIntGe0},
         {"stream1.osd.logo_width", stream1.osd.logo_width, 100, validateIntGe0},
         {"motion.debounce_time", motion.debounce_time, 0, validateIntGe0},
@@ -673,13 +675,25 @@ CFG::CFG()
 
     if (stream2.jpeg_channel == 0)
     {
-        stream2.width = stream0.width;
-        stream2.height = stream0.height;
+        if(stream2.width == OSD_AUTO_VALUE) 
+        {
+            set<int>("stream2.width", stream0.width, true);
+        }
+        if(stream2.height == OSD_AUTO_VALUE) 
+        {
+            set<int>("stream2.height", stream0.height, true);
+        }        
     }
     if (stream2.jpeg_channel == 1)
     {
-        stream1.width = stream0.width;
-        stream1.height = stream0.height;
+        if(stream2.width == OSD_AUTO_VALUE) 
+        {
+            set<int>("stream2.width", stream1.width, true);
+        }
+        if(stream2.height == OSD_AUTO_VALUE) 
+        {
+            set<int>("stream2.height", stream1.height, true);
+        } 
     }
 
     libconfig::Setting &root = lc.getRoot();

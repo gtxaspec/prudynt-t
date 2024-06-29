@@ -2,6 +2,7 @@
 #define OSD_hpp
 
 #include <map>
+#include <memory>
 #include "Config.hpp"
 #include <imp/imp_osd.h>
 #include <imp/imp_encoder.h>
@@ -29,8 +30,8 @@ struct OSDItem
 class OSD
 {
 public:
-    static OSD *createNew(_osd *osd, int osdGrp, int encChn);
-    OSD(_osd *osd, int osdGrp, int encChn) : osd(osd), osdGrp(osdGrp), encChn(encChn)
+    static OSD *createNew(_osd *osd, std::shared_ptr<CFG> cfg, int osdGrp, int encChn, const char *parent);
+    OSD(_osd *osd, std::shared_ptr<CFG> cfg, int osdGrp, int encChn, const char *parent) : osd(osd), cfg(cfg), osdGrp(osdGrp), encChn(encChn), parent(parent)
     {
         init();
     }
@@ -44,8 +45,11 @@ public:
     static int get_abs_pos(int max, int size, int pos);
 
 private:
+
     _osd *osd;
+    std::shared_ptr<CFG> cfg;
     int last_updated_second;
+    const char *parent;
 
     OSDItem osdTime;
     OSDItem osdUser;
@@ -58,6 +62,7 @@ private:
                     int item_height, int item_width,
                     uint32_t color);
     void set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, int posX, int posY, int angle);
+    const char * getConfigPath(const char *itemName);
 
     FT_Library freetype;
     FT_Face fontface;

@@ -36,7 +36,8 @@ deps() {
 	cd 3rdparty
 	rm -rf freetype
 	if [[ ! -f freetype-2.13.2.tar.xz ]]; then
-		wget 'https://download-mirror.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.xz'
+		#wget 'https://download-mirror.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.xz'
+		wget 'https://netcologne.dl.sourceforge.net/project/freetype/freetype2/2.13.2/freetype-2.13.2.tar.xz'
 	fi
 	tar xf freetype-2.13.2.tar.xz
 	mv freetype-2.13.2 freetype

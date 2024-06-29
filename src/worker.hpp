@@ -66,16 +66,18 @@ public:
 		if (encChn == 0)
 		{
 			pthread_mutex_lock(&sink_lock0);
-			stream0_sink->data_available_callback = 
-				[c](const H264NALUnit &nalu) { return c->on_data_available(nalu); };
-			pthread_mutex_unlock(&sink_lock0);	
+			stream0_sink->data_available_callback =
+				[c](const H264NALUnit &nalu)
+			{ return c->on_data_available(nalu); };
+			pthread_mutex_unlock(&sink_lock0);
 		}
 		else if (encChn == 1)
 		{
 			pthread_mutex_lock(&sink_lock1);
-			stream1_sink->data_available_callback = 
-				[c](const H264NALUnit &nalu) { return c->on_data_available(nalu); };
-			pthread_mutex_unlock(&sink_lock1);										   
+			stream1_sink->data_available_callback =
+				[c](const H264NALUnit &nalu)
+			{ return c->on_data_available(nalu); };
+			pthread_mutex_unlock(&sink_lock1);
 		}
 		Worker::flush(encChn);
 	};
@@ -87,14 +89,14 @@ public:
 		if (encChn == 0)
 		{
 			pthread_mutex_lock(&sink_lock0);
-			stream0_sink->data_available_callback  = nullptr;
-			pthread_mutex_unlock(&sink_lock0);	
+			stream0_sink->data_available_callback = nullptr;
+			pthread_mutex_unlock(&sink_lock0);
 		}
 		else if (encChn == 1)
 		{
 			pthread_mutex_lock(&sink_lock1);
-			stream1_sink->data_available_callback  = nullptr;
-			pthread_mutex_unlock(&sink_lock1);	
+			stream1_sink->data_available_callback = nullptr;
+			pthread_mutex_unlock(&sink_lock1);
 		}
 	}
 

@@ -77,8 +77,6 @@ void RTSP::run()
 
     IMPServerMediaSubsession::init(cfg);
 
-    LOG_DEBUG("RTSP :: " << cfg->rtsp_thread_signal);
-
     while ((cfg->rtsp_thread_signal & 256) != 256)
     {
 

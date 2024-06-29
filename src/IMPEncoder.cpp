@@ -9,30 +9,27 @@
 
 IMPEncoder *IMPEncoder::createNew(
     _stream *stream,
+    std::shared_ptr<CFG> cfg,
     int encChn,
-    int encGrp)
+    int encGrp,
+    const char *name)
 {
-    return new IMPEncoder(stream, encChn, encGrp);
+    return new IMPEncoder(stream, cfg, encChn, encGrp, name);
 }
 
-void make_tables(int q, uint8_t *lqt, uint8_t *cqt)
-{
+void MakeTables(int q, uint8_t* lqt, uint8_t* cqt) {
     // Ensure q is within the expected range
     q = std::max(1, std::min(q, 99));
 
     // Adjust q based on factor
-    if (q < 50)
-    {
+    if (q < 50) {
         q = 5000 / q;
-    }
-    else
-    {
+    } else {
         q = 200 - 2 * q;
     }
 
     // Fill the quantization tables
-    for (int i = 0; i < 64; ++i)
-    {
+    for (int i = 0; i < 64; ++i) {
         int lq = (jpeg_luma_quantizer[i] * q + 50) / 100;
         int cq = (jpeg_chroma_quantizer[i] * q + 50) / 100;
 
@@ -45,7 +42,6 @@ void make_tables(int q, uint8_t *lqt, uint8_t *cqt)
 void IMPEncoder::initProfile()
 {
     IMPEncoderRcAttr *rcAttr;
-    // IMPEncoderCHNAttr chnAttr;
     memset(&chnAttr, 0, sizeof(IMPEncoderCHNAttr));
     rcAttr = &chnAttr.rcAttr;
 
@@ -64,9 +60,9 @@ void IMPEncoder::initProfile()
         IMP_Encoder_SetDefaultParam(&chnAttr, encoderProfile, IMP_ENC_RC_MODE_FIXQP,
                                     stream->width, stream->height, 1000 / stream->jpeg_refresh, 1, 0, 0, stream->jpeg_quality, 0);
 
-        LOG_DEBUG("STREAM PROFILE " << encChn << ", " << encChn << ", " << stream->format
-                                    << chnAttr.rcAttr.outFrmRate.frmRateNum << "fps, " << stream->bitrate << "bps, "
-                                    << ", profile:" << stream->profile);                                    
+        LOG_DEBUG("STREAM PROFILE " << encChn << ", " << encGrp << ", " << stream->format << ", "
+                                    << chnAttr.rcAttr.outFrmRate.frmRateNum << "fps, profile:" << stream->profile << ", " << 
+                                    stream->width << "x" << stream->height);                                    
         return;
     }
 
@@ -159,7 +155,6 @@ void IMPEncoder::initProfile()
         chnAttr.encAttr.enType = PT_JPEG;
         chnAttr.rcAttr.outFrmRate.frmRateNum = 1000 / stream->jpeg_refresh;
         chnAttr.rcAttr.outFrmRate.frmRateDen = 1;
-
         IMPEncoderAttr *encAttr;
         encAttr = &chnAttr.encAttr;
         encAttr->enType = PT_JPEG;
@@ -167,12 +162,6 @@ void IMPEncoder::initProfile()
         encAttr->profile = 2;
         encAttr->picWidth = stream->width;
         encAttr->picHeight = stream->height;
-
-        IMPEncoderJpegeQl pstJpegeQl;
-        make_tables(stream->jpeg_quality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
-        pstJpegeQl.user_ql_en = 1;
-        IMP_Encoder_SetJpegeQl(2, &pstJpegeQl);
-
         return;
     }
 #if defined(PLATFORM_T30)
@@ -190,11 +179,11 @@ void IMPEncoder::initProfile()
     }
     else if (strcmp(stream->mode, "VBR") == 0)
     {
-        rcMode = ENC_RC_MODE_CBR;
+        rcMode = ENC_RC_MODE_VBR;
     }
     else if (strcmp(stream->mode, "CBR") == 0)
     {
-        rcMode = ENC_RC_MODE_VBR;
+        rcMode = ENC_RC_MODE_CBR;
     }
     else if (strcmp(stream->mode, "SMART") == 0)
     {
@@ -261,7 +250,7 @@ void IMPEncoder::initProfile()
         case ENC_RC_MODE_SMART:
             rcAttr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
             rcAttr->attrRcMode.attrH264Smart.maxQp = 45;
-            rcAttr->attrRcMode.attrH264Smart.minQp = 15;
+            rcAttr->attrRcMode.attrH264Smart.minQp = 24;
             rcAttr->attrRcMode.attrH264Smart.staticTime = 2;
             rcAttr->attrRcMode.attrH264Smart.maxBitRate = stream->bitrate;
             rcAttr->attrRcMode.attrH264Smart.iBiasLvl = 0;
@@ -302,7 +291,8 @@ void IMPEncoder::initProfile()
 
     LOG_DEBUG("STREAM PROFILE " << stream->rtsp_endpoint << ", "
                                 << chnAttr.rcAttr.outFrmRate.frmRateNum << "fps, " << stream->bitrate << "bps, "
-                                << stream->gop << "gop, profile:" << stream->profile << ", mode:" << rcMode);
+                                << stream->gop << "gop, profile:" << stream->profile << ", mode:" << rcMode << ", " 
+                                << stream->width << "x" << stream->height);
 }
 
 int IMPEncoder::init()
@@ -331,7 +321,7 @@ int IMPEncoder::init()
 
         if (stream->osd.enabled)
         {
-            osd = OSD::createNew(&(stream->osd), encGrp, encChn);
+            osd = OSD::createNew(&(stream->osd), cfg, encGrp, encChn, name);
 
             ret = IMP_System_Bind(&fs, &osd_cell);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&fs, &osd_cell)");
@@ -348,9 +338,14 @@ int IMPEncoder::init()
     else
     {
 #if defined(PLATFORM_T31)
-        ret = IMP_Encoder_SetbufshareChn(2, 0);
-        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_SetbufshareChn(2, 0)")
-#endif
+        ret = IMP_Encoder_SetbufshareChn(2, stream->jpeg_channel );
+        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_SetbufshareChn(2, " << stream->jpeg_channel << ")");
+#else
+        IMPEncoderJpegeQl pstJpegeQl;
+        MakeTables(stream->jpeg_quality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
+        pstJpegeQl.user_ql_en = 1;
+        IMP_Encoder_SetJpegeQl(2, &pstJpegeQl);
+#endif        
     }
     return ret;
 }
@@ -359,24 +354,27 @@ int IMPEncoder::deinit()
 {
     int ret;
 
-    if (osd)
+    if (strcmp(stream->format, "JPEG") != 0)
     {
+        if (osd)
+        {
 
-        osd->exit();
-        delete osd;
-        osd = nullptr;
+            osd->exit();
+            delete osd;
+            osd = nullptr;
 
-        ret = IMP_System_UnBind(&fs, &osd_cell);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&fs, &osd_cell)");
+            ret = IMP_System_UnBind(&fs, &osd_cell);
+            LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&fs, &osd_cell)");
 
-        ret = IMP_System_UnBind(&osd_cell, &enc);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&osd_cell, &enc)");
-    }
-    else
-    {
+            ret = IMP_System_UnBind(&osd_cell, &enc);
+            LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&osd_cell, &enc)");
+        }
+        else
+        {
 
-        ret = IMP_System_UnBind(&fs, &enc);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&fs, &enc)");
+            ret = IMP_System_UnBind(&fs, &enc);
+            LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&fs, &enc)");
+        }
     }
 
     ret = IMP_Encoder_UnRegisterChn(encChn);
@@ -385,8 +383,15 @@ int IMPEncoder::deinit()
     ret = IMP_Encoder_DestroyChn(encChn);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_DestroyChn(" << encChn << ")");
 
+    return ret;
+}
+
+int IMPEncoder::destroy() {
+
+    int ret;
+
     ret = IMP_Encoder_DestroyGroup(encChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_DestroyGroup(" << encChn << ")");
-
+    
     return ret;
 }

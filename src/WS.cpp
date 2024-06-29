@@ -1874,8 +1874,12 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
         if (u_ctx->signal != 0)
         {
-            u_ctx->ws->cfg->main_thread_signal.store(u_ctx->signal);
-            u_ctx->ws->cfg->main_thread_signal.notify_one();
+            if(u_ctx->ws->cfg->main_thread_signal.load() == 1) {
+                u_ctx->ws->cfg->main_thread_signal.store(u_ctx->signal);
+                u_ctx->ws->cfg->main_thread_signal.notify_one();
+            } else {
+                LOG_DEBUG("main thread not ready to receive command.");
+            }
             u_ctx->signal = 0;
         }
 

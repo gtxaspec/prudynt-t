@@ -49,11 +49,18 @@ int getIp(char *addressBuffer)
     return 0;
 }
 
+const char * OSD::getConfigPath(const char *itemName) {
+    static std::string buffer;
+    buffer.clear();
+    buffer = std::string(parent) + ".osd." + itemName;
+    return buffer.c_str();
+}
+
 int autoFontSize(int pWidth)
 {
     double m = 1.0 / 60.0;
     double b = 21.33;
-    return m * pWidth + b;
+    return m * pWidth + b + 1;
 }
 
 const char *replace(const char *str, const char *oldToken, const char *newToken)
@@ -191,11 +198,12 @@ void OSD::rotateBGRAImage(uint8_t *&inputImage, int &width, int &height, int ang
 
 int OSD::get_abs_pos(int max, int size, int pos)
 {
-
-    if (pos == 0)
+    if (pos == 0){
         return max / 2 - size / 2;
-    if (pos < 0)
-        return max - size + pos;
+    }
+    if (pos < 0){
+        return max - size - 1 + pos;
+    }
     return pos;
 }
 
@@ -473,10 +481,12 @@ unsigned char *loadBGRAImage(const char *filepath, size_t &length)
 
 OSD *OSD::createNew(
     _osd *osd,
+    std::shared_ptr<CFG> cfg,
     int osdGrp,
-    int encChn)
+    int encChn,
+    const char *parent)
 {
-    return new OSD(osd, osdGrp, encChn);
+    return new OSD(osd, cfg, osdGrp, encChn, parent);
 }
 
 void OSD::init()
@@ -502,10 +512,13 @@ void OSD::init()
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_CreateGroup(" << osdGrp << ")");
 
     int autoOffset = round((float)(channelAttributes.encAttr.picWidth * 0.004));
-    if (osd->font_size == 0)
+    if (osd->font_size == OSD_AUTO_VALUE)
     {
-        osd->font_size = autoFontSize(channelAttributes.encAttr.picWidth);
-        osd->font_stroke_size = osd->font_size;
+        int fontSize = autoFontSize(channelAttributes.encAttr.picWidth);
+        
+        //use cfg->set to set noSave, so auto values will not written to config
+        cfg->set<int>(getConfigPath("font_size"), fontSize, true);
+        cfg->set<int>(getConfigPath("font_stroke_size"), fontSize, true);
     }
 
     if (freetype_init())
@@ -518,13 +531,15 @@ void OSD::init()
     {
 
         /* OSD Time */
-        if (osd->pos_time_x == OSD_AUTO_POS_INDICATOR)
+        if (osd->pos_time_x == OSD_AUTO_VALUE)
         {
-            osd->pos_time_x = autoOffset;
+            //use cfg->set to set noSave, so auto values will not written to config
+            cfg->set<int>(getConfigPath("pos_time_x"), autoOffset, true);
         }
-        if (osd->pos_time_y == OSD_AUTO_POS_INDICATOR)
+        if (osd->pos_time_y == OSD_AUTO_VALUE)
         {
-            osd->pos_time_y = autoOffset;
+            //use cfg->set to set noSave, so auto values will not written to config
+            cfg->set<int>(getConfigPath("pos_time_y"), autoOffset, true);
         }
  
         osdTime.data = NULL;
@@ -556,15 +571,16 @@ void OSD::init()
         gethostname(hostname, 64);
 
         /* OSD Usertext */
-        if (osd->pos_user_text_x == OSD_AUTO_POS_INDICATOR)
+        if (osd->pos_user_text_x == OSD_AUTO_VALUE)
         {
-            osd->pos_user_text_x = 0;
+            //use cfg->set to set noSave, so auto values will not written to config
+            cfg->set<int>(getConfigPath("pos_user_text_x"), 0, true);            
         }
-        if (osd->pos_user_text_y == OSD_AUTO_POS_INDICATOR)
+        if (osd->pos_user_text_y == OSD_AUTO_VALUE)
         {
-            osd->pos_user_text_y = autoOffset;
+            //use cfg->set to set noSave, so auto values will not written to config
+            cfg->set<int>(getConfigPath("pos_user_text_y"), autoOffset, true);            
         }
-        LOG_DEBUG("OSD user text x: " << osd->pos_user_text_x << " y:" << osd->pos_user_text_y);
 
         osdUser.data = NULL;
         osdUser.imp_rgn = IMP_OSD_CreateRgn(NULL);
@@ -592,15 +608,16 @@ void OSD::init()
     {
 
         /* OSD Uptime */
-        if (osd->pos_uptime_x == OSD_AUTO_POS_INDICATOR)
+        if (osd->pos_uptime_x == OSD_AUTO_VALUE)
         {
-            osd->pos_uptime_x = -autoOffset;
+            //use cfg->set to set noSave, so auto values will not written to config
+            cfg->set<int>(getConfigPath("pos_uptime_x"), -autoOffset, true);            
         }
-        if (osd->pos_uptime_y == OSD_AUTO_POS_INDICATOR)
+        if (osd->pos_uptime_y == OSD_AUTO_VALUE)
         {
-            osd->pos_uptime_y = autoOffset;
+            //use cfg->set to set noSave, so auto values will not written to config
+            cfg->set<int>(getConfigPath("pos_uptime_y"), autoOffset, true);            
         }
-        LOG_DEBUG("OSD uptime x: " << osd->pos_uptime_x << " y:" << osd->pos_uptime_y);
 
         osdUptm.data = NULL;
         osdUptm.imp_rgn = IMP_OSD_CreateRgn(NULL);
@@ -622,19 +639,24 @@ void OSD::init()
         grpRgnAttr.gAlphaEn = 1;
         grpRgnAttr.fgAlhpa = osd->uptime_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, osdGrp, &grpRgnAttr);
+
+        LOG_DEBUG("OSD uptime: " << rgnAttr.rect.p0.x << "x" << rgnAttr.rect.p0.y << ", " 
+                                 << rgnAttr.rect.p1.x << "x" << rgnAttr.rect.p1.y);
     }
 
     if (osd->logo_enabled)
     {
 
         /* OSD Logo */
-        if (osd->pos_logo_x == OSD_AUTO_POS_INDICATOR)
+        if (osd->pos_logo_x == OSD_AUTO_VALUE)
         {
-            osd->pos_logo_x = -autoOffset;
+            //use cfg->set to set noSave, so auto values will not written to config
+            cfg->set<int>(getConfigPath("pos_logo_x"), -autoOffset, true);             
         }
-        if (osd->pos_logo_y == OSD_AUTO_POS_INDICATOR)
+        if (osd->pos_logo_y == OSD_AUTO_VALUE)
         {
-            osd->pos_logo_y = -autoOffset;
+            //use cfg->set to set noSave, so auto values will not written to config
+            cfg->set<int>(getConfigPath("pos_logo_y"), -autoOffset, true);             
         }
 
         size_t imageSize;
@@ -676,8 +698,6 @@ void OSD::init()
             LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << osd->logo_width << "*" << osd->logo_height << "*4=" << (osd->logo_width * osd->logo_height * 4));
         }
         IMP_OSD_SetRgnAttr(osdLogo.imp_rgn, &rgnAttr);
-
-        LOG_DEBUG(rgnAttr.rect.p0.x << " x " << rgnAttr.rect.p0.y);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));

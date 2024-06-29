@@ -1,6 +1,7 @@
 #ifndef IMPEncoder_hpp
 #define IMPEncoder_hpp
 
+#include <array>
 #include "Logger.hpp"
 #include "Config.hpp"
 #include "OSD.hpp"
@@ -33,23 +34,28 @@ static const std::array<int, 64> jpeg_luma_quantizer = {{16, 11, 10, 16, 24, 40,
 class IMPEncoder
 {
 public:
-    static IMPEncoder *createNew(_stream *stream, int encChn, int encGrp);
+    static IMPEncoder *createNew(_stream *stream, std::shared_ptr<CFG> cfg, int encChn, int encGrp, const char *name);
 
-    IMPEncoder(_stream *stream, int encChn, int encGrp) : stream(stream), encChn(encChn), encGrp(encGrp)
+    IMPEncoder(_stream *stream, std::shared_ptr<CFG> cfg, int encChn, int encGrp, const char *name) : stream(stream), cfg(cfg), encChn(encChn), encGrp(encGrp), name(name)
     {
         init();
     }
 
     ~IMPEncoder(){
-
+        destroy();
     };
 
     int init();
     int deinit();
+    int destroy();
 
     OSD *osd = nullptr;
 
 private:
+    
+    std::shared_ptr<CFG> cfg;
+    const char *name;
+
     IMPEncoderCHNAttr chnAttr;
     void initProfile();
 
