@@ -44,10 +44,8 @@ void IMPDeviceSource::deliverFrame0(void *clientData)
 
 H264NALUnit IMPDeviceSource::wait_read()
 {
-
     while (nalQueue.empty())
     {
-
         usleep(1000 * 1000);
         LOG_DEBUG("wait_read(), nalQueue.empty(), wait for data.");
     }
@@ -59,7 +57,6 @@ H264NALUnit IMPDeviceSource::wait_read()
 
 void IMPDeviceSource::deliverFrame()
 {
-
     if (!isCurrentlyAwaitingData())
         return;
 

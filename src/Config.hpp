@@ -200,27 +200,26 @@ class CFG {
 	public:
 
         bool config_loaded = false;
-        libconfig::Config lc;
-        std::string filePath;
+        libconfig::Config lc{};
+        std::string filePath{};
 
 		CFG();
         static CFG *createNew();
         bool readConfig();
         bool updateConfig();
 
-		_general general;
-		_rtsp rtsp;
-		_sensor sensor;
-        _image image;
+		_general general{};
+		_rtsp rtsp{};
+		_sensor sensor{};
+        _image image{};
 #if defined(AUDIO_SUPPORT)           
-        _audio audio;
+        _audio audio{};
 #endif
-		_stream stream0;
-        _stream stream1;
-		_stream stream2;
-		_osd osd;
-		_motion motion;
-        _websocket websocket;
+		_stream stream0{};
+        _stream stream1{};
+		_stream stream2{};
+		_motion motion{};
+        _websocket websocket{};
 
         std::atomic<int> main_thread_signal{1};
 
@@ -258,7 +257,6 @@ class CFG {
 
     template <typename T>
     bool set(const std::string &name, T value, bool noSave = false) {
-        std::cout << name << "=" << value << std::endl; 
         std::vector<ConfigItem<T>> *items = nullptr;
         if constexpr (std::is_same_v<T, bool>) {
             items = &boolItems;
@@ -287,10 +285,10 @@ class CFG {
 
     private:
 
-        std::vector<ConfigItem<bool>> boolItems;
-        std::vector<ConfigItem<const char *>> charItems;
-        std::vector<ConfigItem<int>> intItems;
-        std::vector<ConfigItem<unsigned int>> uintItems;
+        std::vector<ConfigItem<bool>> boolItems{};
+        std::vector<ConfigItem<const char *>> charItems{};
+        std::vector<ConfigItem<int>> intItems{};
+        std::vector<ConfigItem<unsigned int>> uintItems{};
 
         std::vector<ConfigItem<bool>> getBoolItems();
         std::vector<ConfigItem<const char *>> getCharItems() ;

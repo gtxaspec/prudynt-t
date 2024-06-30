@@ -53,19 +53,19 @@ public:
 
 private:
     
-    std::shared_ptr<CFG> cfg;
-    const char *name;
+    std::shared_ptr<CFG> cfg{};
+    const char *name{};
 
-    IMPEncoderCHNAttr chnAttr;
+    IMPEncoderCHNAttr chnAttr{};
     void initProfile();
 
     IMPCell fs = {DEV_ID_FS, encGrp, 0};
     IMPCell enc = {DEV_ID_ENC, encGrp, 0};
     IMPCell osd_cell = {DEV_ID_OSD, encGrp, 0};
 
-    _stream *stream;
-    int encChn;
-    int encGrp;
+    _stream *stream{};
+    int encChn{};
+    int encGrp{};
 };
 
 #endif

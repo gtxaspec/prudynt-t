@@ -65,7 +65,6 @@ int autoFontSize(int pWidth)
 
 const char *replace(const char *str, const char *oldToken, const char *newToken)
 {
-
     int strLen = 0;
     while (str[strLen] != '\0')
         strLen++;
@@ -129,7 +128,6 @@ const char *replace(const char *str, const char *oldToken, const char *newToken)
 
 void OSD::rotateBGRAImage(uint8_t *&inputImage, int &width, int &height, int angle, bool del = true)
 {
-
     double angleRad = angle * (M_PI / 180.0);
 
     int originalCorners[4][2] = {
@@ -529,7 +527,6 @@ void OSD::init()
 
     if (osd->time_enabled)
     {
-
         /* OSD Time */
         if (osd->pos_time_x == OSD_AUTO_VALUE)
         {
@@ -639,9 +636,6 @@ void OSD::init()
         grpRgnAttr.gAlphaEn = 1;
         grpRgnAttr.fgAlhpa = osd->uptime_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, osdGrp, &grpRgnAttr);
-
-        LOG_DEBUG("OSD uptime: " << rgnAttr.rect.p0.x << "x" << rgnAttr.rect.p0.y << ", " 
-                                 << rgnAttr.rect.p1.x << "x" << rgnAttr.rect.p1.y);
     }
 
     if (osd->logo_enabled)
@@ -673,7 +667,6 @@ void OSD::init()
         // Verify OSD logo size vs dimensions
         if ((osd->logo_width * osd->logo_height * 4) == imageSize)
         {
-
             rgnAttr.type = OSD_REG_PIC;
             rgnAttr.fmt = PIX_FMT_BGRA;
             rgnAttr.data.picData.pData = imageData;
@@ -695,7 +688,8 @@ void OSD::init()
         else
         {
 
-            LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << osd->logo_width << "*" << osd->logo_height << "*4=" << (osd->logo_width * osd->logo_height * 4));
+            LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << osd->logo_width 
+                << "*" << osd->logo_height << "*4=" << (osd->logo_width * osd->logo_height * 4));
         }
         IMP_OSD_SetRgnAttr(osdLogo.imp_rgn, &rgnAttr);
 

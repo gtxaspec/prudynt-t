@@ -8,6 +8,7 @@
 
 #define MODULE "WORKER"
 
+#define STREAM_POLLING_TIMEOUT 1000
 #define OSDPoolSize 200000
 
 #if defined(PLATFORM_T31)
@@ -79,7 +80,6 @@ int Worker::init()
 
 int Worker::deinit()
 {
-
     int ret;
     for (int i = 1; i >= 0; i--)
     {
@@ -180,6 +180,8 @@ void *Worker::jpeg_grabber(void *arg)
     LOG_DEBUG("Start jpeg_grabber thread for stream " << channel->encChn);
 
     int ret;
+    struct timeval ts;
+    gettimeofday(&ts, NULL);
 
     ret = IMP_Encoder_StartRecvPic(channel->encChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(" << channel->encChn << ")");
@@ -190,60 +192,64 @@ void *Worker::jpeg_grabber(void *arg)
 
     while (channel->thread_signal.load())
     {
-        // LOG_DEBUG("IMP_Encoder_PollingStream 1 " << channel->encChn);
-        if (IMP_Encoder_PollingStream(channel->encChn, 1000) == 0)
-        {
-            // LOG_DEBUG("IMP_Encoder_PollingStream 2 " << channel->encChn);
+        if(tDiffInMs(&ts) > 1000) {
 
-            IMPEncoderStream stream;
-            if (IMP_Encoder_GetStream(channel->encChn, &stream, 0) == 0)
+            // LOG_DEBUG("IMP_Encoder_PollingStream 1 " << channel->encChn);
+            if (IMP_Encoder_PollingStream(channel->encChn, STREAM_POLLING_TIMEOUT) == 0)
             {
-                // LOG_DEBUG("IMP_Encoder_GetStream" << channel->encChn);
-                //  Check for success
-                const char *tempPath = "/tmp/snapshot.tmp";         // Temporary path
-                const char *finalPath = channel->stream->jpeg_path; // Final path for the JPEG snapshot
+                // LOG_DEBUG("IMP_Encoder_PollingStream 2 " << channel->encChn);
 
-                // Open and create temporary file with read and write permissions
-                int snap_fd = open(tempPath, O_RDWR | O_CREAT | O_TRUNC, 0777);
-                if (snap_fd >= 0)
+                IMPEncoderStream stream;
+                if (IMP_Encoder_GetStream(channel->encChn, &stream, true) == 0)
                 {
-                    // Attempt to lock the temporary file for exclusive access
-                    if (flock(snap_fd, LOCK_EX) == -1)
+                    // LOG_DEBUG("IMP_Encoder_GetStream" << channel->encChn);
+                    //  Check for success
+                    const char *tempPath = "/tmp/snapshot.tmp";         // Temporary path
+                    const char *finalPath = channel->stream->jpeg_path; // Final path for the JPEG snapshot
+
+                    // Open and create temporary file with read and write permissions
+                    int snap_fd = open(tempPath, O_RDWR | O_CREAT | O_TRUNC, 0777);
+                    if (snap_fd >= 0)
                     {
-                        LOG_ERROR("Failed to lock JPEG snapshot for writing: " << tempPath);
+                        // Attempt to lock the temporary file for exclusive access
+                        if (flock(snap_fd, LOCK_EX) == -1)
+                        {
+                            LOG_ERROR("Failed to lock JPEG snapshot for writing: " << tempPath);
+                            close(snap_fd);
+                            return 0; // Exit the function if unable to lock the file
+                        }
+
+                        // Save the JPEG stream to the file
+                        save_jpeg_stream(snap_fd, &stream);
+
+                        // Unlock and close the temporary file after writing is done
+                        flock(snap_fd, LOCK_UN);
                         close(snap_fd);
-                        return 0; // Exit the function if unable to lock the file
-                    }
 
-                    // Save the JPEG stream to the file
-                    save_jpeg_stream(snap_fd, &stream);
-
-                    // Unlock and close the temporary file after writing is done
-                    flock(snap_fd, LOCK_UN);
-                    close(snap_fd);
-
-                    // Atomically move the temporary file to the final destination
-                    if (rename(tempPath, finalPath) != 0)
-                    {
-                        LOG_ERROR("Failed to move JPEG snapshot from " << tempPath << " to " << finalPath);
-                        std::remove(tempPath); // Attempt to remove the temporary file if rename fails
+                        // Atomically move the temporary file to the final destination
+                        if (rename(tempPath, finalPath) != 0)
+                        {
+                            LOG_ERROR("Failed to move JPEG snapshot from " << tempPath << " to " << finalPath);
+                            std::remove(tempPath); // Attempt to remove the temporary file if rename fails
+                        }
+                        else
+                        {
+                            //LOG_DEBUG("JPEG snapshot successfully updated");
+                        }
                     }
                     else
                     {
-                        // LOG_DEBUG("JPEG snapshot successfully updated");
+                        LOG_ERROR("Failed to open JPEG snapshot for writing: " << tempPath);
                     }
-                }
-                else
-                {
-                    LOG_ERROR("Failed to open JPEG snapshot for writing: " << tempPath);
-                }
 
-                IMP_Encoder_ReleaseStream(2, &stream); // Release stream after saving
+                    IMP_Encoder_ReleaseStream(2, &stream); // Release stream after saving
+                }
             }
-        }
-    }
 
-    LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StopRecvPic 1 (" << channel->encChn << ")");
+            gettimeofday(&ts, NULL);
+        }
+        usleep(1000);
+    }
 
     ret = IMP_Encoder_StopRecvPic(channel->encChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StopRecvPic(" << channel->encChn << ")");
@@ -255,10 +261,13 @@ void *Worker::stream_grabber(void *arg)
 {
     Channel *channel = static_cast<Channel *>(arg);
 
+    nice(-19);
+
     LOG_DEBUG("Start stream_grabber thread for stream " << channel->encChn);
 
     int ret, errorCount, signal;
-    uint32_t bps, fps, lps, ms;
+    unsigned long long ms;
+    uint32_t bps, fps, lps;
     int64_t last_nal_ts, nal_ts;
     struct timeval imp_time_base;
 
@@ -273,7 +282,7 @@ void *Worker::stream_grabber(void *arg)
 
     while (channel->thread_signal.load())
     {
-        if (IMP_Encoder_PollingStream(channel->encChn, 1500) == 0)
+        if (IMP_Encoder_PollingStream(channel->encChn, STREAM_POLLING_TIMEOUT) == 0)
         {
             IMPEncoderStream stream;
             if (IMP_Encoder_GetStream(channel->encChn, &stream, true) != 0)
@@ -294,7 +303,7 @@ void *Worker::stream_grabber(void *arg)
             encode_time.tv_sec = nal_ts / 1000000;
             encode_time.tv_usec = nal_ts % 1000000;
 
-            for (unsigned int i = 0; i < stream.packCount; ++i)
+            for (uint32_t i = 0; i < stream.packCount; ++i)
             {
                 fps++;
                 bps += stream.pack[i].length;
@@ -344,7 +353,7 @@ void *Worker::stream_grabber(void *arg)
                     // We use start+4 because the encoder inserts 4-byte MPEG
                     //'startcodes' at the beginning of each NAL. Live555 complains
                     nalu.data.insert(nalu.data.end(), start + 4, end);
-                    if (!channel->sink->IDR)
+                    if (channel->sink->IDR == false)
                     {
 #if defined(PLATFORM_T31)
                         if (stream.pack[i].nalType.h264NalType == 7 ||
@@ -378,7 +387,7 @@ void *Worker::stream_grabber(void *arg)
 #endif
                     }
 
-                    if (channel->sink->IDR)
+                    if (channel->sink->IDR == true)
                     {
                         if (channel->sink->data_available_callback(nalu))
                         {

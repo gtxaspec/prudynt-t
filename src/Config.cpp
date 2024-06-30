@@ -15,10 +15,10 @@
 #define DEFAULT_BUFFERS_0 4
 #define DEFAULT_BUFFERS_1 2
 #else
-#define DEFAULT_ENC_MODE_0 "SMART"
-#define DEFAULT_ENC_MODE_1 "SMART"
-#define DEFAULT_BUFFERS_0 3
-#define DEFAULT_BUFFERS_1 2
+#define DEFAULT_ENC_MODE_0 "SAMRT"
+#define DEFAULT_ENC_MODE_1 "SAMRT"
+#define DEFAULT_BUFFERS_0 2
+#define DEFAULT_BUFFERS_1 1
 #endif
 
 namespace fs = std::filesystem;
@@ -139,19 +139,19 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
          { return strcmp(v, "H264") == 0 || strcmp(v, "H265") == 0; }},
         {"stream2.jpeg_path", stream2.jpeg_path, "/tmp/snapshot.jpg", validateCharNotEmpty},
         {"stream0.osd.font_path", stream0.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", validateCharNotEmpty},
-        {"stream0.osd.time_format", stream0.osd.time_format, "%I:%M:%S%p %m/%d/%Y", validateCharNotEmpty},
+        {"stream0.osd.time_format", stream0.osd.time_format, "%F %T", validateCharNotEmpty},
         {"stream0.osd.uptime_format", stream0.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", validateCharNotEmpty},
         {"stream0.osd.user_text_format", stream0.osd.user_text_format, "%hostname, fps:%fps, bps:%bps", validateCharNotEmpty},
         {"stream0.osd.logo_path", stream0.osd.logo_path, "/usr/share/thingino_logo_1.bgra", validateCharNotEmpty},
         {"stream0.mode", stream0.mode, DEFAULT_ENC_MODE_0, [](const char *v)
-         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQB", "CAPPED_VBR", "CAPPED_QUALITY"}; return a.count(std::string(v)) == 1; }},
+         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQP", "CAPPED_VBR", "CAPPED_QUALITY"}; return a.count(std::string(v)) == 1; }},
         {"stream1.osd.font_path", stream1.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", validateCharNotEmpty},
-        {"stream1.osd.time_format", stream1.osd.time_format, "%I:%M:%S%p %m/%d/%Y", validateCharNotEmpty},
+        {"stream1.osd.time_format", stream1.osd.time_format, "%F %T", validateCharNotEmpty},
         {"stream1.osd.uptime_format", stream1.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", validateCharNotEmpty},
         {"stream1.osd.user_text_format", stream1.osd.user_text_format, "%hostname, fps:%fps, bps:%bps", validateCharNotEmpty},
         {"stream1.osd.logo_path", stream1.osd.logo_path, "/usr/share/thingino_logo_1.bgra", validateCharNotEmpty},
         {"stream1.mode", stream1.mode, DEFAULT_ENC_MODE_1, [](const char *v)
-         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQB", "CAPPED_VBR", "CAPPED_QUALITY"}; return a.count(std::string(v)) == 1; }},
+         { std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQP", "CAPPED_VBR", "CAPPED_QUALITY"}; return a.count(std::string(v)) == 1; }},
         {"stream2.format", stream2.format, "JPEG", [](const char *v)
          { std::set<std::string> a = {"JPEG"}; return a.count(std::string(v)) == 1; }},
         {"motion.script_path", motion.script_path, "/usr/sbin/motion", validateCharNotEmpty},
@@ -209,20 +209,20 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v)
          { return v >= 0 && v <= 3; }},
 #endif
-        {"stream0.gop", stream0.gop, 10, validateIntGe0},
+        {"stream0.gop", stream0.gop, 20, validateIntGe0},
         {"stream0.max_gop", stream0.max_gop, 60, validateIntGe0},
         {"stream0.fps", stream0.fps, 24, validateInt60},
         {"stream0.buffers", stream0.buffers, DEFAULT_BUFFERS_0, validateInt32},
         {"stream0.width", stream0.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},
         {"stream0.height", stream0.height, 1080, validateIntGe0, false, "/proc/jz/sensor/height"},
         {"stream0.bitrate", stream0.bitrate, 3000, validateIntGe0},
-        {"stream0.profile", stream0.profile, 1, validateInt2},
+        {"stream0.profile", stream0.profile, 2, validateInt2},
         {"stream1.gop", stream1.gop, 20, validateIntGe0},
         {"stream1.max_gop", stream1.max_gop, 60, validateIntGe0},
         {"stream1.fps", stream1.fps, 24, validateInt60},
         {"stream1.buffers", stream1.buffers, DEFAULT_BUFFERS_1, validateInt32},
         {"stream1.width", stream1.width, 640, validateIntGe0},
-        {"stream1.height", stream1.height, 360, validateIntGe0},
+        {"stream1.height", stream1.height, 340, validateIntGe0},
         {"stream1.bitrate", stream1.bitrate, 1000, validateIntGe0},
         {"stream1.profile", stream1.profile, 2, validateInt2},
         {"stream2.jpeg_channel", stream2.jpeg_channel, 0, validateIntGe0},
@@ -327,7 +327,7 @@ void ensurePathExists(libconfig::Setting &root, const std::string &path)
     }
 }
 
-bool findSetting(const std::string &path, libconfig::Setting *&foundSetting, libconfig::Setting *root)
+bool findSetting(const std::string &path, const libconfig::Setting *&foundSetting, libconfig::Setting *root)
 {
 
     std::string::size_type pos = path.find_first_of('.');
@@ -427,7 +427,6 @@ bool processLine(const std::string &line, T &value)
 template <typename T>
 void handleConfigItem(libconfig::Config &lc, ConfigItem<T> &item)
 {
-
     bool readFromProc = false;
     bool readFromConfig = false;
     T configValue{};
@@ -504,7 +503,7 @@ void handleConfigItem2(libconfig::Config &lc, ConfigItem<T> &item)
     T configValue{0};
     bool readFromConfig = false;
 
-    if constexpr (std::is_same_v<T, const char *>)
+    if constexpr (std::is_same_v<T, const char *> == true)
     {
         std::string tempValue;
         readFromConfig = lc.lookupValue(item.path, tempValue);
@@ -619,7 +618,6 @@ void handleConfigItem2(libconfig::Config &lc, ConfigItem<T> &item)
 
 bool CFG::updateConfig()
 {
-
     config_loaded = readConfig();
 
     for (auto &item : boolItems)
@@ -640,7 +638,6 @@ bool CFG::updateConfig()
 
     for (int i = 0; i < motion.roi_count; i++)
     {
-
         libconfig::Setting &entry = rois.add("roi_" + std::to_string(i), libconfig::Setting::TypeArray);
         entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p0_x;
         entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p0_y;
@@ -656,7 +653,6 @@ bool CFG::updateConfig()
 
 CFG::CFG()
 {
-
     boolItems = getBoolItems();
     charItems = getCharItems();
     intItems = getIntItems();
@@ -675,32 +671,31 @@ CFG::CFG()
 
     if (stream2.jpeg_channel == 0)
     {
-        if(stream2.width == OSD_AUTO_VALUE) 
+        if (stream2.width == OSD_AUTO_VALUE)
         {
             set<int>("stream2.width", stream0.width, true);
         }
-        if(stream2.height == OSD_AUTO_VALUE) 
+        if (stream2.height == OSD_AUTO_VALUE)
         {
             set<int>("stream2.height", stream0.height, true);
-        }        
+        }
     }
     if (stream2.jpeg_channel == 1)
     {
-        if(stream2.width == OSD_AUTO_VALUE) 
+        if (stream2.width == OSD_AUTO_VALUE)
         {
             set<int>("stream2.width", stream1.width, true);
         }
-        if(stream2.height == OSD_AUTO_VALUE) 
+        if (stream2.height == OSD_AUTO_VALUE)
         {
             set<int>("stream2.height", stream1.height, true);
-        } 
+        }
     }
 
     libconfig::Setting &root = lc.getRoot();
 
     if (root.exists("rois"))
     {
-
         libconfig::Setting &rois = root.lookup("rois");
         for (int i = 0; i < motion.roi_count; i++)
         {

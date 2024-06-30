@@ -8,7 +8,7 @@ prudynt(){
 	echo "Build prudynt"
 
 	make clean
-	/usr/bin/make -j13 \
+	/usr/bin/make \
 	ARCH= CROSS_COMPILE="${PRUDYNT_CROSS}" \
 	CFLAGS="-DPLATFORM_$1 -Os -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
 	-I./3rdparty/install/include \

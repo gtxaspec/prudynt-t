@@ -28,9 +28,9 @@ public:
     int destroy();
 
 private:
-    _image *image;
-    _sensor *sensor;
-    IMPSensorInfo sinfo;
+    _image *image{};
+    _sensor *sensor{};
+    IMPSensorInfo sinfo{};
     IMPSensorInfo create_sensor_info(const char *sensor_name);
 };
 

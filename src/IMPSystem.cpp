@@ -23,7 +23,6 @@ IMPSystem *IMPSystem::createNew(
 
 int IMPSystem::init()
 {
-
     LOG_DEBUG("IMPSystem::init()");
     int ret = 0;
 
@@ -57,9 +56,16 @@ int IMPSystem::init()
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_EnableTuning()");
 
     /* Image tuning */
-    ret = IMP_ISP_Tuning_SetContrast(image->contrast);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSaturation(" << image->saturation << ")");
+    unsigned char value;
+    ret = IMP_ISP_Tuning_GetContrast(&value);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetContrast(" << (int)value << ")");
 
+    ret = IMP_ISP_Tuning_SetContrast(image->contrast);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetContrast(" << image->contrast << ")");
+
+    ret = IMP_ISP_Tuning_GetContrast(&value);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetContrast(" << static_cast<int>(value) << ")");
+    
     ret = IMP_ISP_Tuning_SetSharpness(image->sharpness);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSharpness(" << image->sharpness << ")");
 
@@ -70,7 +76,7 @@ int IMPSystem::init()
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBrightness(" << image->brightness << ")");
 
     ret = IMP_ISP_Tuning_SetSinterStrength(image->sinter_strength);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSaturation(" << image->saturation << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSinterStrength(" << image->sinter_strength << ")");
 
     ret = IMP_ISP_Tuning_SetTemperStrength(image->temper_strength);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetTemperStrength(" << image->temper_strength << ")");
@@ -281,7 +287,6 @@ int IMPSystem::init()
 
 int IMPSystem::destroy()
 {
-
     int ret;
 
     ret = IMP_System_Exit();

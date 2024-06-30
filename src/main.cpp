@@ -1,11 +1,14 @@
 #include <chrono>
 #include <thread>
+#include <atomic>
 #include "RTSP.hpp"
 #include "Logger.hpp"
 #include "Config.hpp"
 #include "WS.hpp"
 #include "version.hpp"
 #include "worker.hpp"
+
+using namespace std::chrono;
 
 auto main_thread_signal = std::make_shared<std::atomic<int>>(0);
 std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
@@ -19,17 +22,17 @@ void stop_encoder()
 
     LOG_DEBUG("Stop worker." << cfg->worker_thread_signal);
 
-    std::chrono::milliseconds duration;
-    auto t0 = std::chrono::high_resolution_clock::now();
+    milliseconds duration;
+    auto t0 = high_resolution_clock::now();
 
     cfg->worker_thread_signal.fetch_xor(3);
     cfg->worker_thread_signal.fetch_or(4);
-    cfg->worker_thread_signal.notify_one();
+    //cfg->worker_thread_signal.notify_one();
 
     while ((cfg->worker_thread_signal.load() & 8) != 8)
     {
         usleep(100);
-        duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
+        duration = duration_cast<milliseconds>(high_resolution_clock::now() - t0);
         if (duration.count() > 1000 * 1000 * 10)
         {
             LOG_ERROR("Unable to stop encoder, no response.");
@@ -44,8 +47,8 @@ void start_encoder()
 
     LOG_DEBUG("Start worker.");
 
-    std::chrono::milliseconds duration;
-    auto t0 = std::chrono::high_resolution_clock::now();
+    milliseconds duration;
+    auto t0 = high_resolution_clock::now();
 
     cfg->worker_thread_signal.fetch_xor(8);
     cfg->worker_thread_signal.fetch_or(1);
@@ -54,7 +57,7 @@ void start_encoder()
     {
 
         usleep(100);
-        duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
+        duration = duration_cast<milliseconds>(high_resolution_clock::now() - t0);
         if (duration.count() > 1000 * 1000 * 10)
         {
             LOG_ERROR("Unable to start worker, no response.");
@@ -69,8 +72,8 @@ void stop_rtsp()
 
     LOG_DEBUG("Stop RTSP Server.");
 
-    std::chrono::milliseconds duration;
-    auto t0 = std::chrono::high_resolution_clock::now();
+    milliseconds duration;
+    auto t0 = high_resolution_clock::now();
 
     cfg->rtsp_thread_signal = 1;
 
@@ -78,7 +81,7 @@ void stop_rtsp()
     {
 
         usleep(100);
-        duration = duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0);
+        duration = duration_cast<milliseconds>(high_resolution_clock::now() - t0);
         if (duration.count() > 1000 * 1000 * 10)
         {
             LOG_ERROR("Unable to stop RTSP Server, no response.");
@@ -104,7 +107,7 @@ bool timesync_wait()
     int timeout = 0;
     while (time(NULL) < 1647489843)
     {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(seconds(1));
         ++timeout;
         if (timeout == 60)
             return false;
