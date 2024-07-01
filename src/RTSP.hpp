@@ -11,7 +11,7 @@
 class RTSP
 {
 public:
-    RTSP(std::shared_ptr<CFG> _cfg) : cfg(_cfg){};
+    RTSP(std::shared_ptr<CFG> _cfg) : cfg(std::move(_cfg)){};
     void addSubsession(int chnNr, _stream &stream);
     void run();
 

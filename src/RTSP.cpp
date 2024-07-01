@@ -7,9 +7,12 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
 
     LOG_DEBUG("identify stream " << chnNr);
     IMPDeviceSource *deviceSource = IMPDeviceSource::createNew(*env, chnNr);
-    H264NALUnit sps, pps;       // Declare outside the loop!
-    H264NALUnit *vps = nullptr; // Use a pointer for VPS
-    bool have_pps = false, have_sps = false, have_vps = false;
+    H264NALUnit sps;
+    H264NALUnit pps;
+    H264NALUnit *vps = nullptr;
+    bool have_pps = false;
+    bool have_sps = false;
+    bool have_vps = false;
     // Read from the stream until we capture the SPS and PPS. Only capture VPS if needed.
     while (!have_pps || !have_sps || (stream.format == "H265" && !have_vps))
     {

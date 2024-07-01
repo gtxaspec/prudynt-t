@@ -44,7 +44,8 @@ protected:
 private:
     StreamReplicator *replicator;
     H264NALUnit *vps; // Change to pointer for optional VPS
-    H264NALUnit sps, pps;
+    H264NALUnit sps;
+    H264NALUnit pps;
     static std::shared_ptr<CFG> cfg;
     int encChn;
 };

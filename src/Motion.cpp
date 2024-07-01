@@ -144,7 +144,7 @@ int Motion::init(std::shared_ptr<CFG> _cfg) {
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_IVS_RegisterChn(0, 0)");
 
     ret = IMP_IVS_StartRecvPic(0);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_IVS_StartRecvPic(0)");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_IVS_StartRecvPic(0)")
 
     //Framesource -> IVS
     ret = IMP_System_Bind(&fs, &ivs_cell);

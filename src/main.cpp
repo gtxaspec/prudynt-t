@@ -141,7 +141,7 @@ int main(int argc, const char *argv[])
     rtsp_thread = std::thread(&RTSP::run, rtsp);
     worker_thread = std::thread(&Worker::run, &worker);
 
-    while (1)
+    while (true)
     {
 
         LOG_DEBUG("main thread is going to sleep.");

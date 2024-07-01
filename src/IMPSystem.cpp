@@ -63,9 +63,6 @@ int IMPSystem::init()
     ret = IMP_ISP_Tuning_SetContrast(image->contrast);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetContrast(" << image->contrast << ")");
 
-    ret = IMP_ISP_Tuning_GetContrast(&value);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetContrast(" << static_cast<int>(value) << ")");
-    
     ret = IMP_ISP_Tuning_SetSharpness(image->sharpness);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSharpness(" << image->sharpness << ")");
 

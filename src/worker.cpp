@@ -267,8 +267,10 @@ void *Worker::stream_grabber(void *arg)
 
     int ret, errorCount, signal;
     unsigned long long ms;
-    uint32_t bps, fps, lps;
-    int64_t last_nal_ts, nal_ts;
+    uint32_t bps;
+    uint32_t fps;
+    int64_t last_nal_ts;
+    int64_t nal_ts;
     struct timeval imp_time_base;
 
     gettimeofday(&imp_time_base, NULL);

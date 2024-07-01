@@ -136,12 +136,20 @@ void OSD::rotateBGRAImage(uint8_t *&inputImage, int &width, int &height, int ang
         {0, height},
         {width, height}};
 
-    int minX = INT_MAX, maxX = INT_MIN, minY = INT_MAX, maxY = INT_MIN;
+    int minX = INT_MAX;
+    int maxX = INT_MIN;
+    int minY = INT_MAX;
+    int maxY = INT_MIN;
 
+    /*
     for (int i = 0; i < 4; ++i)
     {
         int x = originalCorners[i][0];
         int y = originalCorners[i][1];
+    */
+    for (auto & originalCorner : originalCorners) {
+		int x = originalCorner[0];
+		int y = originalCorner[1];
 
         int newX = static_cast<int>(x * cos(angleRad) - y * sin(angleRad));
         int newY = static_cast<int>(x * sin(angleRad) + y * cos(angleRad));
@@ -165,7 +173,7 @@ void OSD::rotateBGRAImage(uint8_t *&inputImage, int &width, int &height, int ang
     int newCenterX = newWidth / 2;
     int newCenterY = newHeight / 2;
 
-    uint8_t *rotatedImage = new uint8_t[newWidth * newHeight * 4]();
+    auto *rotatedImage = new uint8_t[newWidth * newHeight * 4]();
 
     for (int y = 0; y < newHeight; ++y)
     {
@@ -490,7 +498,7 @@ OSD *OSD::createNew(
 void OSD::init()
 {
 
-    int ret;
+    int ret = 0;
     LOG_DEBUG("OSD init for  begin");
 
     // cfg = _cfg;
@@ -539,9 +547,9 @@ void OSD::init()
             cfg->set<int>(getConfigPath("pos_time_y"), autoOffset, true);
         }
  
-        osdTime.data = NULL;
-        osdTime.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(osdTime.imp_rgn, osdGrp, NULL);
+        osdTime.data = nullptr;
+        osdTime.imp_rgn = IMP_OSD_CreateRgn(nullptr);
+        IMP_OSD_RegisterRgn(osdTime.imp_rgn, osdGrp, nullptr);
         osd->regions.time = osdTime.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
@@ -579,9 +587,9 @@ void OSD::init()
             cfg->set<int>(getConfigPath("pos_user_text_y"), autoOffset, true);            
         }
 
-        osdUser.data = NULL;
-        osdUser.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(osdUser.imp_rgn, osdGrp, NULL);
+        osdUser.data = nullptr;
+        osdUser.imp_rgn = IMP_OSD_CreateRgn(nullptr);
+        IMP_OSD_RegisterRgn(osdUser.imp_rgn, osdGrp, nullptr);
         osd->regions.user = osdUser.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
@@ -616,9 +624,9 @@ void OSD::init()
             cfg->set<int>(getConfigPath("pos_uptime_y"), autoOffset, true);            
         }
 
-        osdUptm.data = NULL;
-        osdUptm.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(osdUptm.imp_rgn, osdGrp, NULL);
+        osdUptm.data = nullptr;
+        osdUptm.imp_rgn = IMP_OSD_CreateRgn(nullptr);
+        IMP_OSD_RegisterRgn(osdUptm.imp_rgn, osdGrp, nullptr);
         osd->regions.uptime = osdUptm.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
@@ -656,9 +664,9 @@ void OSD::init()
         size_t imageSize;
         auto imageData = loadBGRAImage(osd->logo_path, imageSize);
 
-        osdLogo.data = NULL;
-        osdLogo.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(osdLogo.imp_rgn, osdGrp, NULL);
+        osdLogo.data = nullptr;
+        osdLogo.imp_rgn = IMP_OSD_CreateRgn(nullptr);
+        IMP_OSD_RegisterRgn(osdLogo.imp_rgn, osdGrp, nullptr);
         osd->regions.logo = osdLogo.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
@@ -688,7 +696,7 @@ void OSD::init()
         else
         {
 
-            LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << osd->logo_width 
+            LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << osd->logo_width
                 << "*" << osd->logo_height << "*4=" << (osd->logo_width * osd->logo_height * 4));
         }
         IMP_OSD_SetRgnAttr(osdLogo.imp_rgn, &rgnAttr);
@@ -759,7 +767,7 @@ int OSD::exit()
 
 void OSD::updateDisplayEverySecond()
 {
-    time_t current = time(NULL);
+    time_t current = time(nullptr);
     struct tm *ltime = localtime(&current);
 
     // Check if we have moved to a new second

@@ -76,7 +76,7 @@ static const char *const rtsp_keys[] = {
     "out_buffer_size",
     "send_buffer_size",
     "auth_required",
-    "name"
+    "name",
     "username",
     "password"};
 
@@ -1325,7 +1325,6 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                         break;
                     case PNT_OSD_UPTIME_TRANSPARENCY:
                         hnd = regions.uptime;
-                        ;
                         break;
                     case PNT_OSD_LOGO_TRANSPARENCY:
                         hnd = regions.logo;
@@ -1942,7 +1941,7 @@ void WS::run()
 
     LOG_INFO("Server started on port " << cfg->websocket.port);
 
-    while (1)
+    while (true)
     {
         lws_service(context, 50);
     }

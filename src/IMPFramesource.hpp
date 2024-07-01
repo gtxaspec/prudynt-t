@@ -26,8 +26,8 @@ public:
 
 private:
     int chnNr;
-    _stream *stream;
-    _sensor *sensor;
+    _stream *stream{};
+    _sensor *sensor{};
 };
 
 #endif

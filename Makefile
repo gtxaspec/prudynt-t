@@ -9,7 +9,7 @@ CONFIG_STATIC_BUILD=n
 DEBUG=n
 
 CCACHE = ccache
-CFLAGS = -Wall -Wextra -Wno-unused-parameter -O2 -DNO_OPENSSL=1 
+CFLAGS = -Wall -Wextra -Wno-unused-parameter -O2 -DNO_OPENSSL=1
 ifeq ($(KERNEL_VERSION_4),y)
 CFLAGS += -DKERNEL_VERSION_4
 endif
@@ -58,11 +58,11 @@ $(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(VERSION_FILE)
 	@mkdir -p $(@D)
-	$(CCACHE) $(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -s -Os -c $< -o $@
+	$(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(VERSION_FILE) 
 	@mkdir -p $(@D)
-	$(CCACHE) $(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -s -Os -c $< -o $@
+	$(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -c $< -o $@
 
 $(TARGET): $(OBJECTS) $(VERSION_FILE)
 	@mkdir -p $(@D)

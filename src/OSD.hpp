@@ -51,10 +51,10 @@ private:
     int last_updated_second;
     const char *parent;
 
-    OSDItem osdTime;
-    OSDItem osdUser;
-    OSDItem osdUptm;
-    OSDItem osdLogo;
+    OSDItem osdTime{};
+    OSDItem osdUser{};
+    OSDItem osdUptm{};
+    OSDItem osdLogo{};
 
     int freetype_init();
     void draw_glyph(uint8_t *data, FT_BitmapGlyph bmg,
@@ -64,23 +64,23 @@ private:
     void set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, int posX, int posY, int angle);
     const char * getConfigPath(const char *itemName);
 
-    FT_Library freetype;
-    FT_Face fontface;
-    FT_Stroker stroker;
+    FT_Library freetype{};
+    FT_Face fontface{};
+    FT_Stroker stroker{};
 
     IMPEncoderCHNAttr channelAttributes;
 
-    std::map<char, FT_BitmapGlyph> bitmaps;
-    std::map<char, FT_BitmapGlyph> stroke_bitmaps;
-    std::map<char, FT_BBox> boxes;
-    std::map<char, FT_Vector> advances;
+    std::map<char, FT_BitmapGlyph> bitmaps{};
+    std::map<char, FT_BitmapGlyph> stroke_bitmaps{};
+    std::map<char, FT_BBox> boxes{};
+    std::map<char, FT_Vector> advances{};
 
     bool initialized{0};
-    int osdGrp;
-    int encChn;
+    int osdGrp{};
+    int encChn{};
 
     char hostname[64];
-    char ip[INET_ADDRSTRLEN];
+    char ip[INET_ADDRSTRLEN]{};
 };
 
 #endif
