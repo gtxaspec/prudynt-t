@@ -294,6 +294,7 @@ void IMPEncoder::initProfile()
 
 }
 
+#if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
 int getChannelInfo(int encChn)
 {
     int ret = 0;
@@ -415,9 +416,9 @@ int getChannelInfo(int encChn)
               "    }\n" <<
               "  }\n" <<
               "}\n";
-
     return 0;
 }
+#endif
 
 int IMPEncoder::init()
 {
