@@ -859,7 +859,7 @@ void* OSD::update()
     while(osd->thread_signal.load()){
 
         updateDisplayEverySecond();
-        usleep(1000*1000);
+        usleep(1000*100);
     }
 
     return nullptr;
