@@ -126,9 +126,10 @@ int IMPSystem::init()
 #endif
 
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    ret = IMP_ISP_Tuning_GetHiLightDepress(&value);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetHiLightDepress(" << (int)value << ")");
-    if(cfg->initImageValue("cfg->image.highlight_depress", value)) {
+    uint32_t hiLightDepress;
+    ret = IMP_ISP_Tuning_GetHiLightDepress(&hiLightDepress);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetHiLightDepress(" << hiLightDepress << ")");
+    if(cfg->initImageValue("cfg->image.highlight_depress", hiLightDepress)) {
         ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
         LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
     }
@@ -188,28 +189,31 @@ int IMPSystem::init()
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDefog_Strength(" << cfg->image.defog_strength << ")");
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    ret = IMP_ISP_Tuning_GetDPC_Strength(&value);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetDPC_Strength(" << (int)value << ")");
-    if(cfg->initImageValue("cfg->image.dpc_strength", value)) {
+    uint32_t dpc = 0;
+    ret = IMP_ISP_Tuning_GetDPC_Strength(&dpc);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetDPC_Strength(" << dpc << ")");
+    if(cfg->initImageValue("cfg->image.dpc_strength", dpc)) {
         ret = IMP_ISP_Tuning_SetDPC_Strength(cfg->image.dpc_strength);
         LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDPC_Strength(" << cfg->image.dpc_strength << ")");
     }
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    ret = IMP_ISP_Tuning_GetDRC_Strength(&value);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetDRC_Strength(" << (int)value << ")");
+    uint32_t drc = 0;
+    ret = IMP_ISP_Tuning_GetDRC_Strength(&drc);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetDRC_Strength(" << drc << ")");
     if(cfg->initImageValue("cfg->image.drc_strength", value)) {
         ret = IMP_ISP_Tuning_SetDRC_Strength(cfg->image.drc_strength);
         LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << cfg->image.drc_strength << ")");
     }
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    ret = IMP_ISP_Tuning_GetBacklightComp(&value);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetBacklightComp(" << (int)value << ")");
-    if(cfg->initImageValue("cfg->image.backlight_compensation", value)) {
+    uint32_t backlightComp = 0;
+    ret = IMP_ISP_Tuning_GetBacklightComp(&backlightComp);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetBacklightComp(" << backlightComp << ")");
+    if(cfg->initImageValue("cfg->image.backlight_compensation", backlightComp)) {
         ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
         LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
-    }s
+    }
 #endif
 
 #if defined(AUDIO_SUPPORT)

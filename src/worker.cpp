@@ -458,7 +458,6 @@ void Worker::run()
 
             IMP_System_RebaseTimeStamp(0);
 
-            /*
             int policy = SCHED_RR;
 
             pthread_attr_init(&osd_thread_attr);
@@ -478,7 +477,6 @@ void Worker::run()
 
             pthread_attr_setschedparam(&osd_thread_attr, &osd_thread_sheduler);
             pthread_attr_setschedparam(&stream_thread_attr, &stream_thread_sheduler);
-            */
 
             if (cfg->stream2.enabled)
             {
@@ -491,13 +489,11 @@ void Worker::run()
                 pthread_mutex_init(&sink_lock1, NULL);
                 channels[1] = new Channel{1, &cfg->stream1, stream1_sink, sink_lock1};
                 gettimeofday(&cfg->stream1.osd.stats.ts, NULL);
-                /*
                 if (encoder[1]->osd)
                 {
                     cfg->stream1.osd.thread_signal.store(true);
                     pthread_create(&stream1_osd_thread, &osd_thread_attr, OSD::updateWrapper, encoder[1]->osd);
                 }
-                */
                 pthread_create(&worker_threads[1], nullptr, stream_grabber, channels[1]);
             }
 
@@ -506,13 +502,11 @@ void Worker::run()
                 pthread_mutex_init(&sink_lock0, NULL);
                 channels[0] = new Channel{0, &cfg->stream0, stream0_sink, sink_lock0};
                 gettimeofday(&cfg->stream0.osd.stats.ts, NULL);
-                /*
                 if (encoder[0]->osd)
                 {
                     cfg->stream0.osd.thread_signal.store(true);
                     pthread_create(&stream0_osd_thread, &osd_thread_attr, OSD::updateWrapper, encoder[0]->osd);
                 }
-                */
                 pthread_create(&worker_threads[0], nullptr, stream_grabber, channels[0]);
             }
 
@@ -533,17 +527,17 @@ void Worker::run()
         {
             if (channels[0])
             {
-                /*
                 if(encoder[0]->osd) {
                     cfg->stream0.osd.thread_signal.store(false);
                     LOG_DEBUG("stop signal is sent to stream0 osd thread");
+                    /*
                     if (pthread_join(stream0_osd_thread, NULL) == 0)
                     {
                         LOG_DEBUG("wait for exit stream0 osd thread");
                     }
+                    */
                     LOG_DEBUG("osd thread for stream0 has been terminated");
                 }
-                */
 
                 LOG_DEBUG("stop signal is sent to stream_grabber for stream0");
                 channels[0]->thread_signal.store(false);
@@ -559,17 +553,17 @@ void Worker::run()
 
             if (channels[1])
             {
-                /*
                 if(encoder[1]->osd) {
                     cfg->stream1.osd.thread_signal.store(false);
                     LOG_DEBUG("stop signal is sent to stream1 osd thread");
+                    /*
                     if (pthread_join(stream1_osd_thread, NULL) == 0)
                     {
                         LOG_DEBUG("wait for exit stream1 osd thread");
                     }
+                    */
                     LOG_DEBUG("osd thread for stream1 has been terminated");
                 }
-                */
 
                 LOG_DEBUG("stop signal is sent to stream_grabber for stream1");
                 channels[1]->thread_signal.store(false);
@@ -596,8 +590,8 @@ void Worker::run()
                 channels[2] = nullptr;
             }
 
-            //pthread_attr_destroy(&osd_thread_attr);
-            //pthread_attr_destroy(&stream_thread_attr);
+            pthread_attr_destroy(&osd_thread_attr);
+            pthread_attr_destroy(&stream_thread_attr);
 
             deinit();
 
