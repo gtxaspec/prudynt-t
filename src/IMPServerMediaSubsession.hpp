@@ -44,14 +44,12 @@ protected:
                              void* rtcpRRHandlerClientData, unsigned short& rtpSeqNum, unsigned& rtpTimestamp,
                              ServerRequestAlternativeByteHandler* serverRequestAlternativeByteHandler,
                              void* serverRequestAlternativeByteHandlerClientData) override {
-        // Benachrichtigung hier einfügen
-        envir() << "New client session started: " << clientSessionId << " " << encChn << "\n";
-        IMPEncoder::flush(encChn);
 
-        // Rufen Sie die Basisklassenimplementierung auf, um den Stream tatsächlich zu starten
         OnDemandServerMediaSubsession::startStream(clientSessionId, streamToken, rtcpRRHandler, rtcpRRHandlerClientData,
                                                    rtpSeqNum, rtpTimestamp, serverRequestAlternativeByteHandler,
                                                    serverRequestAlternativeByteHandlerClientData);
+
+        IMPEncoder::flush(encChn);                                                   
     }
 
 private:
