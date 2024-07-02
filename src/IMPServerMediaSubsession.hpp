@@ -49,7 +49,7 @@ protected:
                                                    rtpSeqNum, rtpTimestamp, serverRequestAlternativeByteHandler,
                                                    serverRequestAlternativeByteHandlerClientData);
 
-        IMPEncoder::flush(encChn);                                                   
+        IMPEncoder::flush(encChn);
     }
 
 private:
