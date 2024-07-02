@@ -10,6 +10,7 @@
 #include <memory>
 #include <pthread.h>
 #include <sched.h>
+#include "imp/imp_encoder.h"
 
 struct H264NALUnit
 {

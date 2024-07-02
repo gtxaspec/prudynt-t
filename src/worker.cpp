@@ -426,6 +426,18 @@ void *Worker::stream_grabber(void *arg)
                 channel->stream->osd.stats.fps = fps * 1000 / ms;
                 fps = 0;
                 gettimeofday(&channel->stream->osd.stats.ts, NULL);
+
+                /*
+                IMPEncoderCHNStat encChnStats;
+                IMP_Encoder_Query(channel->encChn, &encChnStats);
+                LOG_DEBUG("ChannelStats::" << channel->encChn <<
+                            ", registered:" << encChnStats.registered <<
+                            ", leftPics:" << encChnStats.leftPics <<
+                            ", leftStreamBytes:" << encChnStats.leftStreamBytes <<
+                            ", leftStreamFrames:" << encChnStats.leftStreamFrames <<
+                            ", curPacks:" << encChnStats.curPacks <<
+                            ", work_done:" << encChnStats.work_done);
+                */
             }
         }
         else
