@@ -48,6 +48,7 @@ public:
     int init();
     int deinit();
     int destroy();
+    static void flush(int encChn);
 
     OSD *osd = nullptr;
 

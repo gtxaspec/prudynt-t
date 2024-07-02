@@ -17,6 +17,11 @@ IMPEncoder *IMPEncoder::createNew(
     return new IMPEncoder(stream, cfg, encChn, encGrp, name);
 }
 
+void IMPEncoder::flush(int encChn) {
+    IMP_Encoder_RequestIDR(encChn);
+    IMP_Encoder_FlushStream(encChn);
+}
+
 void MakeTables(int q, uint8_t* lqt, uint8_t* cqt) {
     // Ensure q is within the expected range
     q = std::max(1, std::min(q, 99));
@@ -88,7 +93,7 @@ void IMPEncoder::initProfile()
     }
     else
     {
-        LOG_ERROR("unsupported stream->mode (" << stream->mode << "). we only support FIXQB, CBR, VBR, CAPPED_VBR and CAPPED_QUALITY on T31");
+        LOG_ERROR("unsupported stream->mode (" << stream->mode << "). we only support FIXQP, CBR, VBR, CAPPED_VBR and CAPPED_QUALITY on T31");
     }
 
     IMP_Encoder_SetDefaultParam(
@@ -191,7 +196,7 @@ void IMPEncoder::initProfile()
     }
     else
     {
-        LOG_ERROR("unsupported stream->mode (" << stream->mode << "). we only support FIXQB, CBR, VBR and SMART");
+        LOG_ERROR("unsupported stream->mode (" << stream->mode << "). we only support FIXQP, CBR, VBR and SMART");
     }
 
     // 0 = Baseline

@@ -32,7 +32,6 @@ protected:
         int encChn);
     virtual ~IMPServerMediaSubsession();
 
-protected:
     virtual FramedSource *createNewStreamSource(
         unsigned clientSessionId,
         unsigned &estBitrate);
@@ -40,6 +39,20 @@ protected:
         Groupsock *rtpGroupsock,
         unsigned char rtpPayloadTypeIfDynamic,
         FramedSource *inputSource);
+
+    virtual void startStream(unsigned clientSessionId, void* streamToken, TaskFunc* rtcpRRHandler,
+                             void* rtcpRRHandlerClientData, unsigned short& rtpSeqNum, unsigned& rtpTimestamp,
+                             ServerRequestAlternativeByteHandler* serverRequestAlternativeByteHandler,
+                             void* serverRequestAlternativeByteHandlerClientData) override {
+        // Benachrichtigung hier einfügen
+        envir() << "New client session started: " << clientSessionId << " " << encChn << "\n";
+        IMPEncoder::flush(encChn);
+
+        // Rufen Sie die Basisklassenimplementierung auf, um den Stream tatsächlich zu starten
+        OnDemandServerMediaSubsession::startStream(clientSessionId, streamToken, rtcpRRHandler, rtcpRRHandlerClientData,
+                                                   rtpSeqNum, rtpTimestamp, serverRequestAlternativeByteHandler,
+                                                   serverRequestAlternativeByteHandlerClientData);
+    }
 
 private:
     StreamReplicator *replicator;
