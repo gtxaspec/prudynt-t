@@ -1905,7 +1905,7 @@ void WS::run()
     // create websocket authentication token and write it into /run/
     // only websocket connect with token parameter accepted
     // ws://<ip>:<port>/?token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    strncpy(token, generateToken(WEBSOCKET_TOKEN_LENGTH).c_str(), WEBSOCKET_TOKEN_LENGTH);
+    strncpy(token, strdup(generateToken(WEBSOCKET_TOKEN_LENGTH).c_str()), WEBSOCKET_TOKEN_LENGTH);
     std::ofstream outFile("/run/prudynt_websocket_token");
     outFile << token;
     outFile.close();

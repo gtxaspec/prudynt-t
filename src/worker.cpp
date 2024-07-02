@@ -1,4 +1,3 @@
-
 #include <atomic>
 #include <thread>
 #include <sys/file.h>
@@ -31,6 +30,7 @@ unsigned long long tDiffInMs(struct timeval *startTime)
 
 pthread_mutex_t Worker::sink_lock0;
 pthread_mutex_t Worker::sink_lock1;
+pthread_mutex_t Worker::sink_lock2;
 EncoderSink *Worker::stream0_sink = new EncoderSink{"Stream0Sink", 0, false, nullptr};
 EncoderSink *Worker::stream1_sink = new EncoderSink{"Stream1Sink", 1, false, nullptr};
 
@@ -426,11 +426,6 @@ void *Worker::stream_grabber(void *arg)
                 channel->stream->osd.stats.fps = fps * 1000 / ms;
                 fps = 0;
                 gettimeofday(&channel->stream->osd.stats.ts, NULL);
-
-                /*if (channel->updateOsd)
-                {
-                    channel->updateOsd();
-                }*/
             }
         }
         else
@@ -467,53 +462,40 @@ void Worker::run()
             int policy = SCHED_RR;
 
             pthread_attr_init(&osd_thread_attr);
+            pthread_attr_init(&jpeg_thread_attr);
             pthread_attr_init(&stream_thread_attr);
 
             pthread_attr_setschedpolicy(&osd_thread_attr, policy);
+            pthread_attr_setschedpolicy(&jpeg_thread_attr, policy);
             pthread_attr_setschedpolicy(&stream_thread_attr, policy);
 
             int max_priority = sched_get_priority_max(policy);
             int min_priority = sched_get_priority_min(policy);
 
-            LOG_DEBUG(max_priority);
-            LOG_DEBUG(min_priority);
-
-            osd_thread_sheduler.sched_priority = (int)max_priority * 0.1;
+            osd_thread_sheduler.sched_priority = min_priority; //(int)max_priority * 0.1;
+            jpeg_thread_sheduler.sched_priority = min_priority; //(int)max_priority * 0.1;
             stream_thread_sheduler.sched_priority = (int)max_priority * 0.9;
 
             pthread_attr_setschedparam(&osd_thread_attr, &osd_thread_sheduler);
+            pthread_attr_setschedparam(&jpeg_thread_attr, &jpeg_thread_sheduler);
             pthread_attr_setschedparam(&stream_thread_attr, &stream_thread_sheduler);
 
             if (cfg->stream2.enabled)
             {
                 channels[2] = new Channel{2, &cfg->stream2};
-                pthread_create(&worker_threads[2], nullptr, jpeg_grabber, channels[2]);
+                pthread_create(&worker_threads[2], &jpeg_thread_attr, jpeg_grabber, channels[2]);
             }
 
             if (cfg->stream1.enabled)
             {
-                pthread_mutex_init(&sink_lock1, NULL);
                 channels[1] = new Channel{1, &cfg->stream1, stream1_sink, sink_lock1};
-                gettimeofday(&cfg->stream1.osd.stats.ts, NULL);
-                if (encoder[1]->osd)
-                {
-                    cfg->stream1.osd.thread_signal.store(true);
-                    pthread_create(&stream1_osd_thread, &osd_thread_attr, OSD::updateWrapper, encoder[1]->osd);
-                }
-                pthread_create(&worker_threads[1], nullptr, stream_grabber, channels[1]);
+                start_stream(1);
             }
 
             if (cfg->stream0.enabled)
             {
-                pthread_mutex_init(&sink_lock0, NULL);
                 channels[0] = new Channel{0, &cfg->stream0, stream0_sink, sink_lock0};
-                gettimeofday(&cfg->stream0.osd.stats.ts, NULL);
-                if (encoder[0]->osd)
-                {
-                    cfg->stream0.osd.thread_signal.store(true);
-                    pthread_create(&stream0_osd_thread, &osd_thread_attr, OSD::updateWrapper, encoder[0]->osd);
-                }
-                pthread_create(&worker_threads[0], nullptr, stream_grabber, channels[0]);
+                start_stream(0);
             }
 
             cfg->rtsp_thread_signal = 0;
@@ -533,66 +515,21 @@ void Worker::run()
         {
             if (channels[0])
             {
-                if(encoder[0]->osd) {
-                    cfg->stream0.osd.thread_signal.store(false);
-                    LOG_DEBUG("stop signal is sent to stream0 osd thread");
-                    if (pthread_join(stream0_osd_thread, NULL) == 0)
-                    {
-                        LOG_DEBUG("wait for exit stream0 osd thread");
-                    }
-                    LOG_DEBUG("osd thread for stream0 has been terminated");
-                }
-
-                LOG_DEBUG("stop signal is sent to stream_grabber for stream0");
-                channels[0]->thread_signal.store(false);
-                if (pthread_join(worker_threads[0], NULL) == 0)
-                {
-                    LOG_DEBUG("wait for stream_grabber exit stream0");
-                }
-                LOG_DEBUG("stream_grabber for stream0 has been terminated");
-                pthread_mutex_destroy(&sink_lock0);
-                delete channels[0];
-                channels[0] = nullptr;
+                exit_stream(0);
             }
 
             if (channels[1])
             {
-                if(encoder[1]->osd) {
-                    cfg->stream1.osd.thread_signal.store(false);
-                    LOG_DEBUG("stop signal is sent to stream1 osd thread");
-                    if (pthread_join(stream1_osd_thread, NULL) == 0)
-                    {
-                        LOG_DEBUG("wait for exit stream1 osd thread");
-                    }
-                    LOG_DEBUG("osd thread for stream1 has been terminated");
-                }
-
-                LOG_DEBUG("stop signal is sent to stream_grabber for stream1");
-                channels[1]->thread_signal.store(false);
-                if (pthread_join(worker_threads[1], NULL) == 0)
-                {
-                    LOG_DEBUG("wait for stream_grabber exit stream1");
-                }
-                LOG_DEBUG("stream_grabber for stream1 has been terminated");
-                pthread_mutex_destroy(&sink_lock1);
-                delete channels[1];
-                channels[1] = nullptr;
+                exit_stream(1);
             }
 
             if (channels[2])
             {
-                LOG_DEBUG("stop signal is sent to jpeg_grabber");
-                channels[2]->thread_signal.store(false);
-                if (pthread_join(worker_threads[2], NULL) == 0)
-                {
-                    LOG_DEBUG("wait for jpeg_grabber exit");
-                }
-                LOG_DEBUG("jpeg_grabber has been terminated");
-                delete channels[2];
-                channels[2] = nullptr;
+                exit_stream(2);
             }
 
             pthread_attr_destroy(&osd_thread_attr);
+            pthread_attr_destroy(&jpeg_thread_attr);
             pthread_attr_destroy(&stream_thread_attr);
 
             deinit();
@@ -603,4 +540,40 @@ void Worker::run()
         }
     }
     usleep(1000);
+}
+
+void Worker::start_stream(int encChn) {
+
+    pthread_mutex_init(&channels[encChn]->lock, NULL);
+    gettimeofday(&channels[encChn]->stream->osd.stats.ts, NULL);
+    if (encoder[encChn]->osd)
+    {
+        channels[encChn]->stream->osd.thread_signal.store(true);
+        pthread_create(&osd_threads[encChn], &osd_thread_attr, OSD::updateWrapper, encoder[encChn]->osd);
+    }
+    pthread_create(&worker_threads[encChn], &stream_thread_attr, stream_grabber, channels[encChn]);
+}
+
+void Worker::exit_stream(int encChn) {
+
+    if(encoder[encChn]->osd) {
+        channels[encChn]->stream->osd.thread_signal.store(false);
+        LOG_DEBUG("stop signal is sent to stream" << encChn << " osd thread");
+        if (pthread_join(osd_threads[encChn], NULL) == 0)
+        {
+            LOG_DEBUG("wait for exit stream" << encChn << " osd thread");
+        }
+        LOG_DEBUG("osd thread for stream" << encChn << " has been terminated");
+    }
+
+    LOG_DEBUG("stop signal is sent to stream_grabber for stream" << encChn);
+    channels[encChn]->thread_signal.store(false);
+    if (pthread_join(worker_threads[encChn], NULL) == 0)
+    {
+        LOG_DEBUG("wait for stream_grabber exit stream" << encChn);
+    }
+    LOG_DEBUG("stream_grabber for stream" << encChn << " has been terminated");
+    pthread_mutex_destroy(&channels[encChn]->lock);
+    delete channels[encChn];
+    channels[encChn] = nullptr;
 }
