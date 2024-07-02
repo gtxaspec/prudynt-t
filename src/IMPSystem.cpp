@@ -6,19 +6,18 @@ IMPSensorInfo IMPSystem::create_sensor_info(const char *sensor_name)
 {
     IMPSensorInfo out;
     memset(&out, 0, sizeof(IMPSensorInfo));
-    LOG_INFO("Sensor: " << sensor->model);
-    strcpy(out.name, sensor->model);
+    LOG_INFO("Sensor: " << cfg->sensor.model);
+    strcpy(out.name, cfg->sensor.model);
     out.cbus_type = TX_SENSOR_CONTROL_INTERFACE_I2C;
-    strcpy(out.i2c.type, sensor->model);
-    out.i2c.addr = sensor->i2c_address;
+    strcpy(out.i2c.type, cfg->sensor.model);
+    out.i2c.addr = cfg->sensor.i2c_address;
     return out;
 }
 
 IMPSystem *IMPSystem::createNew(
-    _image *image,
-    _sensor *sensor)
+    std::shared_ptr<CFG> cfg)
 {
-    return new IMPSystem(image, sensor);
+    return new IMPSystem(cfg);
 }
 
 int IMPSystem::init()
@@ -41,7 +40,7 @@ int IMPSystem::init()
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Open()");
 
     /* sensor */
-    sinfo = create_sensor_info(sensor->model);
+    sinfo = create_sensor_info(cfg->sensor.model);
     ret = IMP_ISP_AddSensor(&sinfo);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_AddSensor(&sinfo)");
 
@@ -57,97 +56,160 @@ int IMPSystem::init()
 
     /* Image tuning */
     unsigned char value;
+
     ret = IMP_ISP_Tuning_GetContrast(&value);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetContrast(" << (int)value << ")");
+    if(cfg->initImageValue("cfg->image.contrast", value)) {
+        ret = IMP_ISP_Tuning_SetContrast(cfg->image.contrast);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetContrast(" << cfg->image.contrast << ")");
+    }
 
-    ret = IMP_ISP_Tuning_SetContrast(image->contrast);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetContrast(" << image->contrast << ")");
+    ret = IMP_ISP_Tuning_GetSharpness(&value);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetSharpness(" << (int)value << ")");
+    if(cfg->initImageValue("cfg->image.sharpness", value)) {
+        ret = IMP_ISP_Tuning_SetSharpness(cfg->image.sharpness);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSharpness(" << cfg->image.sharpness << ")");
+    }
 
-    ret = IMP_ISP_Tuning_SetSharpness(image->sharpness);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSharpness(" << image->sharpness << ")");
+    ret = IMP_ISP_Tuning_GetSaturation(&value);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetSaturation(" << (int)value << ")");
+    if(cfg->initImageValue("cfg->image.saturation", value)) {
+        ret = IMP_ISP_Tuning_SetSaturation(cfg->image.saturation);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
+    }
 
-    ret = IMP_ISP_Tuning_SetSaturation(image->saturation);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSaturation(" << image->saturation << ")");
+    ret = IMP_ISP_Tuning_GetBrightness(&value);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetBrightness(" << (int)value << ")");
+    if(cfg->initImageValue("cfg->image.brightness", value)) {
+        ret = IMP_ISP_Tuning_SetBrightness(cfg->image.brightness);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBrightness(" << cfg->image.brightness << ")");
+    }
 
-    ret = IMP_ISP_Tuning_SetBrightness(image->brightness);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBrightness(" << image->brightness << ")");
+//Image quality was bad with this enabled on t20
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+    ret = IMP_ISP_Tuning_SetSinterStrength(cfg->image.sinter_strength);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSinterStrength(" << cfg->image.sinter_strength << ")");
 
-    ret = IMP_ISP_Tuning_SetSinterStrength(image->sinter_strength);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSinterStrength(" << image->sinter_strength << ")");
+    ret = IMP_ISP_Tuning_SetTemperStrength(cfg->image.temper_strength);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetTemperStrength(" << cfg->image.temper_strength << ")");
+#endif
 
-    ret = IMP_ISP_Tuning_SetTemperStrength(image->temper_strength);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetTemperStrength(" << image->temper_strength << ")");
+    ret = IMP_ISP_Tuning_SetISPHflip((IMPISPTuningOpsMode)cfg->image.hflip);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPHflip(" << cfg->image.hflip << ")");
 
-    ret = IMP_ISP_Tuning_SetISPHflip((IMPISPTuningOpsMode)image->hflip);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPHflip(" << image->hflip << ")");
+    ret = IMP_ISP_Tuning_SetISPVflip((IMPISPTuningOpsMode)cfg->image.vflip);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPVflip(" << cfg->image.vflip << ")");
 
-    ret = IMP_ISP_Tuning_SetISPVflip((IMPISPTuningOpsMode)image->vflip);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPVflip(" << image->vflip << ")");
-
-    ret = IMP_ISP_Tuning_SetISPRunningMode((IMPISPRunningMode)image->running_mode);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPRunningMode(" << image->running_mode << ")");
+    ret = IMP_ISP_Tuning_SetISPRunningMode((IMPISPRunningMode)cfg->image.running_mode);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPRunningMode(" << cfg->image.running_mode << ")");
 
     ret = IMP_ISP_Tuning_SetISPBypass(IMPISP_TUNING_OPS_MODE_ENABLE);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPBypass(" << IMPISP_TUNING_OPS_MODE_ENABLE << ")");
 
-    ret = IMP_ISP_Tuning_SetAntiFlickerAttr((IMPISPAntiflickerAttr)image->anti_flicker);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetAntiFlickerAttr(" << image->anti_flicker << ")");
+    IMPISPAntiflickerAttr flickerAttr;
+    memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
+    ret = IMP_ISP_Tuning_GetAntiFlickerAttr(&flickerAttr);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetAntiFlickerAttr(" << (int)flickerAttr << ")");
+    if(cfg->initImageValue("cfg->image.anti_flicker", (int)flickerAttr)) {
+        ret = IMP_ISP_Tuning_SetAntiFlickerAttr((IMPISPAntiflickerAttr)cfg->image.anti_flicker);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetAntiFlickerAttr(" << cfg->image.anti_flicker << ")");
+    }
 
 #if !defined(PLATFORM_T21)
-    ret = IMP_ISP_Tuning_SetAeComp(image->ae_compensation);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetAeComp(" << image->ae_compensation << ")");
+    int aeComp = 0;
+    ret = IMP_ISP_Tuning_GetAeComp(&aeComp);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetAeComp(" << aeComp << ")");
+    if(cfg->initImageValue("cfg->image.ae_compensation", aeComp)) {
+        ret = IMP_ISP_Tuning_SetAeComp(cfg->image.ae_compensation);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetAeComp(" << cfg->image.ae_compensation << ")");
+    }
 #endif
 
-    ret = IMP_ISP_Tuning_SetHiLightDepress(image->highlight_depress);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << image->highlight_depress << ")");
+#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+    ret = IMP_ISP_Tuning_GetHiLightDepress(&value);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetHiLightDepress(" << (int)value << ")");
+    if(cfg->initImageValue("cfg->image.highlight_depress", value)) {
+        ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
+    }
+#else
+    ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
+#endif
 
-    ret = IMP_ISP_Tuning_SetMaxAgain(image->max_again);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetMaxAgain(" << image->max_again << ")");
+    uint32_t again = 0;
+    ret = IMP_ISP_Tuning_GetMaxAgain(&again);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetMaxAgain(" << again << ")");
+    if(cfg->initImageValue("cfg->image.max_again", again)) {
+        ret = IMP_ISP_Tuning_SetMaxAgain(cfg->image.max_again);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetMaxAgain(" << cfg->image.max_again << ")");
+    }
 
-    ret = IMP_ISP_Tuning_SetMaxDgain(image->max_dgain);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetMaxDgain(" << image->max_dgain << ")");
+    uint32_t dgain = 0;
+    ret = IMP_ISP_Tuning_GetMaxDgain(&dgain);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetMaxDgain(" << dgain << ")");
+    if(cfg->initImageValue("cfg->image.max_dgain", dgain)) {
+        ret = IMP_ISP_Tuning_SetMaxDgain(cfg->image.max_dgain);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetMaxDgain(" << cfg->image.max_dgain << ")");
+    }
 
     IMPISPWB wb;
     memset(&wb, 0, sizeof(IMPISPWB));
     ret = IMP_ISP_Tuning_GetWB(&wb);
     if (ret == 0)
     {
-        wb.mode = (isp_core_wb_mode)image->core_wb_mode;
-        wb.rgain = image->wb_rgain;
-        wb.bgain = image->wb_bgain;
+        wb.mode = (isp_core_wb_mode)cfg->image.core_wb_mode;
+        wb.rgain = cfg->image.wb_rgain;
+        wb.bgain = cfg->image.wb_bgain;
         ret = IMP_ISP_Tuning_SetWB(&wb);
         if (ret != 0)
         {
-            LOG_ERROR("Unable to set white balance. Mode: " << image->core_wb_mode << ", rgain: "
-                                                            << image->wb_rgain << ", bgain: " << image->wb_bgain);
+            LOG_ERROR("Unable to set white balance. Mode: " << cfg->image.core_wb_mode << ", rgain: "
+                                                            << cfg->image.wb_rgain << ", bgain: " << cfg->image.wb_bgain);
         }
         else
         {
-            LOG_DEBUG("Set white balance. Mode: " << image->core_wb_mode << ", rgain: "
-                                                  << image->wb_rgain << ", bgain: " << image->wb_bgain);
+            LOG_DEBUG("Set white balance. Mode: " << cfg->image.core_wb_mode << ", rgain: "
+                                                  << cfg->image.wb_rgain << ", bgain: " << cfg->image.wb_bgain);
         }
     }
 
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    ret = IMP_ISP_Tuning_SetBcshHue(image->hue);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBcshHue(" << image->hue << ")");
+    ret = IMP_ISP_Tuning_GetBcshHue(&value);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetBcshHue(" << (int)value << ")");
+    if(cfg->initImageValue("cfg->image.hue", value)) {
+        ret = IMP_ISP_Tuning_SetBcshHue(cfg->image.hue);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBcshHue(" << cfg->image.hue << ")");
+    }
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    uint8_t _defog_strength = static_cast<uint8_t>(image->defog_strength);
+    uint8_t _defog_strength = static_cast<uint8_t>(cfg->image.defog_strength);
     ret = IMP_ISP_Tuning_SetDefog_Strength(reinterpret_cast<uint8_t *>(&_defog_strength));
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDefog_Strength(" << image->defog_strength << ")");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDefog_Strength(" << cfg->image.defog_strength << ")");
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    ret = IMP_ISP_Tuning_SetDPC_Strength(image->dpc_strength);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDPC_Strength(" << image->dpc_strength << ")");
+    ret = IMP_ISP_Tuning_GetDPC_Strength(&value);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetDPC_Strength(" << (int)value << ")");
+    if(cfg->initImageValue("cfg->image.dpc_strength", value)) {
+        ret = IMP_ISP_Tuning_SetDPC_Strength(cfg->image.dpc_strength);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDPC_Strength(" << cfg->image.dpc_strength << ")");
+    }
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    ret = IMP_ISP_Tuning_SetDRC_Strength(image->dpc_strength);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << image->drc_strength << ")");
+    ret = IMP_ISP_Tuning_GetDRC_Strength(&value);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetDRC_Strength(" << (int)value << ")");
+    if(cfg->initImageValue("cfg->image.drc_strength", value)) {
+        ret = IMP_ISP_Tuning_SetDRC_Strength(cfg->image.drc_strength);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << cfg->image.drc_strength << ")");
+    }
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    ret = IMP_ISP_Tuning_SetBacklightComp(image->backlight_compensation);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBacklightComp(" << image->backlight_compensation << ")");
+    ret = IMP_ISP_Tuning_GetBacklightComp(&value);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetBacklightComp(" << (int)value << ")");
+    if(cfg->initImageValue("cfg->image.backlight_compensation", value)) {
+        ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
+    }s
 #endif
 
 #if defined(AUDIO_SUPPORT)
@@ -272,8 +334,8 @@ int IMPSystem::init()
 
     LOG_DEBUG("ISP Tuning Defaults set");
 
-    ret = IMP_ISP_Tuning_SetSensorFPS(sensor->fps, 1);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetSensorFPS(" << sensor->fps << ", 1);");
+    ret = IMP_ISP_Tuning_SetSensorFPS(cfg->sensor.fps, 1);
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetSensorFPS(" << cfg->sensor.fps << ", 1);");
 
     // Set the ISP to DAY on launch
     ret = IMP_ISP_Tuning_SetISPRunningMode(IMPISP_RUNNING_MODE_DAY);

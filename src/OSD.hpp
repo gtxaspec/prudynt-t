@@ -13,6 +13,7 @@
 #include <sys/sysinfo.h>
 
 #include <ft2build.h>
+
 #include FT_FREETYPE_H
 #include FT_STROKER_H
 
@@ -37,7 +38,9 @@ public:
     }
     void init();
     int exit();
-    void update();
+    //void update();
+    void* update();
+    static void* updateWrapper(void* arg);
     void updateDisplayEverySecond();
 
     void rotateBGRAImage(uint8_t *&inputImage, int &width, int &height, int angle, bool del);

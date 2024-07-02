@@ -849,8 +849,18 @@ void OSD::updateDisplayEverySecond()
     }
 }
 
-void OSD::update()
+void* OSD::updateWrapper(void* arg) {
+    OSD* osd = static_cast<OSD*>(arg);
+    return osd->update();
+}
+
+void* OSD::update()
 {
-    // Called every frame by the encoder.
-    updateDisplayEverySecond();
+    while(osd->thread_signal.load()){
+
+        updateDisplayEverySecond();
+        usleep(1000*1000);
+    }
+
+    return nullptr;
 }

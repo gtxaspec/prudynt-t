@@ -16,9 +16,9 @@ public:
     void run();
 
 private:
-    UsageEnvironment *env;
-    TaskScheduler *scheduler;
-    RTSPServer *rtspServer;
+    UsageEnvironment *env{};
+    TaskScheduler *scheduler{};
+    RTSPServer *rtspServer{};
     std::shared_ptr<CFG> cfg;
 };
 

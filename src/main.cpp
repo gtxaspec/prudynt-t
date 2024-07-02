@@ -27,7 +27,7 @@ void stop_encoder()
 
     cfg->worker_thread_signal.fetch_xor(3);
     cfg->worker_thread_signal.fetch_or(4);
-    //cfg->worker_thread_signal.notify_one();
+    cfg->worker_thread_signal.notify_all();
 
     while ((cfg->worker_thread_signal.load() & 8) != 8)
     {

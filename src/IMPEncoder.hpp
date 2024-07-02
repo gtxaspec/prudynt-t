@@ -59,9 +59,9 @@ private:
     IMPEncoderCHNAttr chnAttr{};
     void initProfile();
 
-    IMPCell fs = {DEV_ID_FS, encGrp, 0};
-    IMPCell enc = {DEV_ID_ENC, encGrp, 0};
-    IMPCell osd_cell = {DEV_ID_OSD, encGrp, 0};
+    IMPCell fs{};
+    IMPCell enc{};
+    IMPCell osd_cell{};
 
     _stream *stream{};
     int encChn{};

@@ -44,7 +44,7 @@ int Worker::init()
 {
     LOG_DEBUG("Worker::init()");
     int ret;
-    impsystem = IMPSystem::createNew(&cfg->image, &cfg->sensor);
+    impsystem = IMPSystem::createNew(cfg);
 
     if (cfg->stream0.enabled)
     {
@@ -81,38 +81,45 @@ int Worker::init()
 int Worker::deinit()
 {
     int ret;
-    for (int i = 1; i >= 0; i--)
+
+    if (framesources[1])
     {
-        if (framesources[i])
+        framesources[1]->disable();
+
+        if (encoder[1])
         {
-            framesources[i]->disable();
+            encoder[1]->deinit();
         }
+
+        delete framesources[1];
+        framesources[1] = nullptr;
+
+        delete encoder[1];
+        encoder[1] = nullptr;
     }
 
-    for (int i = 2; i >= 0; i--)
+    if (framesources[0])
     {
-        if (encoder[i])
-        {
-            encoder[i]->deinit();
-        }
-    }
+        framesources[0]->disable();
 
-    for (int i = 1; i >= 0; i--)
-    {
-        if (framesources[i])
+        if (encoder[2])
         {
-            delete framesources[i];
-            framesources[i] = nullptr;
+            encoder[2]->deinit();
         }
-    }
 
-    for (int i = 2; i >= 0; i--)
-    {
-        if (encoder[i])
+        if (encoder[0])
         {
-            delete encoder[i];
-            encoder[i] = nullptr;
+            encoder[0]->deinit();
         }
+
+        delete framesources[0];
+        framesources[0] = nullptr;
+
+        delete encoder[2];
+        encoder[2] = nullptr;
+
+        delete encoder[0];
+        encoder[0] = nullptr;
     }
 
     delete impsystem;
@@ -414,10 +421,10 @@ void *Worker::stream_grabber(void *arg)
                 fps = 0;
                 gettimeofday(&channel->stream->osd.stats.ts, NULL);
 
-                if (channel->updateOsd)
+                /*if (channel->updateOsd)
                 {
                     channel->updateOsd();
-                }
+                }*/
             }
         }
         else
@@ -451,6 +458,28 @@ void Worker::run()
 
             IMP_System_RebaseTimeStamp(0);
 
+            /*
+            int policy = SCHED_RR;
+
+            pthread_attr_init(&osd_thread_attr);
+            pthread_attr_init(&stream_thread_attr);
+
+            pthread_attr_setschedpolicy(&osd_thread_attr, policy);
+            pthread_attr_setschedpolicy(&stream_thread_attr, policy);
+
+            int max_priority = sched_get_priority_max(policy);
+            int min_priority = sched_get_priority_min(policy);
+
+            LOG_DEBUG(max_priority);
+            LOG_DEBUG(min_priority);
+
+            osd_thread_sheduler.sched_priority = (int)max_priority * 0.1;
+            stream_thread_sheduler.sched_priority = (int)max_priority * 0.9;
+
+            pthread_attr_setschedparam(&osd_thread_attr, &osd_thread_sheduler);
+            pthread_attr_setschedparam(&stream_thread_attr, &stream_thread_sheduler);
+            */
+
             if (cfg->stream2.enabled)
             {
                 channels[2] = new Channel{2, &cfg->stream2};
@@ -462,10 +491,13 @@ void Worker::run()
                 pthread_mutex_init(&sink_lock1, NULL);
                 channels[1] = new Channel{1, &cfg->stream1, stream1_sink, sink_lock1};
                 gettimeofday(&cfg->stream1.osd.stats.ts, NULL);
+                /*
                 if (encoder[1]->osd)
                 {
-                    channels[1]->updateOsd = std::bind(&OSD::update, encoder[1]->osd);
+                    cfg->stream1.osd.thread_signal.store(true);
+                    pthread_create(&stream1_osd_thread, &osd_thread_attr, OSD::updateWrapper, encoder[1]->osd);
                 }
+                */
                 pthread_create(&worker_threads[1], nullptr, stream_grabber, channels[1]);
             }
 
@@ -474,10 +506,13 @@ void Worker::run()
                 pthread_mutex_init(&sink_lock0, NULL);
                 channels[0] = new Channel{0, &cfg->stream0, stream0_sink, sink_lock0};
                 gettimeofday(&cfg->stream0.osd.stats.ts, NULL);
+                /*
                 if (encoder[0]->osd)
                 {
-                    channels[0]->updateOsd = std::bind(&OSD::update, encoder[0]->osd);
+                    cfg->stream0.osd.thread_signal.store(true);
+                    pthread_create(&stream0_osd_thread, &osd_thread_attr, OSD::updateWrapper, encoder[0]->osd);
                 }
+                */
                 pthread_create(&worker_threads[0], nullptr, stream_grabber, channels[0]);
             }
 
@@ -498,6 +533,18 @@ void Worker::run()
         {
             if (channels[0])
             {
+                /*
+                if(encoder[0]->osd) {
+                    cfg->stream0.osd.thread_signal.store(false);
+                    LOG_DEBUG("stop signal is sent to stream0 osd thread");
+                    if (pthread_join(stream0_osd_thread, NULL) == 0)
+                    {
+                        LOG_DEBUG("wait for exit stream0 osd thread");
+                    }
+                    LOG_DEBUG("osd thread for stream0 has been terminated");
+                }
+                */
+
                 LOG_DEBUG("stop signal is sent to stream_grabber for stream0");
                 channels[0]->thread_signal.store(false);
                 if (pthread_join(worker_threads[0], NULL) == 0)
@@ -512,6 +559,18 @@ void Worker::run()
 
             if (channels[1])
             {
+                /*
+                if(encoder[1]->osd) {
+                    cfg->stream1.osd.thread_signal.store(false);
+                    LOG_DEBUG("stop signal is sent to stream1 osd thread");
+                    if (pthread_join(stream1_osd_thread, NULL) == 0)
+                    {
+                        LOG_DEBUG("wait for exit stream1 osd thread");
+                    }
+                    LOG_DEBUG("osd thread for stream1 has been terminated");
+                }
+                */
+
                 LOG_DEBUG("stop signal is sent to stream_grabber for stream1");
                 channels[1]->thread_signal.store(false);
                 if (pthread_join(worker_threads[1], NULL) == 0)
@@ -536,6 +595,9 @@ void Worker::run()
                 delete channels[2];
                 channels[2] = nullptr;
             }
+
+            //pthread_attr_destroy(&osd_thread_attr);
+            //pthread_attr_destroy(&stream_thread_attr);
 
             deinit();
 

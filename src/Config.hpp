@@ -144,6 +144,7 @@ struct _osd {
     unsigned int font_stroke_color;
     _regions regions;
     _stream_stats stats;
+    std::atomic<bool> thread_signal;
 };  
 struct _stream {
     int gop;
@@ -277,6 +278,26 @@ class CFG {
                     return true;
                 } else {
                     return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool initImageValue(const char *name, const unsigned char value) {
+        for (auto &item : intItems) {
+            if (item.path == name) {
+                item.defaultValue = (int)value;
+                if (!item.validate(item.value)) {
+                    item.value = item.defaultValue;
+                    return false;
+                } else {
+                    if(item.value == (int)value) {
+                        return false;
+                    } else {
+                        //value is valid and not default. So we want set it.
+                        return true;
+                    }
                 }
             }
         }

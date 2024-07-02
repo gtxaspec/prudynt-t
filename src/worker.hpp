@@ -8,8 +8,8 @@
 #include "IMPFramesource.hpp"
 #include "Motion.hpp"
 #include <memory>
-#include <thread>
 #include <pthread.h>
+#include <sched.h>
 
 struct H264NALUnit
 {
@@ -124,6 +124,18 @@ private:
 	IMPFramesource *framesources[2] = {nullptr, nullptr};
 
 	pthread_t worker_threads[3];
+
+	struct sched_param osd_thread_sheduler;
+	struct sched_param stream_thread_sheduler;
+
+	pthread_attr_t stream_thread_attr;
+	pthread_t stream0_thread;
+	pthread_t stream1_thread;
+	pthread_t stream2_thread;
+
+	pthread_attr_t osd_thread_attr;
+	pthread_t stream0_osd_thread;
+	pthread_t stream1_osd_thread;
 };
 
 #endif

@@ -422,7 +422,7 @@ int getChannelInfo(int encChn)
 
 int IMPEncoder::init()
 {
-    LOG_DEBUG("IMPEncoder::init()");
+    LOG_DEBUG("IMPEncoder::init(" << encChn << ", " << encGrp << ")");
 
     int ret = 0;
 
@@ -481,21 +481,23 @@ int IMPEncoder::init()
 
 int IMPEncoder::deinit()
 {
+    LOG_DEBUG("IMPEncoder::deinit(" << encChn << ", " << encGrp << ")");
+
     int ret;
 
     if (strcmp(stream->format, "JPEG") != 0)
     {
         if (osd)
         {
-            osd->exit();
-            delete osd;
-            osd = nullptr;
-
             ret = IMP_System_UnBind(&fs, &osd_cell);
             LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&fs, &osd_cell)");
 
             ret = IMP_System_UnBind(&osd_cell, &enc);
             LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&osd_cell, &enc)");
+
+            osd->exit();
+            delete osd;
+            osd = nullptr;
         }
         else
         {

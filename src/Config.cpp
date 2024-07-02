@@ -14,11 +14,19 @@
 #define DEFAULT_ENC_MODE_1 "CAPPED_QUALITY"
 #define DEFAULT_BUFFERS_0 4
 #define DEFAULT_BUFFERS_1 2
+#define DEFAULT_SINTER 128
+#define DEFAULT_TEMPER 128
+#define DEFAULT_SINTER_VALIDATE validateInt255
+#define DEFAULT_TEMPER_VALIDATE validateInt255
 #else
 #define DEFAULT_ENC_MODE_0 "SAMRT"
 #define DEFAULT_ENC_MODE_1 "SAMRT"
 #define DEFAULT_BUFFERS_0 2
-#define DEFAULT_BUFFERS_1 1
+#define DEFAULT_BUFFERS_1 2
+#define DEFAULT_SINTER 50
+#define DEFAULT_TEMPER 50
+#define DEFAULT_SINTER_VALIDATE validateInt50_150
+#define DEFAULT_TEMPER_VALIDATE validateInt50_150
 #endif
 
 namespace fs = std::filesystem;
@@ -43,6 +51,11 @@ bool validateInt32(const int &v)
     return v >= 0 && v <= 32;
 }
 
+bool validateInt50_150(const int &v)
+{
+    return v >= 50 && v <= 150;
+}
+
 bool validateInt60(const int &v)
 {
     return v >= 0 && v <= 60;
@@ -55,7 +68,7 @@ bool validateInt255(const int &v)
 
 bool validateInt360(const int &v)
 {
-    return v >= 0 && v <= 255;
+    return v >= 0 && v <= 360;
 }
 
 bool validateInt15360(const int &v)
@@ -192,8 +205,8 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"image.running_mode", image.running_mode, 0, validateInt1},
         {"image.saturation", image.saturation, 128, validateInt255},
         {"image.sharpness", image.sharpness, 128, validateInt255},
-        {"image.sinter_strength", image.sinter_strength, 128, validateInt255},
-        {"image.temper_strength", image.temper_strength, 128, validateInt255},
+        {"image.sinter_strength", image.sinter_strength, DEFAULT_SINTER, DEFAULT_SINTER_VALIDATE},
+        {"image.temper_strength", image.temper_strength, DEFAULT_TEMPER, DEFAULT_TEMPER_VALIDATE},
         {"image.wb_bgain", image.wb_bgain, 0, [](const int &v) { return v >= 0 && v <= 34464; }},
         {"image.wb_rgain", image.wb_rgain, 0, [](const int &v) { return v >= 0 && v <= 34464; }},
         {"motion.debounce_time", motion.debounce_time, 0, validateIntGe0},
