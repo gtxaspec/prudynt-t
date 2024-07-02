@@ -44,18 +44,24 @@ int Worker::init()
 {
     LOG_DEBUG("Worker::init()");
     int ret;
-    impsystem = IMPSystem::createNew(cfg);
+    if(!impsystem) {
+        impsystem = IMPSystem::createNew(cfg);
+    }
 
     if (cfg->stream0.enabled)
     {
-        framesources[0] = IMPFramesource::createNew(&cfg->stream0, &cfg->sensor, 0);
+        if(!framesources[0]) {
+            framesources[0] = IMPFramesource::createNew(&cfg->stream0, &cfg->sensor, 0);
+        }
         encoder[0] = IMPEncoder::createNew(&cfg->stream0, cfg, 0, 0, "stream0");
         framesources[0]->enable();
     }
 
     if (cfg->stream1.enabled)
     {
-        framesources[1] = IMPFramesource::createNew(&cfg->stream1, &cfg->sensor, 1);
+        if(!framesources[1]) {
+            framesources[1] = IMPFramesource::createNew(&cfg->stream1, &cfg->sensor, 1);
+        }
         encoder[1] = IMPEncoder::createNew(&cfg->stream1, cfg, 1, 1, "stream1");
         framesources[1]->enable();
     }
@@ -91,8 +97,8 @@ int Worker::deinit()
             encoder[1]->deinit();
         }
 
-        delete framesources[1];
-        framesources[1] = nullptr;
+        //delete framesources[1];
+        //framesources[1] = nullptr;
 
         delete encoder[1];
         encoder[1] = nullptr;
@@ -112,8 +118,8 @@ int Worker::deinit()
             encoder[0]->deinit();
         }
 
-        delete framesources[0];
-        framesources[0] = nullptr;
+        //delete framesources[0];
+        //framesources[0] = nullptr;
 
         delete encoder[2];
         encoder[2] = nullptr;
@@ -122,8 +128,8 @@ int Worker::deinit()
         encoder[0] = nullptr;
     }
 
-    delete impsystem;
-    impsystem = nullptr;
+    //delete impsystem;
+    //impsystem = nullptr;
 
     return 0;
 }
@@ -530,12 +536,10 @@ void Worker::run()
                 if(encoder[0]->osd) {
                     cfg->stream0.osd.thread_signal.store(false);
                     LOG_DEBUG("stop signal is sent to stream0 osd thread");
-                    /*
                     if (pthread_join(stream0_osd_thread, NULL) == 0)
                     {
                         LOG_DEBUG("wait for exit stream0 osd thread");
                     }
-                    */
                     LOG_DEBUG("osd thread for stream0 has been terminated");
                 }
 
@@ -556,12 +560,10 @@ void Worker::run()
                 if(encoder[1]->osd) {
                     cfg->stream1.osd.thread_signal.store(false);
                     LOG_DEBUG("stop signal is sent to stream1 osd thread");
-                    /*
                     if (pthread_join(stream1_osd_thread, NULL) == 0)
                     {
                         LOG_DEBUG("wait for exit stream1 osd thread");
                     }
-                    */
                     LOG_DEBUG("osd thread for stream1 has been terminated");
                 }
 
