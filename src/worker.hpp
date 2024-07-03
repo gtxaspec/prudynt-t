@@ -113,6 +113,7 @@ public:
 	static EncoderSink *stream0_sink;
 	static EncoderSink *stream1_sink;
 
+	static std::vector<uint8_t> capture_jpeg_image(int encChn);
 private:
 	Motion motion;
 

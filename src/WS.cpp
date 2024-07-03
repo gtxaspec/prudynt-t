@@ -10,6 +10,7 @@
 #include <imp/imp_isp.h>
 #include <imp/imp_audio.h>
 #include "OSD.hpp"
+#include "worker.hpp"
 
 #define MODULE "WEBSOCKET"
 
@@ -366,7 +367,9 @@ enum
     PNT_STOP_THREAD = 1,
     PNT_START_THREAD,
     PNT_RESTART_THREAD,
-    PNT_SAVE_CONFIG
+    PNT_SAVE_CONFIG,
+    PNT_CAPTURE
+
 };
 
 enum
@@ -375,14 +378,15 @@ enum
     PNT_THREAD_ENCODER = 2,
     PNT_THREAD_ACTION_STOP = 8,
     PNT_THREAD_ACTION_START = 16,
-    PNT_THREAD_ACTION_RESTART = PNT_THREAD_ACTION_STOP | PNT_THREAD_ACTION_START
+    PNT_THREAD_ACTION_RESTART = PNT_THREAD_ACTION_STOP | PNT_THREAD_ACTION_START,
 };
 
 static const char *const action_keys[] = {
     "stop_thread",
     "start_thread",
     "restart_thread",
-    "save_config"};
+    "save_config",
+    "capture"};
 
 #pragma endregion keys_and_enums
 
@@ -422,13 +426,21 @@ std::string generateToken(int length)
     return randomString;
 }
 
+void send_jpeg(struct lws *wsi) {
+
+    std::vector<uint8_t> jpeg_data = Worker::capture_jpeg_image(2);
+    size_t jpeg_size = jpeg_data.size();
+    std::vector<unsigned char> jpeg_buf(LWS_PRE + jpeg_size);
+    memcpy(jpeg_buf.data() + LWS_PRE, jpeg_data.data(), jpeg_size);
+    lws_write(wsi, jpeg_buf.data() + LWS_PRE, jpeg_size, LWS_WRITE_BINARY);
+}
+
 template <typename... Args>
 void append_message(const char *t, Args &&...a)
 {
 
     char message[128];
     memset(message, 0, sizeof(message));
-    std::cout << message << std::endl;
     snprintf(message, sizeof(message), t, std::forward<Args>(a)...);
     std::strcat(ws_send_msg, message);
 }
@@ -1729,6 +1741,11 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
             append_message(
                 "\"%s\"", "initiated");
             break;
+        case PNT_CAPTURE:
+            u_ctx->signal = 32;
+            append_message(
+                "\"%s\"", "initiated");
+            break;
         }
 
         u_ctx->s = 1;
@@ -1815,7 +1832,6 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
 
 int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len)
 {
-
     struct lejp_ctx ctx;
 
     user_ctx *u_ctx = (user_ctx *)lws_context_user(lws_get_context(wsi));
@@ -1871,13 +1887,21 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
         std::strcat(ws_send_msg, "}"); // close response json
 
-        if (u_ctx->signal != 0)
+        if ((u_ctx->signal & 1) || (u_ctx->signal & 2) || (u_ctx->signal & 32))
         {
-            if(u_ctx->ws->cfg->main_thread_signal.load() == 1) {
-                u_ctx->ws->cfg->main_thread_signal.store(u_ctx->signal);
-                u_ctx->ws->cfg->main_thread_signal.notify_one();
-            } else {
-                LOG_DEBUG("main thread not ready to receive command.");
+            if ((u_ctx->signal & 8) || (u_ctx->signal & 16))
+            {
+                if(u_ctx->ws->cfg->main_thread_signal.load() == 1) {
+                    u_ctx->ws->cfg->main_thread_signal.store(u_ctx->signal);
+                    u_ctx->ws->cfg->main_thread_signal.notify_one();
+                } else {
+                    LOG_DEBUG("main thread not ready to receive command.");
+                }
+            }
+            if ((u_ctx->signal & 32))
+            {
+                send_jpeg(wsi);
+                memset(ws_send_msg, 0, sizeof(ws_send_msg));
             }
             u_ctx->signal = 0;
         }

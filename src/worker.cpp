@@ -44,13 +44,15 @@ int Worker::init()
 {
     LOG_DEBUG("Worker::init()");
     int ret;
-    if(!impsystem) {
+    if (!impsystem)
+    {
         impsystem = IMPSystem::createNew(cfg);
     }
 
     if (cfg->stream0.enabled)
     {
-        if(!framesources[0]) {
+        if (!framesources[0])
+        {
             framesources[0] = IMPFramesource::createNew(&cfg->stream0, &cfg->sensor, 0);
         }
         encoder[0] = IMPEncoder::createNew(&cfg->stream0, cfg, 0, 0, "stream0");
@@ -59,7 +61,8 @@ int Worker::init()
 
     if (cfg->stream1.enabled)
     {
-        if(!framesources[1]) {
+        if (!framesources[1])
+        {
             framesources[1] = IMPFramesource::createNew(&cfg->stream1, &cfg->sensor, 1);
         }
         encoder[1] = IMPEncoder::createNew(&cfg->stream1, cfg, 1, 1, "stream1");
@@ -97,8 +100,8 @@ int Worker::deinit()
             encoder[1]->deinit();
         }
 
-        //delete framesources[1];
-        //framesources[1] = nullptr;
+        // delete framesources[1];
+        // framesources[1] = nullptr;
 
         delete encoder[1];
         encoder[1] = nullptr;
@@ -118,8 +121,8 @@ int Worker::deinit()
             encoder[0]->deinit();
         }
 
-        //delete framesources[0];
-        //framesources[0] = nullptr;
+        // delete framesources[0];
+        // framesources[0] = nullptr;
 
         delete encoder[2];
         encoder[2] = nullptr;
@@ -128,10 +131,81 @@ int Worker::deinit()
         encoder[0] = nullptr;
     }
 
-    //delete impsystem;
-    //impsystem = nullptr;
+    // delete impsystem;
+    // impsystem = nullptr;
 
     return 0;
+}
+
+std::vector<uint8_t> Worker::capture_jpeg_image(int encChn)
+{
+    std::vector<uint8_t> jpeg_data;
+    int ret;
+
+    ret = IMP_Encoder_StartRecvPic(encChn);
+    if (ret != 0)
+    {
+        std::cerr << "IMP_Encoder_StartRecvPic(" << encChn << ") failed: " << strerror(errno) << std::endl;
+        return jpeg_data;
+    }
+
+    if (IMP_Encoder_PollingStream(encChn, STREAM_POLLING_TIMEOUT) == 0)
+    {
+
+        IMPEncoderStream stream;
+        if (IMP_Encoder_GetStream(encChn, &stream, true) == 0)
+        {
+            int nr_pack = stream.packCount;
+
+            for (int i = 0; i < nr_pack; i++)
+            {
+                void *data_ptr;
+                size_t data_len;
+
+#if defined(PLATFORM_T31)
+                IMPEncoderPack *pack = &stream.pack[i];
+                uint32_t remSize = 0; // Declare remSize here
+                if (pack->length)
+                {
+                    remSize = stream.streamSize - pack->offset;
+                    data_ptr = (void *)((char *)stream.virAddr + ((remSize < pack->length) ? 0 : pack->offset));
+                    data_len = (remSize < pack->length) ? remSize : pack->length;
+                }
+                else
+                {
+                    continue; // Skip empty packs
+                }
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
+                data_ptr = reinterpret_cast<void *>(stream.pack[i].virAddr);
+                data_len = stream.pack[i].length;
+#endif
+
+                // Write data to vector
+                jpeg_data.insert(jpeg_data.end(), (uint8_t *)data_ptr, (uint8_t *)data_ptr + data_len);
+
+#if defined(PLATFORM_T31)
+                // Check the condition only under T31 platform, as remSize is used here
+                if (remSize && pack->length > remSize)
+                {
+                    data_ptr = (void *)((char *)stream.virAddr);
+                    data_len = pack->length - remSize;
+                    jpeg_data.insert(jpeg_data.end(), (uint8_t *)data_ptr, (uint8_t *)data_ptr + data_len);
+                }
+#endif
+            }
+
+            IMP_Encoder_ReleaseStream(encChn, &stream); // Release stream after saving
+        }
+    }
+
+    ret = IMP_Encoder_StopRecvPic(encChn);
+
+    if (ret != 0)
+    {
+        std::cerr << "IMP_Encoder_StopRecvPic(" << encChn << ") failed: " << strerror(errno) << std::endl;
+    }
+
+    return jpeg_data;
 }
 
 static int save_jpeg_stream(int fd, IMPEncoderStream *stream)
@@ -205,8 +279,8 @@ void *Worker::jpeg_grabber(void *arg)
 
     while (channel->thread_signal.load())
     {
-        if(tDiffInMs(&ts) > 1000) {
-
+        if (tDiffInMs(&ts) > 1000)
+        {
             // LOG_DEBUG("IMP_Encoder_PollingStream 1 " << channel->encChn);
             if (IMP_Encoder_PollingStream(channel->encChn, STREAM_POLLING_TIMEOUT) == 0)
             {
@@ -247,7 +321,7 @@ void *Worker::jpeg_grabber(void *arg)
                         }
                         else
                         {
-                            //LOG_DEBUG("JPEG snapshot successfully updated");
+                            // LOG_DEBUG("JPEG snapshot successfully updated");
                         }
                     }
                     else
@@ -484,7 +558,7 @@ void Worker::run()
             int max_priority = sched_get_priority_max(policy);
             int min_priority = sched_get_priority_min(policy);
 
-            osd_thread_sheduler.sched_priority = min_priority; //(int)max_priority * 0.1;
+            osd_thread_sheduler.sched_priority = min_priority;  //(int)max_priority * 0.1;
             jpeg_thread_sheduler.sched_priority = min_priority; //(int)max_priority * 0.1;
             stream_thread_sheduler.sched_priority = (int)max_priority * 0.9;
 
@@ -554,8 +628,8 @@ void Worker::run()
     usleep(1000);
 }
 
-void Worker::start_stream(int encChn) {
-
+void Worker::start_stream(int encChn)
+{
     pthread_mutex_init(&channels[encChn]->lock, NULL);
     gettimeofday(&channels[encChn]->stream->osd.stats.ts, NULL);
     if (encoder[encChn]->osd)
@@ -566,9 +640,10 @@ void Worker::start_stream(int encChn) {
     pthread_create(&worker_threads[encChn], &stream_thread_attr, stream_grabber, channels[encChn]);
 }
 
-void Worker::exit_stream(int encChn) {
-
-    if(encoder[encChn]->osd) {
+void Worker::exit_stream(int encChn)
+{
+    if (encoder[encChn]->osd)
+    {
         channels[encChn]->stream->osd.thread_signal.store(false);
         LOG_DEBUG("stop signal is sent to stream" << encChn << " osd thread");
         if (pthread_join(osd_threads[encChn], NULL) == 0)
