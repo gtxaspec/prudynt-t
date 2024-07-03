@@ -564,7 +564,7 @@ void handleConfigItem2(libconfig::Config &lc, ConfigItem<T> &item)
     std::string sect = path.substr(0, pos);
     std::string entr = path.substr(pos + 1);
 
-    if (isDifferent && !readFromProc && !isDefault)
+    if (isDifferent && !readFromProc && !isDefault && !item.noSave)
     {
         ensurePathExists(lc.getRoot(), item.path);
 
