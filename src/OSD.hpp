@@ -26,6 +26,9 @@ struct OSDItem
 {
     IMPRgnHandle imp_rgn;
     uint8_t *data;
+    uint16_t width;
+    uint16_t height;
+    IMPOSDRgnAttrData *rgnAttrData;
 };
 
 class OSD
@@ -43,9 +46,9 @@ public:
     static void* updateWrapper(void* arg);
     void updateDisplayEverySecond();
 
-    void rotateBGRAImage(uint8_t *&inputImage, int &width, int &height, int angle, bool del);
-    static void set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, int width = 0, int height = 0, int encChn = 0);
-    static int get_abs_pos(int max, int size, int pos);
+    void rotateBGRAImage(uint8_t *&inputImage, uint16_t &width, uint16_t &height, int angle, bool del);
+    static void set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, uint16_t width, uint16_t height, const uint16_t max_width, const uint16_t max_height);
+    static uint16_t get_abs_pos(const uint16_t max,const uint16_t size,const int pos);
 
 private:
 
@@ -84,6 +87,9 @@ private:
 
     char hostname[64];
     char ip[INET_ADDRSTRLEN]{};
+
+    uint16_t stream_width;
+    uint16_t stream_height;
 };
 
 #endif

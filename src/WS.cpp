@@ -1422,11 +1422,13 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                     {
                         if (u_ctx->flag == 0)
                         {
-                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd.pos_logo_x, u_ctx->ws->cfg->stream0.osd.pos_logo_y);
+                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd.pos_logo_x,
+                                u_ctx->ws->cfg->stream0.osd.pos_logo_y, 0, 0, u_ctx->ws->cfg->stream0.width, u_ctx->ws->cfg->stream0.height);
                         }
                         else if (u_ctx->flag == 1)
                         {
-                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream1.osd.pos_logo_x, u_ctx->ws->cfg->stream1.osd.pos_logo_y);
+                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream1.osd.pos_logo_x,
+                                u_ctx->ws->cfg->stream1.osd.pos_logo_y, 0, 0, u_ctx->ws->cfg->stream1.width, u_ctx->ws->cfg->stream1.height);
                         }
                         IMP_OSD_SetRgnAttr(3, &rgnAttr);
                     }
@@ -1444,11 +1446,13 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                     {
                         if (u_ctx->flag == 0)
                         {
-                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd.pos_logo_y, u_ctx->ws->cfg->stream0.osd.pos_logo_y);
+                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream0.osd.pos_logo_y,
+                                u_ctx->ws->cfg->stream0.osd.pos_logo_y, 0, 0, u_ctx->ws->cfg->stream0.width, u_ctx->ws->cfg->stream0.height);
                         }
                         else if (u_ctx->flag == 1)
                         {
-                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream1.osd.pos_logo_y, u_ctx->ws->cfg->stream1.osd.pos_logo_y);
+                            OSD::set_pos(&rgnAttr, u_ctx->ws->cfg->stream1.osd.pos_logo_y,
+                                u_ctx->ws->cfg->stream1.osd.pos_logo_y, 0, 0, u_ctx->ws->cfg->stream1.width, u_ctx->ws->cfg->stream1.height);
                         }
                         IMP_OSD_SetRgnAttr(3, &rgnAttr);
                     }
@@ -1467,6 +1471,15 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
         }
 
         u_ctx->s = 1;
+
+        if (u_ctx->flag == 0)
+        {
+            u_ctx->ws->cfg->stream0.osd.thread_signal.fetch_or(2);
+        }
+        else if (u_ctx->flag == 1)
+        {
+            u_ctx->ws->cfg->stream1.osd.thread_signal.fetch_or(2);
+        }
     }
     else if (reason == LEJPCB_OBJECT_END)
     {
