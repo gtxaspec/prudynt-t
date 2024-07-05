@@ -8,16 +8,37 @@
 #include <libconfig.h++>
 #include <sys/time.h>
 #include <any>
+
 //~65k
 #define ENABLE_LOG_DEBUG
 
 //~10k
 //#define AUDIO_SUPPORT
 
-//use FIFO buffer
-//#define FIFO
-
 #define OSD_AUTO_VALUE 16384
+#define THREAD_SLEEP 100000
+#define STREAM_POLLING_TIMEOUT 1000
+#define GET_STREAM_BLOCKING false
+
+#if defined(PLATFORM_T31)
+#define DEFAULT_ENC_MODE_0 "FIXQP"
+#define DEFAULT_ENC_MODE_1 "CAPPED_QUALITY"
+#define DEFAULT_BUFFERS_0 4
+#define DEFAULT_BUFFERS_1 2
+#define DEFAULT_SINTER 128
+#define DEFAULT_TEMPER 128
+#define DEFAULT_SINTER_VALIDATE validateInt255
+#define DEFAULT_TEMPER_VALIDATE validateInt255
+#else
+#define DEFAULT_ENC_MODE_0 "SMART"
+#define DEFAULT_ENC_MODE_1 "SMART"
+#define DEFAULT_BUFFERS_0 2
+#define DEFAULT_BUFFERS_1 2
+#define DEFAULT_SINTER 50
+#define DEFAULT_TEMPER 50
+#define DEFAULT_SINTER_VALIDATE validateInt50_150
+#define DEFAULT_TEMPER_VALIDATE validateInt50_150
+#endif
 
 struct roi{
     int p0_x;
@@ -144,7 +165,7 @@ struct _osd {
     unsigned int font_stroke_color;
     _regions regions;
     _stream_stats stats;
-    std::atomic<bool> thread_signal;
+    std::atomic<int> thread_signal;
 };  
 struct _stream {
     int gop;
@@ -258,6 +279,7 @@ class CFG {
 
     template <typename T>
     bool set(const std::string &name, T value, bool noSave = false) {
+        //std::cout << name << "=" << value << std::endl;
         std::vector<ConfigItem<T>> *items = nullptr;
         if constexpr (std::is_same_v<T, bool>) {
             items = &boolItems;
