@@ -268,7 +268,7 @@ void IMPEncoder::initProfile()
         }
 #if defined(PLATFORM_T30)
     }
-    else if (channel_attr.encAttr.enType = PT_H265)
+    else if (chnAttr.encAttr.enType = PT_H265)
     {
         rcAttr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
         rcAttr->attrRcMode.attrH265Smart.maxQp = 45;
@@ -299,132 +299,6 @@ void IMPEncoder::initProfile()
 
 }
 
-#if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
-int getChannelInfo(int encChn)
-{
-    int ret = 0;
-
-    IMPEncoderCHNAttr iChnAttr{};
-    memset(&iChnAttr, 0, sizeof(IMPEncoderCHNAttr));
-    ret = IMP_Encoder_GetChnAttr(encChn, &iChnAttr);
-    std::cout << "IMP_Encoder_GetChnAttr(" << encChn << ")" << std::endl;;
-
-    std::cout <<
-              "iChnAttr {\n" <<
-              "  .encAttr {\n" <<
-              "    .enType = " << iChnAttr.encAttr.enType << "\n" <<
-              "    .bufSize = " << iChnAttr.encAttr.bufSize << "\n" <<
-              "    .profile = " << iChnAttr.encAttr.profile << "\n" <<
-              "    .picWidth = " << iChnAttr.encAttr.picWidth << "\n" <<
-              "    .picHeight = " << iChnAttr.encAttr.picHeight << "\n" <<
-              "    .crop {\n" <<
-              "      .x = " << iChnAttr.encAttr.crop.x << "\n" <<
-              "      .y = " << iChnAttr.encAttr.crop.y << "\n" <<
-              "      .w = " << iChnAttr.encAttr.crop.w << "\n" <<
-              "      .h = " << iChnAttr.encAttr.crop.h << "\n" <<
-              "    }\n" <<
-              "    .userData {\n" <<
-              "      .maxUserDataCnt = " << iChnAttr.encAttr.userData.maxUserDataCnt << "\n" <<
-              "      .maxUserDataSize = " << iChnAttr.encAttr.userData.maxUserDataSize << "\n" <<
-              "    }\n" <<
-              "  }\n" <<
-              "  .rcAttr {\n" <<
-              "    .outFrmRate {\n" <<
-              "      .frmRateNum = " << iChnAttr.rcAttr.outFrmRate.frmRateNum << "\n" <<
-              "      .frmRateDen = " << iChnAttr.rcAttr.outFrmRate.frmRateDen << "\n" <<
-              "    }\n" <<
-              "    .maxGop = " << iChnAttr.rcAttr.maxGop << "\n" <<
-              "    .attrRcMode {\n" <<
-              "      .rcMode = " << iChnAttr.rcAttr.attrRcMode.rcMode << "\n";
-
-    switch (iChnAttr.rcAttr.attrRcMode.rcMode)
-    {
-    case ENC_RC_MODE_FIXQP:
-        std::cout <<
-                  "      .attrH264FixQp {\n" <<
-                  "        .qp = " << iChnAttr.rcAttr.attrRcMode.attrH264FixQp.qp << "\n" <<
-                  "      }\n";
-        break;
-    case ENC_RC_MODE_CBR:
-        std::cout <<
-                  "      .attrH264Cbr {\n" <<
-                  "        .maxQp = " << iChnAttr.rcAttr.attrRcMode.attrH264Cbr.maxQp << "\n" <<
-                  "        .minQp = " << iChnAttr.rcAttr.attrRcMode.attrH264Cbr.minQp << "\n" <<
-                  "        .outBitRate = " << iChnAttr.rcAttr.attrRcMode.attrH264Cbr.outBitRate << "\n" <<
-                  "        .iBiasLvl = " << iChnAttr.rcAttr.attrRcMode.attrH264Cbr.iBiasLvl << "\n" <<
-                  "        .frmQPStep = " << iChnAttr.rcAttr.attrRcMode.attrH264Cbr.frmQPStep << "\n" <<
-                  "        .gopQPStep = " << iChnAttr.rcAttr.attrRcMode.attrH264Cbr.gopQPStep << "\n" <<
-                  "        .adaptiveMode = " << iChnAttr.rcAttr.attrRcMode.attrH264Cbr.adaptiveMode << "\n" <<
-                  "        .gopRelation = " << iChnAttr.rcAttr.attrRcMode.attrH264Cbr.gopRelation << "\n" <<
-                  "      }\n";
-        break;
-    case ENC_RC_MODE_VBR:
-        std::cout <<
-                  "      .attrH264Vbr {\n" <<
-                  "        .maxQp = " << iChnAttr.rcAttr.attrRcMode.attrH264Vbr.maxQp << "\n" <<
-                  "        .minQp = " << iChnAttr.rcAttr.attrRcMode.attrH264Vbr.minQp << "\n" <<
-                  "        .staticTime = " << iChnAttr.rcAttr.attrRcMode.attrH264Vbr.staticTime << "\n" <<
-                  "        .maxBitRate = " << iChnAttr.rcAttr.attrRcMode.attrH264Vbr.maxBitRate << "\n" <<
-                  "        .iBiasLvl = " << iChnAttr.rcAttr.attrRcMode.attrH264Vbr.iBiasLvl << "\n" <<
-                  "        .changePos = " << iChnAttr.rcAttr.attrRcMode.attrH264Vbr.changePos << "\n" <<
-                  "        .qualityLvl = " << iChnAttr.rcAttr.attrRcMode.attrH264Vbr.qualityLvl << "\n" <<
-                  "        .frmQPStep = " << iChnAttr.rcAttr.attrRcMode.attrH264Vbr.frmQPStep << "\n" <<
-                  "        .gopQPStep = " << iChnAttr.rcAttr.attrRcMode.attrH264Vbr.gopQPStep << "\n" <<
-                  "        .gopRelation = " << iChnAttr.rcAttr.attrRcMode.attrH264Vbr.gopRelation << "\n" <<
-                  "      }\n";
-        break;
-    case ENC_RC_MODE_SMART:
-        std::cout <<
-                  "      .attrH264Smart {\n" <<
-                  "        .maxQp = " << iChnAttr.rcAttr.attrRcMode.attrH264Smart.maxQp << "\n" <<
-                  "        .minQp = " << iChnAttr.rcAttr.attrRcMode.attrH264Smart.minQp << "\n" <<
-                  "        .staticTime = " << iChnAttr.rcAttr.attrRcMode.attrH264Smart.staticTime << "\n" <<
-                  "        .maxBitRate = " << iChnAttr.rcAttr.attrRcMode.attrH264Smart.maxBitRate << "\n" <<
-                  "        .iBiasLvl = " << iChnAttr.rcAttr.attrRcMode.attrH264Smart.iBiasLvl << "\n" <<
-                  "        .changePos = " << iChnAttr.rcAttr.attrRcMode.attrH264Smart.changePos << "\n" <<
-                  "        .qualityLvl = " << iChnAttr.rcAttr.attrRcMode.attrH264Smart.qualityLvl << "\n" <<
-                  "        .frmQPStep = " << iChnAttr.rcAttr.attrRcMode.attrH264Smart.frmQPStep << "\n" <<
-                  "        .gopQPStep = " << iChnAttr.rcAttr.attrRcMode.attrH264Smart.gopQPStep << "\n" <<
-                  "        .gopRelation = " << iChnAttr.rcAttr.attrRcMode.attrH264Smart.gopRelation << "\n" <<
-                  "      }\n";
-        break;
-    }
-
-    std::cout <<
-              "    }\n" <<
-              "    .attrFrmUsed {\n" <<
-              "      .enable = " << iChnAttr.rcAttr.attrFrmUsed.enable << "\n" <<
-              "      .frmUsedMode = " << iChnAttr.rcAttr.attrFrmUsed.frmUsedMode << "\n" <<
-              "      .frmUsedTimes = " << iChnAttr.rcAttr.attrFrmUsed.frmUsedTimes << "\n" <<
-              "    }\n" <<
-              "    .attrDemask {\n" <<
-              "      .enable = " << iChnAttr.rcAttr.attrDemask.enable << "\n" <<
-              "      .isAutoMode = " << iChnAttr.rcAttr.attrDemask.isAutoMode << "\n" <<
-              "      .demaskCnt = " << iChnAttr.rcAttr.attrDemask.demaskCnt << "\n" <<
-              "      .demaskThresd = " << iChnAttr.rcAttr.attrDemask.demaskThresd << "\n" <<
-              "    }\n" <<
-              "    .attrDenoise {\n" <<
-              "      .enable = " << iChnAttr.rcAttr.attrDenoise.enable << "\n" <<
-              "      .dnType = " << iChnAttr.rcAttr.attrDenoise.dnType << "\n" <<
-              "      .dnIQp = " << iChnAttr.rcAttr.attrDenoise.dnIQp << "\n" <<
-              "      .dnPQp = " << iChnAttr.rcAttr.attrDenoise.dnPQp << "\n" <<
-              "    }\n" <<
-              "    .attrHSkip {\n" <<
-              "      .hSkipAttr {\n" <<
-              "        .skipType = " << iChnAttr.rcAttr.attrHSkip.hSkipAttr.skipType << "\n" <<
-              "        .m = " << iChnAttr.rcAttr.attrHSkip.hSkipAttr.skipType << "\n" <<
-              "        .n = " << iChnAttr.rcAttr.attrHSkip.hSkipAttr.skipType << "\n" <<
-              "        .maxSameSceneCnt = " << iChnAttr.rcAttr.attrHSkip.hSkipAttr.maxSameSceneCnt << "\n" <<
-              "        .bEnableScenecut = " << iChnAttr.rcAttr.attrHSkip.hSkipAttr.bEnableScenecut << "\n" <<
-              "        .bBlackEnhance = " << iChnAttr.rcAttr.attrHSkip.hSkipAttr.bBlackEnhance << "\n" <<
-              "      }\n" <<
-              "    }\n" <<
-              "  }\n" <<
-              "}\n";
-    return 0;
-}
-#endif
-
 int IMPEncoder::init()
 {
     LOG_DEBUG("IMPEncoder::init(" << encChn << ", " << encGrp << ")");
@@ -451,7 +325,7 @@ int IMPEncoder::init()
 
         if (stream->osd.enabled)
         {
-            osd = OSD::createNew(&(stream->osd), cfg, encGrp, encChn, name);
+            osd = OSD::createNew(&stream->osd, cfg, encGrp, encChn, name);
 
             ret = IMP_System_Bind(&fs, &osd_cell);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&fs, &osd_cell)");
@@ -477,9 +351,6 @@ int IMPEncoder::init()
         IMP_Encoder_SetJpegeQl(2, &pstJpegeQl);
 #endif        
     }
-
-    //Debugging function !!
-    //getChannelInfo(encChn);
 
     return ret;
 }
