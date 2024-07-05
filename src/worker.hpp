@@ -35,7 +35,7 @@ struct Channel
 	EncoderSink *sink;
 	pthread_mutex_t lock;
 	std::function<void()> updateOsd = nullptr;
-	std::atomic<bool> thread_signal;
+	std::atomic<int> thread_signal;
 };
 
 class Worker

@@ -7,7 +7,8 @@
 
 #define MODULE "WORKER"
 
-#define STREAM_POLLING_TIMEOUT 1000
+
+
 #define OSDPoolSize 200000
 
 #if defined(PLATFORM_T31)
@@ -140,9 +141,9 @@ int Worker::deinit()
 std::vector<uint8_t> Worker::capture_jpeg_image(int encChn)
 {
     std::vector<uint8_t> jpeg_data;
-    int ret;
+    int ret = 0;
 
-    ret = IMP_Encoder_StartRecvPic(encChn);
+    //ret = IMP_Encoder_StartRecvPic(encChn);
     if (ret != 0)
     {
         std::cerr << "IMP_Encoder_StartRecvPic(" << encChn << ") failed: " << strerror(errno) << std::endl;
@@ -153,7 +154,7 @@ std::vector<uint8_t> Worker::capture_jpeg_image(int encChn)
     {
 
         IMPEncoderStream stream;
-        if (IMP_Encoder_GetStream(encChn, &stream, true) == 0)
+        if (IMP_Encoder_GetStream(encChn, &stream, GET_STREAM_BLOCKING) == 0)
         {
             int nr_pack = stream.packCount;
 
@@ -198,8 +199,7 @@ std::vector<uint8_t> Worker::capture_jpeg_image(int encChn)
         }
     }
 
-    ret = IMP_Encoder_StopRecvPic(encChn);
-
+    //ret = IMP_Encoder_StopRecvPic(encChn);
     if (ret != 0)
     {
         std::cerr << "IMP_Encoder_StopRecvPic(" << encChn << ") failed: " << strerror(errno) << std::endl;
@@ -275,9 +275,9 @@ void *Worker::jpeg_grabber(void *arg)
     if (ret != 0)
         return 0;
 
-    channel->thread_signal.store(true);
+    channel->thread_signal.store(1);
 
-    while (channel->thread_signal.load())
+    while (channel->thread_signal.load() & 1)
     {
         if (tDiffInMs(&ts) > 1000)
         {
@@ -287,7 +287,7 @@ void *Worker::jpeg_grabber(void *arg)
                 // LOG_DEBUG("IMP_Encoder_PollingStream 2 " << channel->encChn);
 
                 IMPEncoderStream stream;
-                if (IMP_Encoder_GetStream(channel->encChn, &stream, true) == 0)
+                if (IMP_Encoder_GetStream(channel->encChn, &stream, GET_STREAM_BLOCKING) == 0)
                 {
                     // LOG_DEBUG("IMP_Encoder_GetStream" << channel->encChn);
                     //  Check for success
@@ -335,7 +335,7 @@ void *Worker::jpeg_grabber(void *arg)
 
             gettimeofday(&ts, NULL);
         }
-        usleep(1000);
+        usleep(THREAD_SLEEP);
     }
 
     ret = IMP_Encoder_StopRecvPic(channel->encChn);
@@ -367,156 +367,165 @@ void *Worker::stream_grabber(void *arg)
     if (ret != 0)
         return 0;
 
-    channel->thread_signal.store(true);
+    channel->thread_signal.store(1);
 
-    while (channel->thread_signal.load())
+    while (channel->thread_signal.load() & 1)
     {
-        if (IMP_Encoder_PollingStream(channel->encChn, STREAM_POLLING_TIMEOUT) == 0)
+        if (channel->sink->data_available_callback != nullptr)
         {
-            IMPEncoderStream stream;
-            if (IMP_Encoder_GetStream(channel->encChn, &stream, true) != 0)
+            if (IMP_Encoder_PollingStream(channel->encChn, STREAM_POLLING_TIMEOUT) == 0)
             {
-                LOG_ERROR("IMP_Encoder_GetStream(" << channel->encChn << ") failed");
-                errorCount++;
-                continue;
-            }
-
-            int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
-            if (nal_ts - last_nal_ts > 1.5 * (1000000 / channel->stream->fps))
-            {
-                // Silence for now until further tests / THINGINO
-                // LOG_WARN("The encoder 0 dropped a frame. " << (nalTs - channel.lastNalTs) << ", " << (1.5 * (1000000 / cfg->stream0.fps)));
-            }
-
-            struct timeval encode_time;
-            encode_time.tv_sec = nal_ts / 1000000;
-            encode_time.tv_usec = nal_ts % 1000000;
-
-            for (uint32_t i = 0; i < stream.packCount; ++i)
-            {
-                fps++;
-                bps += stream.pack[i].length;
-
-                pthread_mutex_lock(&channel->lock);
-                if (channel->sink->data_available_callback != nullptr)
+                IMPEncoderStream stream;
+                if (IMP_Encoder_GetStream(channel->encChn, &stream, GET_STREAM_BLOCKING) != 0)
                 {
-#if defined(PLATFORM_T31)
-                    uint8_t *start = (uint8_t *)stream.virAddr + stream.pack[i].offset;
-                    uint8_t *end = start + stream.pack[i].length;
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
-                    uint8_t *start = (uint8_t *)stream.pack[i].virAddr;
-                    uint8_t *end = (uint8_t *)stream.pack[i].virAddr + stream.pack[i].length;
-#endif
-                    H264NALUnit nalu;
-                    nalu.imp_ts = stream.pack[i].timestamp;
-                    timeradd(&imp_time_base, &encode_time, &nalu.time);
-                    nalu.duration = 0;
-#if defined(PLATFORM_T31)
-                    if (stream.pack[i].nalType.h264NalType == 5 || stream.pack[i].nalType.h264NalType == 1)
-                    {
-                        nalu.duration = nal_ts - last_nal_ts;
-                    }
-                    else if (stream.pack[i].nalType.h265NalType == 19 ||
-                             stream.pack[i].nalType.h265NalType == 20 ||
-                             stream.pack[i].nalType.h265NalType == 1)
-                    {
-                        nalu.duration = nal_ts - last_nal_ts;
-                    }
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
-                    if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1)
-                    {
-                        nalu.duration = nal_ts - last_nal_ts;
-                    }
-#elif defined(PLATFORM_T30)
-                    if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1)
-                    {
-                        nalu.duration = nal_ts - last_nal_ts;
-                    }
-                    else if (stream.pack[i].dataType.h265Type == 19 ||
-                             stream.pack[i].dataType.h265Type == 20 ||
-                             stream.pack[i].dataType.h265Type == 1)
-                    {
-                        nalu.duration = nal_ts - last_nal_ts;
-                    }
-#endif
-                    // We use start+4 because the encoder inserts 4-byte MPEG
-                    //'startcodes' at the beginning of each NAL. Live555 complains
-                    nalu.data.insert(nalu.data.end(), start + 4, end);
-                    if (channel->sink->IDR == false)
-                    {
-#if defined(PLATFORM_T31)
-                        if (stream.pack[i].nalType.h264NalType == 7 ||
-                            stream.pack[i].nalType.h264NalType == 8 ||
-                            stream.pack[i].nalType.h264NalType == 5)
-                        {
-                            channel->sink->IDR = true;
-                        }
-                        else if (stream.pack[i].nalType.h265NalType == 32)
-                        {
-                            channel->sink->IDR = true;
-                        }
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
-                        if (stream.pack[i].dataType.h264Type == 7 ||
-                            stream.pack[i].dataType.h264Type == 8 ||
-                            stream.pack[i].dataType.h264Type == 5)
-                        {
-                            channel->sink->IDR = true;
-                        }
-#elif defined(PLATFORM_T30)
-                        if (stream.pack[i].dataType.h264Type == 7 ||
-                            stream.pack[i].dataType.h264Type == 8 ||
-                            stream.pack[i].dataType.h264Type == 5)
-                        {
-                            channel->sink->IDR = true;
-                        }
-                        else if (stream.pack[i].dataType.h265Type == 32)
-                        {
-                            channel->sink->IDR = true;
-                        }
-#endif
-                    }
-
-                    if (channel->sink->IDR == true)
-                    {
-                        if (channel->sink->data_available_callback(nalu))
-                        {
-                            LOG_ERROR("stream encChn:" << channel->encChn << ", size:" << nalu.data.size()
-                                                       << ", pC:" << stream.packCount << ", pS:" << nalu.data.size() << ", pN:"
-                                                       << i << " clogged!");
-                        }
-                    }
+                    LOG_ERROR("IMP_Encoder_GetStream(" << channel->encChn << ") failed");
+                    errorCount++;
+                    continue;
                 }
-                pthread_mutex_unlock(&channel->lock);
+
+                int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
+                if (nal_ts - last_nal_ts > 1.5 * (1000000 / channel->stream->fps))
+                {
+                    // Silence for now until further tests / THINGINO
+                    //LOG_WARN("The encoder 0 dropped a frame. " << (nal_ts - last_nal_ts) << ", " << (1.5 * (1000000 / channel->stream->fps)));
+                }
+
+                struct timeval encode_time;
+                encode_time.tv_sec = nal_ts / 1000000;
+                encode_time.tv_usec = nal_ts % 1000000;
+
+                for (uint32_t i = 0; i < stream.packCount; ++i)
+                {
+                    fps++;
+                    bps += stream.pack[i].length;
+
+                    pthread_mutex_lock(&channel->lock);
+                    if (channel->sink->data_available_callback != nullptr)
+                    {
+#if defined(PLATFORM_T31)
+                        uint8_t *start = (uint8_t *)stream.virAddr + stream.pack[i].offset;
+                        uint8_t *end = start + stream.pack[i].length;
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
+                        uint8_t *start = (uint8_t *)stream.pack[i].virAddr;
+                        uint8_t *end = (uint8_t *)stream.pack[i].virAddr + stream.pack[i].length;
+#endif
+                        H264NALUnit nalu;
+                        nalu.imp_ts = stream.pack[i].timestamp;
+                        timeradd(&imp_time_base, &encode_time, &nalu.time);
+                        nalu.duration = 0;
+#if defined(PLATFORM_T31)
+                        if (stream.pack[i].nalType.h264NalType == 5 || stream.pack[i].nalType.h264NalType == 1)
+                        {
+                            nalu.duration = nal_ts - last_nal_ts;
+                        }
+                        else if (stream.pack[i].nalType.h265NalType == 19 ||
+                                stream.pack[i].nalType.h265NalType == 20 ||
+                                stream.pack[i].nalType.h265NalType == 1)
+                        {
+                            nalu.duration = nal_ts - last_nal_ts;
+                        }
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
+                        if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1)
+                        {
+                            nalu.duration = nal_ts - last_nal_ts;
+                        }
+#elif defined(PLATFORM_T30)
+                        if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1)
+                        {
+                            nalu.duration = nal_ts - last_nal_ts;
+                        }
+                        else if (stream.pack[i].dataType.h265Type == 19 ||
+                                stream.pack[i].dataType.h265Type == 20 ||
+                                stream.pack[i].dataType.h265Type == 1)
+                        {
+                            nalu.duration = nal_ts - last_nal_ts;
+                        }
+#endif
+                        // We use start+4 because the encoder inserts 4-byte MPEG
+                        //'startcodes' at the beginning of each NAL. Live555 complains
+                        nalu.data.insert(nalu.data.end(), start + 4, end);
+                        if (channel->sink->IDR == false)
+                        {
+#if defined(PLATFORM_T31)
+                            if (stream.pack[i].nalType.h264NalType == 7 ||
+                                stream.pack[i].nalType.h264NalType == 8 ||
+                                stream.pack[i].nalType.h264NalType == 5)
+                            {
+                                channel->sink->IDR = true;
+                            }
+                            else if (stream.pack[i].nalType.h265NalType == 32)
+                            {
+                                channel->sink->IDR = true;
+                            }
+#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
+                            if (stream.pack[i].dataType.h264Type == 7 ||
+                                stream.pack[i].dataType.h264Type == 8 ||
+                                stream.pack[i].dataType.h264Type == 5)
+                            {
+                                channel->sink->IDR = true;
+                            }
+#elif defined(PLATFORM_T30)
+                            if (stream.pack[i].dataType.h264Type == 7 ||
+                                stream.pack[i].dataType.h264Type == 8 ||
+                                stream.pack[i].dataType.h264Type == 5)
+                            {
+                                channel->sink->IDR = true;
+                            }
+                            else if (stream.pack[i].dataType.h265Type == 32)
+                            {
+                                channel->sink->IDR = true;
+                            }
+#endif
+                        }
+
+                        if (channel->sink->IDR == true)
+                        {
+                            if (channel->sink->data_available_callback(nalu))
+                            {
+                                LOG_ERROR("stream encChn:" << channel->encChn << ", size:" << nalu.data.size()
+                                                        << ", pC:" << stream.packCount << ", pS:" << nalu.data.size() << ", pN:"
+                                                        << i << " clogged!");
+                            }
+                        }
+                    }
+                    pthread_mutex_unlock(&channel->lock);
+                }
+
+                IMP_Encoder_ReleaseStream(channel->encChn, &stream);
+                last_nal_ts = nal_ts;
+
+                ms = tDiffInMs(&channel->stream->osd.stats.ts);
+                if (ms > 1000)
+                {
+                    channel->stream->osd.stats.bps = ((bps * 8) * 1000 / ms) / 1000;
+                    bps = 0;
+                    channel->stream->osd.stats.fps = fps * 1000 / ms;
+                    fps = 0;
+                    gettimeofday(&channel->stream->osd.stats.ts, NULL);
+
+                    /*
+                    IMPEncoderCHNStat encChnStats;
+                    IMP_Encoder_Query(channel->encChn, &encChnStats);
+                    LOG_DEBUG("ChannelStats::" << channel->encChn <<
+                                ", registered:" << encChnStats.registered <<
+                                ", leftPics:" << encChnStats.leftPics <<
+                                ", leftStreamBytes:" << encChnStats.leftStreamBytes <<
+                                ", leftStreamFrames:" << encChnStats.leftStreamFrames <<
+                                ", curPacks:" << encChnStats.curPacks <<
+                                ", work_done:" << encChnStats.work_done);
+                    */
+                }
             }
-
-            IMP_Encoder_ReleaseStream(channel->encChn, &stream);
-            last_nal_ts = nal_ts;
-
-            ms = tDiffInMs(&channel->stream->osd.stats.ts);
-            if (ms > 1000)
+            else
             {
-                channel->stream->osd.stats.bps = ((bps * 8) * 1000 / ms) / 1000;
-                bps = 0;
-                channel->stream->osd.stats.fps = fps * 1000 / ms;
-                fps = 0;
-                gettimeofday(&channel->stream->osd.stats.ts, NULL);
-
-                /*
-                IMPEncoderCHNStat encChnStats;
-                IMP_Encoder_Query(channel->encChn, &encChnStats);
-                LOG_DEBUG("ChannelStats::" << channel->encChn <<
-                            ", registered:" << encChnStats.registered <<
-                            ", leftPics:" << encChnStats.leftPics <<
-                            ", leftStreamBytes:" << encChnStats.leftStreamBytes <<
-                            ", leftStreamFrames:" << encChnStats.leftStreamFrames <<
-                            ", curPacks:" << encChnStats.curPacks <<
-                            ", work_done:" << encChnStats.work_done);
-                */
+                LOG_DEBUG("IMP_Encoder_PollingStream(" << channel->encChn << ", " << STREAM_POLLING_TIMEOUT << ") timeout !");
             }
-        }
-        else
-        {
-            LOG_DEBUG("IMP_Encoder_PollingStream(" << channel->encChn << ", 1500) timeout !");
+
+        } else {
+
+            channel->stream->osd.stats.bps = 0;
+            channel->stream->osd.stats.fps = 1;
+            usleep(THREAD_SLEEP);
         }
     }
 
@@ -625,7 +634,7 @@ void Worker::run()
             cfg->worker_thread_signal.fetch_or(8);
         }
     }
-    usleep(1000);
+    usleep(THREAD_SLEEP);
 }
 
 void Worker::start_stream(int encChn)
@@ -634,7 +643,7 @@ void Worker::start_stream(int encChn)
     gettimeofday(&channels[encChn]->stream->osd.stats.ts, NULL);
     if (encoder[encChn]->osd)
     {
-        channels[encChn]->stream->osd.thread_signal.store(true);
+        channels[encChn]->stream->osd.thread_signal.store(1);
         pthread_create(&osd_threads[encChn], &osd_thread_attr, OSD::updateWrapper, encoder[encChn]->osd);
     }
     pthread_create(&worker_threads[encChn], &stream_thread_attr, stream_grabber, channels[encChn]);
@@ -644,7 +653,7 @@ void Worker::exit_stream(int encChn)
 {
     if (encoder[encChn]->osd)
     {
-        channels[encChn]->stream->osd.thread_signal.store(false);
+        channels[encChn]->stream->osd.thread_signal.store(0);
         LOG_DEBUG("stop signal is sent to stream" << encChn << " osd thread");
         if (pthread_join(osd_threads[encChn], NULL) == 0)
         {
@@ -654,7 +663,7 @@ void Worker::exit_stream(int encChn)
     }
 
     LOG_DEBUG("stop signal is sent to stream_grabber for stream" << encChn);
-    channels[encChn]->thread_signal.store(false);
+    channels[encChn]->thread_signal.store(0);
     if (pthread_join(worker_threads[encChn], NULL) == 0)
     {
         LOG_DEBUG("wait for stream_grabber exit stream" << encChn);
