@@ -87,8 +87,8 @@ int IMPFramesource::init()
     ret = IMP_FrameSource_SetFrameDepth(chnNr, 0);
     LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(" << chnNr << ", 0)");
 
-    ret = IMP_FrameSource_EnableChn(chnNr);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_FrameSource_EnableChn(" << chnNr << ")");
+    //ret = IMP_FrameSource_EnableChn(chnNr);
+    //LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_FrameSource_EnableChn(" << chnNr << ")");
 
     return ret;
 }

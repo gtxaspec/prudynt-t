@@ -15,9 +15,12 @@
 //~10k
 //#define AUDIO_SUPPORT
 
+//disable tunings (debugging)
+//#define NO_TUNINGS
+
 #define OSD_AUTO_VALUE 16384
 #define THREAD_SLEEP 100000
-#define STREAM_POLLING_TIMEOUT 1000
+#define STREAM_POLLING_TIMEOUT 5000
 #define GET_STREAM_BLOCKING false
 
 #if defined(PLATFORM_T31)

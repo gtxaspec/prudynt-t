@@ -243,7 +243,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream1.buffers", stream1.buffers, DEFAULT_BUFFERS_1, validateInt32},
         {"stream1.fps", stream1.fps, 24, validateInt60},
         {"stream1.gop", stream1.gop, 20, validateIntGe0},
-        {"stream1.height", stream1.height, 340, validateIntGe0},
+        {"stream1.height", stream1.height, 360, validateIntGe0},
         {"stream1.max_gop", stream1.max_gop, 60, validateIntGe0},
         {"stream1.osd.font_size", stream1.osd.font_size, OSD_AUTO_VALUE, validateIntGe0},
         {"stream1.osd.font_stroke_size", stream1.osd.font_stroke_size, OSD_AUTO_VALUE, validateIntGe0},

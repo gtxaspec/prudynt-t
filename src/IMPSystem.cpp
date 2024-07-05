@@ -57,6 +57,7 @@ int IMPSystem::init()
     /* Image tuning */
     unsigned char value;
 
+#if !defined(NO_TUNINGS)
     ret = IMP_ISP_Tuning_GetContrast(&value);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_GetContrast(" << (int)value << ")");
     if(cfg->initImageValue("cfg->image.contrast", value)) {
@@ -335,6 +336,7 @@ int IMPSystem::init()
         LOG_DEBUG_OR_ERROR(ret, "IMP_AO_Disable(0)");
     }
 #endif // #if defined(AUDIO_SUPPORT)
+#endif // #if !defined(NO_TUNINGS)
 
     LOG_DEBUG("ISP Tuning Defaults set");
 
