@@ -4,7 +4,6 @@
 #include <map>
 #include <string>
 #include <vector>
-
 #include <imp/imp_osd.h>
 #include "schrift.h"
 
@@ -25,23 +24,23 @@ public:
 	bool init();
 	void update();
 	void updateDisplayEverySecond();
-private:
 	int schrift_init();
-	void draw_glyph(OSDTextItem *ti, SFT_Image &glyphImage,
-					int *pen_x, int *pen_y,
-					int item_height, int item_width,
-					uint32_t color);
+	void draw_glyph(OSDTextItem *ti, SFT_Image &glyphImage, int *pen_x, int *pen_y, int item_height, int item_width, uint32_t color);
+	void draw_outline_glyph(OSDTextItem *ti, SFT_Glyph glyph, int pen_x, int pen_y, int item_height, int item_width, uint32_t stroke_color);
+	void draw_glyph_with_outline(OSDTextItem *ti, SFT_Glyph glyph, int *pen_x, int *pen_y, int item_height, int item_width, uint32_t color, uint32_t stroke_color);
 	void set_text(OSDTextItem *ti, std::string text);
 
-	SFT_Font *font;
+private:
 	SFT sft;
+	SFT_Font *font;
 	std::vector<uint8_t> fontData;
 
 	OSDTextItem timestamp;
 	OSDTextItem userText;
 	OSDTextItem uptimeStamp;
 
-	std::map<char, SFT_Image> glyphImages;
+	std::map<char, SFT_Glyph> glyphs;
+	std::map<char, SFT_Glyph> stroke_glyphs;
 };
 
 #endif
