@@ -12,7 +12,6 @@ prudynt(){
 	ARCH= CROSS_COMPILE="${PRUDYNT_CROSS}" \
 	CFLAGS="-DPLATFORM_$1 -Os -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
 	-I./3rdparty/install/include \
-	-I./3rdparty/install/include/freetype2 \
 	-I./3rdparty/install/include/liveMedia \
 	-I./3rdparty/install/include/groupsock \
 	-I./3rdparty/install/include/UsageEnvironment \
@@ -26,18 +25,17 @@ deps() {
 	rm -rf 3rdparty
 	mkdir -p 3rdparty/install
 
-	echo "Build freetype2"
+	echo "Build libschrift"
 	cd 3rdparty
-	rm -rf freetype
-	if [[ ! -f freetype-2.13.2.tar.xz ]]; then
-		wget 'https://download-mirror.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.xz'
-	fi
-	tar xf freetype-2.13.2.tar.xz
-	mv freetype-2.13.2 freetype
-	cd freetype
-	CC="${PRUDYNT_CROSS}gcc" ./configure --host mipsel-linux-gnu --prefix="$TOP/3rdparty/install/" --without-harfbuzz --disable-largefile --disable-mmap --without-png --without-brotli --without-zlib
-	make -j$(nproc)
-	make install
+	rm -rf libschrift
+	git clone https://github.com/tomolt/libschrift/
+	cd libschrift
+	${PRUDYNT_CROSS}gcc -std=c99 -pedantic -Wall -Wextra -Wconversion -fPIC -c -o schrift.o schrift.c
+	${PRUDYNT_CROSS}gcc -shared -o libschrift.so schrift.o
+	mkdir -p $TOP/3rdparty/install/lib
+	mkdir -p $TOP/3rdparty/install/include
+	cp libschrift.so $TOP/3rdparty/install/lib/
+	cp schrift.h $TOP/3rdparty/install/include/
 	cd ../../
 
 	echo "Build libconfig"

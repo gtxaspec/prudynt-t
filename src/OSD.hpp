@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 #include <imp/imp_osd.h>
-#include "schrift.h"
+#include <schrift.h>
 
 struct OSDTextItem {
 	IMPRgnHandle imp_rgn;
@@ -29,11 +29,13 @@ public:
 	void draw_outline_glyph(OSDTextItem *ti, SFT_Glyph glyph, int pen_x, int pen_y, int item_height, int item_width, uint32_t stroke_color);
 	void draw_glyph_with_outline(OSDTextItem *ti, SFT_Glyph glyph, int *pen_x, int *pen_y, int item_height, int item_width, uint32_t color, uint32_t stroke_color);
 	void set_text(OSDTextItem *ti, std::string text);
+	void set_outline_thickness(double thickness); // Add this method
 
 private:
 	SFT sft;
 	SFT_Font *font;
 	std::vector<uint8_t> fontData;
+	double outline_thickness = 2.0; // Default outline thickness
 
 	OSDTextItem timestamp;
 	OSDTextItem userText;

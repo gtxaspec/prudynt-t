@@ -7,7 +7,7 @@ CFLAGS += -DKERNEL_VERSION_4
 endif
 CXXFLAGS = $(CFLAGS) -std=c++20
 LDFLAGS = -lrt
-LIBS = -limp -lalog -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lfreetype
+LIBS = -limp -lalog -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lschrift
 
 ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))
     LIBIMP_INC_DIR = ./include/T31
