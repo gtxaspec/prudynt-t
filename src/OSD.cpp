@@ -6,451 +6,328 @@
 
 #include <fstream>
 #include <memory>
+#include "schrift.h"
 
-void set_glyph_transform(FT_Face fontface, int angle) {
-    // Normalize the angle to [0, 360)
-    angle %= 360;
-    // Initialize transformation matrix
-    FT_Matrix matrix;
+int OSD::schrift_init() {
+	// Load the font file into memory
+	std::ifstream fontFile(Config::singleton()->OSDFontPath, std::ios::binary | std::ios::ate);
+	if (!fontFile.is_open()) {
+		return -1;
+	}
 
-    switch (angle) {
-        case 0:
-            // Identity transformation (no rotation)
-            matrix.xx = 1 * (1 << 16);  // Fixed-point 1.0
-            matrix.xy = 0;
-            matrix.yx = 0;
-            matrix.yy = 1 * (1 << 16);  // Fixed-point 1.0
-            break;
-        case 90:
-            // 90 degrees clockwise rotation
-            matrix.xx = 0;
-            matrix.xy = -1 * (1 << 16);  // Fixed-point -1.0
-            matrix.yx = 1 * (1 << 16);   // Fixed-point 1.0
-            matrix.yy = 0;
-            break;
-        case 180:
-            // 180 degrees rotation
-            // Segmentation Fault
-            matrix.xx = -1 * (1 << 16);  // Fixed-point -1.0
-            matrix.xy = 0;
-            matrix.yx = 0;
-            matrix.yy = -1 * (1 << 16);  // Fixed-point -1.0
-            break;
-        case 270:
-            // 270 degrees clockwise (or 90 degrees counter-clockwise) rotation
-            matrix.xx = 0;
-            matrix.xy = 1 * (1 << 16);   // Fixed-point 1.0
-            matrix.yx = -1 * (1 << 16);  // Fixed-point -1.0
-            matrix.yy = 0;
-            break;
-        default:
-            // For angles not at 0, 90, 180, or 270 degrees, no transformation is applied
-            std::cerr << "Angle must be 0, 90, 180, or 270 degrees." << std::endl;
-            return;  // Exit the function if an unsupported angle is provided
-    }
+	size_t fileSize = fontFile.tellg();
+	fontFile.seekg(0, std::ios::beg);
+	fontData.resize(fileSize);
+	fontFile.read(reinterpret_cast<char*>(fontData.data()), fileSize);
+	fontFile.close();
 
-    // Apply the transformation to the font face
-    FT_Set_Transform(fontface, &matrix, nullptr);
+	font = sft_loadmem(fontData.data(), fontData.size());
+	if (!font) {
+		return -1;
+	}
+
+	sft.font = font;
+	sft.xScale = 32.0;
+	sft.yScale = 32.0;
+	sft.xOffset = 0.0;
+	sft.yOffset = 0.0;
+	sft.flags = SFT_DOWNWARD_Y;
+
+	return 0;
 }
 
-int OSD::freetype_init() {
-    int error;
+void OSD::draw_glyph(OSDTextItem *ti, SFT_Image &glyphImage, int *pen_x, int *pen_y, int item_height, int item_width, uint32_t color) {
+	int rel_pen_x = *pen_x;
+	int rel_pen_y = *pen_y + glyphImage.height;
+	for (int row = 0; row < glyphImage.height; ++row) {
+		rel_pen_x = *pen_x;
+		for (int col = 0; col < glyphImage.width; ++col, ++rel_pen_x) {
+			if (rel_pen_x < 0 || rel_pen_y < 0 || rel_pen_x >= item_width || rel_pen_y >= item_height)
+				continue;
 
-    error = FT_Init_FreeType(&freetype);
-    if (error) {
-        return error;
-    }
+			int data_index = (item_height - rel_pen_y) * item_width * 4 + rel_pen_x * 4;
+			if (data_index + 3 >= item_height * item_width * 4)
+				continue;
 
-    error = FT_New_Face(
-        freetype,
-        Config::singleton()->OSDFontPath.c_str(),
-        0,
-        &fontface
-    );
-    if (error) {
-        return error;
-    }
+			uint8_t alpha_a = ((uint8_t*)glyphImage.pixels)[row * glyphImage.width + col];
+			if (alpha_a == 0) {
+				continue;
+			}
 
-   #if 0
-        FT_Matrix matrix;  // Transformation matrix
-        matrix.xx = 0;
-        matrix.xy = -1 * (1 << 16);  // Fixed-point -1.0
-        matrix.yx = 1 * (1 << 16);   // Fixed-point 1.0
-        matrix.yy = 0;
-        FT_Set_Transform(fontface, &matrix, nullptr);
-    #endif
+			uint8_t red = (color >> 16) & 0xFF;
+			uint8_t green = (color >> 8) & 0xFF;
+			uint8_t blue = (color >> 0) & 0xFF;
+			uint8_t alpha = alpha_a;
 
-    FT_Stroker_New(freetype, &stroker);
+			ti->data[data_index + 0] = blue;
+			ti->data[data_index + 1] = green;
+			ti->data[data_index + 2] = red;
+			ti->data[data_index + 3] = alpha;
+		}
+		--rel_pen_y;
+	}
 
-    FT_Set_Char_Size(
-        fontface,
-        0,
-        72*64,
-        96,
-        96
-    );
-
-    FT_Stroker_Set(
-        stroker,
-        Config::singleton()->OSDFontStrokeSize,
-        FT_STROKER_LINECAP_SQUARE,
-        FT_STROKER_LINEJOIN_ROUND,
-        0
-    );
-    FT_Set_Char_Size(fontface, 0, 32*64, Config::singleton()->OSDFontSize, Config::singleton()->OSDFontSize);
-
-    //Prerender glyphs needed for displaying date & time.
-    std::string prerender_list;
-
-    if (Config::singleton()->OSDUserTextEnable) {
-        prerender_list = "0123456789 /:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|;:'\",.<>?`~";
-    } else {
-        prerender_list = "0123456789 /APM:";
-    }
-
-    // set_glyph_transform(fontface, 90);  // Rotate text by 90 degrees
-
-    for (unsigned int i = 0; i < prerender_list.length(); ++i) {
-        FT_UInt gindex = FT_Get_Char_Index(fontface, prerender_list[i]);
-        FT_Load_Glyph(fontface, gindex, FT_LOAD_DEFAULT);
-        FT_Glyph glyph;
-        FT_Get_Glyph(fontface->glyph, &glyph);
-        FT_Glyph stroked;
-        FT_Get_Glyph(fontface->glyph, &stroked);
-
-        FT_Glyph_StrokeBorder(&stroked, stroker, false, true);
-
-        FT_BBox bbox;
-        FT_Glyph_Get_CBox(stroked, FT_GLYPH_BBOX_PIXELS, &bbox);
-        boxes[prerender_list[i]] = bbox;
-        advances[prerender_list[i]] = stroked->advance;
-
-        FT_Glyph_To_Bitmap(&stroked, FT_RENDER_MODE_NORMAL, NULL, true);
-        FT_BitmapGlyph strokeBMG = (FT_BitmapGlyph)stroked;
-        stroke_bitmaps[prerender_list[i]] = strokeBMG;
-
-        FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, NULL, true);
-        FT_BitmapGlyph bitmapGlyph = (FT_BitmapGlyph)glyph;
-        bitmaps[prerender_list[i]] = bitmapGlyph;
-    }
-
-    return 0;
-}
-
-void OSD::draw_glyph(OSDTextItem *ti, FT_BitmapGlyph bmg,
-                     int *pen_x, int *pen_y,
-                     int item_height, int item_width,
-                     uint32_t color) {
-    int rel_pen_x = *pen_x + bmg->left;
-    int rel_pen_y = *pen_y + bmg->top;
-    unsigned int row = 0;
-    while (row < bmg->bitmap.rows) {
-        rel_pen_x = *pen_x + bmg->left;
-        for (unsigned int x = 0; x < bmg->bitmap.width; ++x, ++rel_pen_x) {
-            if (rel_pen_x < 0 || rel_pen_y < 0 || rel_pen_x > item_width - 1 || rel_pen_y > item_height - 1)
-                continue;
-            int data_index = (item_height-rel_pen_y)*item_width*4 + rel_pen_x*4;
-            if (data_index+3 >= item_height*item_width*4)
-                continue;
-            int glyph_index = row*bmg->bitmap.pitch + x;
-
-            uint8_t red, green, blue, alpha;
-            uint8_t alpha_a = bmg->bitmap.buffer[glyph_index];
-            uint8_t alpha_b = ti->data[data_index+3];
-            //Exit early if alpha is zero.
-            if (alpha_a == 0)
-                continue;
-
-            if (alpha_a == 0xFF || alpha_b == 0) {
-                red = (color >> 16) & 0xFF;
-                green = (color >> 8) & 0xFF;
-                blue = (color >> 0) & 0xFF;
-                alpha = alpha_a;
-            }
-            else {
-                //Alpha composite
-                float faa = alpha_a / 256.0;
-                float fab = alpha_b / 256.0;
-                float fra = ((color >> 16) & 0xFF) / 256.0;
-                float frb = ti->data[data_index+2] / 256.0;
-                float fga = ((color >> 8) & 0xFF) / 256.0;
-                float fgb = ti->data[data_index+1] / 256.0;
-                float fba = ((color >> 0) & 0xFF) / 256.0;
-                float fbb = ti->data[data_index+0] / 256.0;
-
-                float alpha_o = faa + fab*(1.0 - faa);
-                fra = (fra*faa + frb*fab*(1.0 - faa)) / alpha_o;
-                red = (uint8_t)(fra * 256.0);
-                fga = (fga*faa + fgb*fab*(1.0 - faa)) / alpha_o;
-                green = (uint8_t)(fra * 256.0);
-                fba = (fba*faa + fbb*fab*(1.0 - faa)) / alpha_o;
-                blue = (uint8_t)(fba * 256.0);
-                alpha = 0xFF;
-            }
-            ti->data[data_index+0] = blue;
-            ti->data[data_index+1] = green;
-            ti->data[data_index+2] = red;
-            ti->data[data_index+3] = alpha;
-        }
-        ++row;
-        --rel_pen_y;
-    }
-
-    *pen_x += ((FT_Glyph)bmg)->advance.x >> 16;
-    *pen_y += ((FT_Glyph)bmg)->advance.y >> 16;
+	*pen_x += glyphImage.width;
+	*pen_y += 0;
 }
 
 void OSD::set_text(OSDTextItem *ti, std::string text) {
-    ti->text = text;
+	ti->text = text;
 
-    //First, calculate the size of the bitmap surface we need
-    FT_BBox total_bbox = {0,0,0,0};
-    for (unsigned int i = 0; i < ti->text.length(); ++i) {
-        FT_BBox bbox = boxes[ti->text[i]];
+	//First, calculate the size of the bitmap surface we need
+	int total_width = 0;
+	int max_height = 0;
+	std::vector<SFT_Image> glyphImages;
+	for (char c : text) {
+		SFT_Glyph glyph;
+		SFT_Image image;
 
-        if (bbox.yMin < total_bbox.yMin)
-            total_bbox.yMin = bbox.yMin;
-        if (bbox.yMax > total_bbox.yMax)
-            total_bbox.yMax = bbox.yMax;
-        if (bbox.xMin < total_bbox.xMin)
-            total_bbox.xMin = bbox.xMin;
-        total_bbox.xMax += advances[ti->text[i]].x >> 16;
-    }
-    int item_height = total_bbox.yMax - total_bbox.yMin + 1;
-    int item_width = total_bbox.xMax - total_bbox.xMin + 1;
+		if (sft_lookup(&sft, c, &glyph) == 0 && glyph != 0) {
+			SFT_GMetrics metrics;
+			sft_gmetrics(&sft, glyph, &metrics);
 
-    int pen_y = -total_bbox.yMin;
-    int pen_x = -total_bbox.xMin;
+			image.width = metrics.minWidth;
+			image.height = metrics.minHeight;
+			image.pixels = calloc(1, image.width * image.height);
 
-    //OSD Quirk: The item width must be divisible by 2.
-    //If not, the OSD item shifts rapidly side-to-side.
-    //Bad timings?
-    if (item_width % 2 != 0)
-        ++item_width;
+			if (sft_render(&sft, glyph, image) == 0) {
+				glyphImages.push_back(image);
+				total_width += image.width;
+				max_height = std::max(max_height, image.height);
+			} else {
+				free(image.pixels);
+			}
+		}
+	}
 
-    ti->imp_attr.rect.p1.x = ti->imp_attr.rect.p0.x + item_width - 1;
-    ti->imp_attr.rect.p1.y = ti->imp_attr.rect.p0.y + item_height - 1;
+	int item_height = max_height;
+	int item_width = total_width;
 
-    free(ti->data);
-    ti->data = (uint8_t*)malloc(item_width * item_height * 4);
-    ti->imp_attr.data.picData.pData = ti->data;
-    memset(ti->data, 0, item_width * item_height * 4);
+	//OSD Quirk: The item width must be divisible by 2.
+	//If not, the OSD item shifts rapidly side-to-side.
+	//Bad timings?
+	if (item_width % 2 != 0)
+		++item_width;
 
-    //Then, render the stroke & text
-    for (unsigned int i = 0; i < ti->text.length(); ++i) {
-        int cpx = pen_x;
-        int cpy = pen_y;
+	ti->imp_attr.rect.p1.x = ti->imp_attr.rect.p0.x + item_width - 1;
+	ti->imp_attr.rect.p1.y = ti->imp_attr.rect.p0.y + item_height - 1;
 
-    if (Config::singleton()->OSDFontStrokeEnable) {
-        draw_glyph(ti, stroke_bitmaps[ti->text[i]], &cpx, &cpy, item_height, item_width, Config::singleton()->OSDFontStrokeColor);
-    }
-        draw_glyph(ti, bitmaps[ti->text[i]], &pen_x, &pen_y, item_height, item_width, Config::singleton()->OSDFontColor);
-    }
+	free(ti->data);
+	ti->data = (uint8_t*)malloc(item_width * item_height * 4);
+	ti->imp_attr.data.picData.pData = ti->data;
+	memset(ti->data, 0, item_width * item_height * 4);
+
+	//Then, render the text
+	int pen_x = 0;
+	int pen_y = 0;
+	for (size_t i = 0; i < text.length(); ++i) {
+		draw_glyph(ti, glyphImages[i], &pen_x, &pen_y, item_height, item_width, Config::singleton()->OSDFontColor);
+		free(glyphImages[i].pixels);
+	}
 }
 
 std::unique_ptr<unsigned char[]> loadBGRAImage(const std::string& filepath, size_t& length) {
-    std::ifstream file(filepath, std::ios::binary | std::ios::ate); // Open file at the end to get the size
-    if (!file.is_open()) {
-        LOG_ERROR("Failed to open the OSD logo file.");
-        return nullptr;
-    }
+	std::ifstream file(filepath, std::ios::binary | std::ios::ate); // Open file at the end to get the size
+	if (!file.is_open()) {
+		LOG_ERROR("Failed to open the OSD logo file.");
+		return nullptr;
+	}
 
-    length = file.tellg(); // Get file size
-    file.seekg(0, std::ios::beg); // Seek back to start of file
+	length = file.tellg(); // Get file size
+	file.seekg(0, std::ios::beg); // Seek back to start of file
 
-    // Allocate memory for the image
-    auto data = std::make_unique<unsigned char[]>(length);
+	// Allocate memory for the image
+	auto data = std::make_unique<unsigned char[]>(length);
 
-    // Read the image data
-    if (!file.read(reinterpret_cast<char*>(data.get()), length)) {
-        LOG_ERROR("Failed to read OSD logo data.");
-        return nullptr; // Memory is automatically freed if allocation was successful
-    }
+	// Read the image data
+	if (!file.read(reinterpret_cast<char*>(data.get()), length)) {
+		LOG_ERROR("Failed to read OSD logo data.");
+		return nullptr; // Memory is automatically freed if allocation was successful
+	}
 
-    return data;
+	return data;
 }
-
 bool OSD::init() {
-    int ret;
-    LOG_DEBUG("OSD init begin");
+	int ret;
+	LOG_DEBUG("OSD init begin");
 
-    if (freetype_init()) {
-        LOG_DEBUG("FREETYPE init failed.");
-        return true;
-    }
+	if (schrift_init()) {
+		LOG_DEBUG("libschrift init failed.");
+		return true;
+	}
 
-    ret = IMP_OSD_CreateGroup(0);
-    if (ret < 0) {
-        LOG_DEBUG("IMP_OSD_CreateGroup() == " + std::to_string(ret));
-        return true;
-    }
-    LOG_DEBUG("IMP_OSD_CreateGroup group 0 created");
+	ret = IMP_OSD_CreateGroup(0);
+	if (ret < 0) {
+		LOG_DEBUG("IMP_OSD_CreateGroup() == " + std::to_string(ret));
+		return true;
+	}
+	LOG_DEBUG("IMP_OSD_CreateGroup group 0 created");
 
-    memset(&timestamp.imp_rgn, 0, sizeof(timestamp.imp_rgn));
-    timestamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
-    IMP_OSD_RegisterRgn(timestamp.imp_rgn, 0, NULL);
-    timestamp.imp_attr.type = OSD_REG_PIC;
-    timestamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdPosTimeX;
-    timestamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdPosTimeY;
-    timestamp.imp_attr.fmt = PIX_FMT_BGRA;
-    timestamp.imp_attr.data.picData.pData = timestamp.data;
+	memset(&timestamp.imp_rgn, 0, sizeof(timestamp.imp_rgn));
+	timestamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
+	IMP_OSD_RegisterRgn(timestamp.imp_rgn, 0, NULL);
+	timestamp.imp_attr.type = OSD_REG_PIC;
+	timestamp.imp_attr.rect.p0.x = Config::singleton()->stream0osdPosTimeX;
+	timestamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdPosTimeY;
+	timestamp.imp_attr.fmt = PIX_FMT_BGRA;
+	timestamp.imp_attr.data.picData.pData = timestamp.data;
 
-    memset(&timestamp.imp_grp_attr, 0, sizeof(timestamp.imp_grp_attr));
-    IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
-    IMP_OSD_GetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
-    timestamp.imp_grp_attr.show = 1;
-    timestamp.imp_grp_attr.layer = 1;
-    timestamp.imp_grp_attr.scalex = 0;
-    timestamp.imp_grp_attr.scaley = 0;
-    IMP_OSD_SetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
+	memset(&timestamp.imp_grp_attr, 0, sizeof(timestamp.imp_grp_attr));
+	IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
+	IMP_OSD_GetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
+	timestamp.imp_grp_attr.show = 1;
+	timestamp.imp_grp_attr.layer = 1;
+	timestamp.imp_grp_attr.scalex = 0;
+	timestamp.imp_grp_attr.scaley = 0;
+	IMP_OSD_SetGrpRgnAttr(timestamp.imp_rgn, 0, &timestamp.imp_grp_attr);
 
-    if (Config::singleton()->OSDUserTextEnable) {
-        int userTextPosX = (Config::singleton()->stream0osdUserTextPosX == 0) ?
-                    Config::singleton()->stream0width / 2 :
-                    Config::singleton()->stream0osdUserTextPosX;
-        memset(&userText.imp_rgn, 0, sizeof(userText.imp_rgn));
-        userText.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(userText.imp_rgn, 0, NULL);
-        userText.imp_attr.type = OSD_REG_PIC;
-        userText.imp_attr.rect.p0.x = userTextPosX;
-        userText.imp_attr.rect.p0.y = Config::singleton()->stream0osdUserTextPosY;
-        userText.imp_attr.fmt = PIX_FMT_BGRA;
-        userText.data = NULL;
-        userText.imp_attr.data.picData.pData = userText.data;
-        set_text(&userText, Config::singleton()->OSDUserTextString);
+	if (Config::singleton()->OSDUserTextEnable) {
+		int userTextPosX = (Config::singleton()->stream0osdUserTextPosX == 0) ?
+					Config::singleton()->stream0width / 2 :
+					Config::singleton()->stream0osdUserTextPosX;
+		memset(&userText.imp_rgn, 0, sizeof(userText.imp_rgn));
+		userText.imp_rgn = IMP_OSD_CreateRgn(NULL);
+		IMP_OSD_RegisterRgn(userText.imp_rgn, 0, NULL);
+		userText.imp_attr.type = OSD_REG_PIC;
+		userText.imp_attr.rect.p0.x = userTextPosX;
+		userText.imp_attr.rect.p0.y = Config::singleton()->stream0osdUserTextPosY;
+		userText.imp_attr.fmt = PIX_FMT_BGRA;
+		userText.data = NULL;
+		userText.imp_attr.data.picData.pData = userText.data;
+		set_text(&userText, Config::singleton()->OSDUserTextString);
 
-        memset(&userText.imp_grp_attr, 0, sizeof(userText.imp_grp_attr));
-        IMP_OSD_SetRgnAttr(userText.imp_rgn, &userText.imp_attr);
-        IMP_OSD_GetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
-        userText.imp_grp_attr.show = 1;
-        userText.imp_grp_attr.layer = 2;
-        userText.imp_grp_attr.scalex = 1;
-        userText.imp_grp_attr.scaley = 1;
-        IMP_OSD_SetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
-    }
+		memset(&userText.imp_grp_attr, 0, sizeof(userText.imp_grp_attr));
+		IMP_OSD_SetRgnAttr(userText.imp_rgn, &userText.imp_attr);
+		IMP_OSD_GetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
+		userText.imp_grp_attr.show = 1;
+		userText.imp_grp_attr.layer = 2;
+		userText.imp_grp_attr.scalex = 1;
+		userText.imp_grp_attr.scaley = 1;
+		IMP_OSD_SetGrpRgnAttr(userText.imp_rgn, 0, &userText.imp_grp_attr);
+	}
 
-    if (Config::singleton()->OSDUptimeEnable) {
-        int uptimePosX = (Config::singleton()->stream0osdUptimeStampPosX == 0) ?
-                    Config::singleton()->stream0width - 240 :
-                    Config::singleton()->stream0osdUptimeStampPosX;
-        memset(&uptimeStamp.imp_rgn, 0, sizeof(uptimeStamp.imp_rgn));
-        uptimeStamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_RegisterRgn(uptimeStamp.imp_rgn, 0, NULL);
-        uptimeStamp.imp_attr.type = OSD_REG_PIC;
-        uptimeStamp.imp_attr.rect.p0.x = uptimePosX;
-        uptimeStamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdUptimeStampPosY;
-        uptimeStamp.imp_attr.fmt = PIX_FMT_BGRA;
-        uptimeStamp.data = NULL;
-        uptimeStamp.imp_attr.data.picData.pData = uptimeStamp.data;
+	if (Config::singleton()->OSDUptimeEnable) {
+		int uptimePosX = (Config::singleton()->stream0osdUptimeStampPosX == 0) ?
+					Config::singleton()->stream0width - 240 :
+					Config::singleton()->stream0osdUptimeStampPosX;
+		memset(&uptimeStamp.imp_rgn, 0, sizeof(uptimeStamp.imp_rgn));
+		uptimeStamp.imp_rgn = IMP_OSD_CreateRgn(NULL);
+		IMP_OSD_RegisterRgn(uptimeStamp.imp_rgn, 0, NULL);
+		uptimeStamp.imp_attr.type = OSD_REG_PIC;
+		uptimeStamp.imp_attr.rect.p0.x = uptimePosX;
+		uptimeStamp.imp_attr.rect.p0.y = Config::singleton()->stream0osdUptimeStampPosY;
+		uptimeStamp.imp_attr.fmt = PIX_FMT_BGRA;
+		uptimeStamp.data = NULL;
+		uptimeStamp.imp_attr.data.picData.pData = uptimeStamp.data;
 
-        memset(&uptimeStamp.imp_grp_attr, 0, sizeof(uptimeStamp.imp_grp_attr));
-        IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
-        IMP_OSD_GetGrpRgnAttr(uptimeStamp.imp_rgn, 0, &uptimeStamp.imp_grp_attr);
-        uptimeStamp.imp_grp_attr.show = 1;
-        uptimeStamp.imp_grp_attr.layer = 3;
-        uptimeStamp.imp_grp_attr.scalex = 1;
-        uptimeStamp.imp_grp_attr.scaley = 1;
-        IMP_OSD_SetGrpRgnAttr(uptimeStamp.imp_rgn, 0, &uptimeStamp.imp_grp_attr);
-    }
+		memset(&uptimeStamp.imp_grp_attr, 0, sizeof(uptimeStamp.imp_grp_attr));
+		IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
+		IMP_OSD_GetGrpRgnAttr(uptimeStamp.imp_rgn, 0, &uptimeStamp.imp_grp_attr);
+		uptimeStamp.imp_grp_attr.show = 1;
+		uptimeStamp.imp_grp_attr.layer = 3;
+		uptimeStamp.imp_grp_attr.scalex = 1;
+		uptimeStamp.imp_grp_attr.scaley = 1;
+		IMP_OSD_SetGrpRgnAttr(uptimeStamp.imp_rgn, 0, &uptimeStamp.imp_grp_attr);
+	}
 
-    if (Config::singleton()->OSDLogoEnable) {
-        size_t imageSize;
-        auto imageData = loadBGRAImage(Config::singleton()->OSDLogoPath.c_str(), imageSize);
+	if (Config::singleton()->OSDLogoEnable) {
+		size_t imageSize;
+		auto imageData = loadBGRAImage(Config::singleton()->OSDLogoPath.c_str(), imageSize);
 
-        int OSDLogoX = (Config::singleton()->stream0osdLogoPosX == 0) ?
-                        (Config::singleton()->stream0width - Config::singleton()->OSDLogoWidth - 20) :
-                        Config::singleton()->stream0osdLogoPosX;
+		int OSDLogoX = (Config::singleton()->stream0osdLogoPosX == 0) ?
+						(Config::singleton()->stream0width - Config::singleton()->OSDLogoWidth - 20) :
+						Config::singleton()->stream0osdLogoPosX;
 
-        int OSDLogoY = (Config::singleton()->stream0osdLogoPosY == 0) ?
-                        (Config::singleton()->stream0height - Config::singleton()->OSDLogoHeight - 10):
-                        Config::singleton()->stream0osdLogoPosY;
+		int OSDLogoY = (Config::singleton()->stream0osdLogoPosY == 0) ?
+						(Config::singleton()->stream0height - Config::singleton()->OSDLogoHeight - 10):
+						Config::singleton()->stream0osdLogoPosY;
 
-        IMPOSDRgnAttr OSDLogo;
-        memset(&OSDLogo, 0, sizeof(OSDLogo));
-        OSDLogo.type = OSD_REG_PIC;
-        int picw = Config::singleton()->OSDLogoWidth;
-        int pich = Config::singleton()->OSDLogoHeight;
-        OSDLogo.rect.p0.x = OSDLogoX;
-        OSDLogo.rect.p0.y = OSDLogoY;
-        OSDLogo.rect.p1.x = OSDLogo.rect.p0.x+picw-1;
-        OSDLogo.rect.p1.y = OSDLogo.rect.p0.y+pich-1;
-        OSDLogo.fmt = PIX_FMT_BGRA;
-        OSDLogo.data.picData.pData = imageData.get();
+		IMPOSDRgnAttr OSDLogo;
+		memset(&OSDLogo, 0, sizeof(OSDLogo));
+		OSDLogo.type = OSD_REG_PIC;
+		int picw = Config::singleton()->OSDLogoWidth;
+		int pich = Config::singleton()->OSDLogoHeight;
+		OSDLogo.rect.p0.x = OSDLogoX;
+		OSDLogo.rect.p0.y = OSDLogoY;
+		OSDLogo.rect.p1.x = OSDLogo.rect.p0.x+picw-1;
+		OSDLogo.rect.p1.y = OSDLogo.rect.p0.y+pich-1;
+		OSDLogo.fmt = PIX_FMT_BGRA;
+		OSDLogo.data.picData.pData = imageData.get();
 
-        IMPRgnHandle handle = IMP_OSD_CreateRgn(NULL);
-        IMP_OSD_SetRgnAttr(handle, &OSDLogo);
-        IMPOSDGrpRgnAttr OSDLogoGroup;
-        memset(&OSDLogoGroup, 0, sizeof(OSDLogoGroup));
-        OSDLogoGroup.show = 1;
-        OSDLogoGroup.layer = 4;
-        OSDLogoGroup.scalex = 1;
-        OSDLogoGroup.scaley = 1;
-        OSDLogoGroup.gAlphaEn = 1;
-        OSDLogoGroup.fgAlhpa = Config::singleton()->stream0osdLogoAlpha;
+		IMPRgnHandle handle = IMP_OSD_CreateRgn(NULL);
+		IMP_OSD_SetRgnAttr(handle, &OSDLogo);
+		IMPOSDGrpRgnAttr OSDLogoGroup;
+		memset(&OSDLogoGroup, 0, sizeof(OSDLogoGroup));
+		OSDLogoGroup.show = 1;
+		OSDLogoGroup.layer = 4;
+		OSDLogoGroup.scalex = 1;
+		OSDLogoGroup.scaley = 1;
+		OSDLogoGroup.gAlphaEn = 1;
+		OSDLogoGroup.fgAlhpa = Config::singleton()->stream0osdLogoAlpha;
 
-        IMP_OSD_RegisterRgn(handle, 0, &OSDLogoGroup);
-    }
+		IMP_OSD_RegisterRgn(handle, 0, &OSDLogoGroup);
+	}
 
-    ret = IMP_OSD_Start(0);
-    if (ret < 0) {
-        LOG_DEBUG("IMP_OSD_Start() == " + std::to_string(ret));
-        return true;
-    }
-    LOG_DEBUG("IMP_OSD_Start succeed");
+	ret = IMP_OSD_Start(0);
+	if (ret < 0) {
+		LOG_DEBUG("IMP_OSD_Start() == " + std::to_string(ret));
+		return true;
+	}
+	LOG_DEBUG("IMP_OSD_Start succeed");
 
-    LOG_DEBUG("OSD init completed");
-    return false;
+	LOG_DEBUG("OSD init completed");
+	return false;
 }
 
 unsigned long getSystemUptime() {
-    std::ifstream uptimeFile("/proc/uptime");
-    std::string line;
-    if (std::getline(uptimeFile, line)) {
-        std::istringstream iss(line);
-        double uptimeSeconds;
-        if (iss >> uptimeSeconds) {
-            // Uptime in seconds
-            return static_cast<unsigned long>(uptimeSeconds);
-        }
-    }
-    return 0; // Default to 0 if unable to read uptime
+	std::ifstream uptimeFile("/proc/uptime");
+	std::string line;
+	if (std::getline(uptimeFile, line)) {
+		std::istringstream iss(line);
+		double uptimeSeconds;
+		if (iss >> uptimeSeconds) {
+			// Uptime in seconds
+			return static_cast<unsigned long>(uptimeSeconds);
+		}
+	}
+	return 0; // Default to 0 if unable to read uptime
 }
 
 // Var to keep track of the last second updated
 static int last_updated_second = -1;
 
 void OSD::updateDisplayEverySecond() {
-    time_t current = time(NULL);
-    struct tm *ltime = localtime(&current);
+	time_t current = time(NULL);
+	struct tm *ltime = localtime(&current);
 
-    // Check if we have moved to a new second
-    if (ltime->tm_sec != last_updated_second) {
-        last_updated_second = ltime->tm_sec;  // Update the last second tracker
+	// Check if we have moved to a new second
+	if (ltime->tm_sec != last_updated_second) {
+		last_updated_second = ltime->tm_sec;  // Update the last second tracker
 
-        // Now we ensure both updates are performed as close together as possible
-        // Format and update system time
-        if (Config::singleton()->OSDTimeEnable) {
-            char timeFormatted[256];
-            strftime(timeFormatted, sizeof(timeFormatted), Config::singleton()->OSDFormat.c_str(), ltime);
-            set_text(&timestamp, std::string(timeFormatted));
-            IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
-        }
+		// Now we ensure both updates are performed as close together as possible
+		// Format and update system time
+		if (Config::singleton()->OSDTimeEnable) {
+			char timeFormatted[256];
+			strftime(timeFormatted, sizeof(timeFormatted), Config::singleton()->OSDFormat.c_str(), ltime);
+			set_text(&timestamp, std::string(timeFormatted));
+			IMP_OSD_SetRgnAttr(timestamp.imp_rgn, &timestamp.imp_attr);
+		}
 
-        // Calculate and update system uptime
-        if (Config::singleton()->OSDUptimeEnable) {
-            unsigned long currentUptime = getSystemUptime();
-            unsigned long hours = currentUptime / 3600;
-            unsigned long minutes = (currentUptime % 3600) / 60;
-            unsigned long seconds = currentUptime % 60;
-            char uptimeFormatted[256];
-            snprintf(uptimeFormatted, sizeof(uptimeFormatted), Config::singleton()->OSDUptimeFormat.c_str(), hours, minutes, seconds);
-            set_text(&uptimeStamp, std::string(uptimeFormatted));
-            IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
-        }
-    }
+		// Calculate and update system uptime
+		if (Config::singleton()->OSDUptimeEnable) {
+			unsigned long currentUptime = getSystemUptime();
+			unsigned long hours = currentUptime / 3600;
+			unsigned long minutes = (currentUptime % 3600) / 60;
+			unsigned long seconds = currentUptime % 60;
+			char uptimeFormatted[256];
+			snprintf(uptimeFormatted, sizeof(uptimeFormatted), Config::singleton()->OSDUptimeFormat.c_str(), hours, minutes, seconds);
+			set_text(&uptimeStamp, std::string(uptimeFormatted));
+			IMP_OSD_SetRgnAttr(uptimeStamp.imp_rgn, &uptimeStamp.imp_attr);
+		}
+	}
 }
 
 void OSD::update() {
-    //Called every frame by the encoder.
-    updateDisplayEverySecond();
+	//Called every frame by the encoder.
+	updateDisplayEverySecond();
 }
