@@ -7,10 +7,6 @@
 
 #define MODULE "WORKER"
 
-
-
-#define OSDPoolSize 200000
-
 #if defined(PLATFORM_T31)
 #define IMPEncoderCHNAttr IMPEncoderChnAttr
 #define IMPEncoderCHNStat IMPEncoderChnStat
@@ -44,7 +40,7 @@ Worker *Worker::createNew(
 int Worker::init()
 {
     LOG_DEBUG("Worker::init()");
-    int ret;
+    int ret = 0;
     if (!impsystem)
     {
         impsystem = IMPSystem::createNew(cfg);
@@ -143,7 +139,7 @@ std::vector<uint8_t> Worker::capture_jpeg_image(int encChn)
     std::vector<uint8_t> jpeg_data;
     int ret = 0;
 
-    //ret = IMP_Encoder_StartRecvPic(encChn);
+    ret = IMP_Encoder_StartRecvPic(encChn);
     if (ret != 0)
     {
         std::cerr << "IMP_Encoder_StartRecvPic(" << encChn << ") failed: " << strerror(errno) << std::endl;
@@ -199,7 +195,7 @@ std::vector<uint8_t> Worker::capture_jpeg_image(int encChn)
         }
     }
 
-    //ret = IMP_Encoder_StopRecvPic(encChn);
+    // ret = IMP_Encoder_StopRecvPic(encChn);
     if (ret != 0)
     {
         std::cerr << "IMP_Encoder_StopRecvPic(" << encChn << ") failed: " << strerror(errno) << std::endl;
@@ -275,7 +271,7 @@ void *Worker::jpeg_grabber(void *arg)
     if (ret != 0)
         return 0;
 
-    channel->thread_signal.store(1);
+    channel->thread_signal.fetch_or(1);
 
     while (channel->thread_signal.load() & 1)
     {
@@ -338,7 +334,7 @@ void *Worker::jpeg_grabber(void *arg)
         usleep(THREAD_SLEEP);
     }
 
-    ret = IMP_Encoder_StopRecvPic(channel->encChn);
+    // ret = IMP_Encoder_StopRecvPic(channel->encChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StopRecvPic(" << channel->encChn << ")");
 
     return 0;
@@ -348,7 +344,7 @@ void *Worker::stream_grabber(void *arg)
 {
     Channel *channel = static_cast<Channel *>(arg);
 
-    nice(-19);
+    // nice(-19);
 
     LOG_DEBUG("Start stream_grabber thread for stream " << channel->encChn);
 
@@ -367,7 +363,7 @@ void *Worker::stream_grabber(void *arg)
     if (ret != 0)
         return 0;
 
-    channel->thread_signal.store(1);
+    channel->thread_signal.fetch_or(1);
 
     while (channel->thread_signal.load() & 1)
     {
@@ -387,7 +383,7 @@ void *Worker::stream_grabber(void *arg)
                 if (nal_ts - last_nal_ts > 1.5 * (1000000 / channel->stream->fps))
                 {
                     // Silence for now until further tests / THINGINO
-                    //LOG_WARN("The encoder 0 dropped a frame. " << (nal_ts - last_nal_ts) << ", " << (1.5 * (1000000 / channel->stream->fps)));
+                    // LOG_WARN("The encoder 0 dropped a frame. " << (nal_ts - last_nal_ts) << ", " << (1.5 * (1000000 / channel->stream->fps)));
                 }
 
                 struct timeval encode_time;
@@ -419,8 +415,8 @@ void *Worker::stream_grabber(void *arg)
                             nalu.duration = nal_ts - last_nal_ts;
                         }
                         else if (stream.pack[i].nalType.h265NalType == 19 ||
-                                stream.pack[i].nalType.h265NalType == 20 ||
-                                stream.pack[i].nalType.h265NalType == 1)
+                                 stream.pack[i].nalType.h265NalType == 20 ||
+                                 stream.pack[i].nalType.h265NalType == 1)
                         {
                             nalu.duration = nal_ts - last_nal_ts;
                         }
@@ -435,8 +431,8 @@ void *Worker::stream_grabber(void *arg)
                             nalu.duration = nal_ts - last_nal_ts;
                         }
                         else if (stream.pack[i].dataType.h265Type == 19 ||
-                                stream.pack[i].dataType.h265Type == 20 ||
-                                stream.pack[i].dataType.h265Type == 1)
+                                 stream.pack[i].dataType.h265Type == 20 ||
+                                 stream.pack[i].dataType.h265Type == 1)
                         {
                             nalu.duration = nal_ts - last_nal_ts;
                         }
@@ -483,8 +479,8 @@ void *Worker::stream_grabber(void *arg)
                             if (channel->sink->data_available_callback(nalu))
                             {
                                 LOG_ERROR("stream encChn:" << channel->encChn << ", size:" << nalu.data.size()
-                                                        << ", pC:" << stream.packCount << ", pS:" << nalu.data.size() << ", pN:"
-                                                        << i << " clogged!");
+                                                           << ", pC:" << stream.packCount << ", pS:" << nalu.data.size() << ", pN:"
+                                                           << i << " clogged!");
                             }
                         }
                     }
@@ -515,13 +511,16 @@ void *Worker::stream_grabber(void *arg)
                                 ", work_done:" << encChnStats.work_done);
                     */
                 }
+
+                channel->thread_signal.fetch_or(2);
             }
             else
             {
-                LOG_DEBUG("IMP_Encoder_PollingStream(" << channel->encChn << ", " << STREAM_POLLING_TIMEOUT << ") timeout !");
+                LOG_DDEBUG("IMP_Encoder_PollingStream(" << channel->encChn << ", " << STREAM_POLLING_TIMEOUT << ") timeout !");
             }
-
-        } else {
+        }
+        else
+        {
 
             channel->stream->osd.stats.bps = 0;
             channel->stream->osd.stats.fps = 1;
@@ -575,16 +574,14 @@ void Worker::run()
             pthread_attr_setschedparam(&jpeg_thread_attr, &jpeg_thread_sheduler);
             pthread_attr_setschedparam(&stream_thread_attr, &stream_thread_sheduler);
 
-            if (cfg->stream2.enabled)
+            if (cfg->rtsp_thread_signal == 0)
             {
-                channels[2] = new Channel{2, &cfg->stream2};
-                pthread_create(&worker_threads[2], &jpeg_thread_attr, jpeg_grabber, channels[2]);
+                delay_osd = false;
             }
-
-            if (cfg->stream1.enabled)
+            else
             {
-                channels[1] = new Channel{1, &cfg->stream1, stream1_sink, sink_lock1};
-                start_stream(1);
+                delay_osd = true;
+                cfg->rtsp_thread_signal = 0;
             }
 
             if (cfg->stream0.enabled)
@@ -593,7 +590,18 @@ void Worker::run()
                 start_stream(0);
             }
 
-            cfg->rtsp_thread_signal = 0;
+            if (cfg->stream1.enabled)
+            {
+                channels[1] = new Channel{1, &cfg->stream1, stream1_sink, sink_lock1};
+                start_stream(1);
+            }
+
+            if (cfg->stream2.enabled)
+            {
+                channels[2] = new Channel{2, &cfg->stream2};
+                pthread_create(&worker_threads[2], &jpeg_thread_attr, jpeg_grabber, channels[2]);
+            }
+
             cfg->worker_thread_signal.fetch_or(2);
         }
 
@@ -639,21 +647,44 @@ void Worker::run()
 
 void Worker::start_stream(int encChn)
 {
+    int i = 0;
+
     pthread_mutex_init(&channels[encChn]->lock, NULL);
     gettimeofday(&channels[encChn]->stream->osd.stats.ts, NULL);
     if (encoder[encChn]->osd)
     {
-        channels[encChn]->stream->osd.thread_signal.store(1);
+        // channels[encChn]->stream->osd.thread_signal.fetch_or(1);
         pthread_create(&osd_threads[encChn], &osd_thread_attr, OSD::updateWrapper, encoder[encChn]->osd);
     }
     pthread_create(&worker_threads[encChn], &stream_thread_attr, stream_grabber, channels[encChn]);
+
+    // OSD delayed start, osd is only started when the
+    // stream_grabber thread has transferred data for the first time
+    // identified by 'channels[encChn]->thread_signal.fetch_or(2)'
+    if (delay_osd)
+    {
+        while (channels[encChn]->thread_signal.load() != 3 && i < 100)
+        {
+            usleep(1000 * 10);
+            ++i;
+        }
+    }
+    else
+    {
+        channels[encChn]->thread_signal.fetch_or(2);
+    }
+
+    if (encoder[encChn]->osd)
+    {
+        encoder[encChn]->osd->start();
+    }
 }
 
 void Worker::exit_stream(int encChn)
 {
     if (encoder[encChn]->osd)
     {
-        channels[encChn]->stream->osd.thread_signal.store(0);
+        channels[encChn]->stream->osd.thread_signal.fetch_xor(1);
         LOG_DEBUG("stop signal is sent to stream" << encChn << " osd thread");
         if (pthread_join(osd_threads[encChn], NULL) == 0)
         {
@@ -663,7 +694,7 @@ void Worker::exit_stream(int encChn)
     }
 
     LOG_DEBUG("stop signal is sent to stream_grabber for stream" << encChn);
-    channels[encChn]->thread_signal.store(0);
+    channels[encChn]->thread_signal.fetch_xor(1);
     if (pthread_join(worker_threads[encChn], NULL) == 0)
     {
         LOG_DEBUG("wait for stream_grabber exit stream" << encChn);

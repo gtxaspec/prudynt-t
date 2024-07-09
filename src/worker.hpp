@@ -114,6 +114,7 @@ public:
 	static EncoderSink *stream1_sink;
 
 	static std::vector<uint8_t> capture_jpeg_image(int encChn);
+
 private:
 	Motion motion;
 
@@ -139,7 +140,7 @@ private:
 	pthread_attr_t osd_thread_attr;
 	pthread_attr_t jpeg_thread_attr;
 	pthread_attr_t stream_thread_attr;
-
+	bool delay_osd;
 
 };
 
