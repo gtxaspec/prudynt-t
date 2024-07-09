@@ -8,7 +8,6 @@ CONFIG_MUSL_BUILD=y
 CONFIG_STATIC_BUILD=n
 DEBUG=n
 
-CCACHE = ccache
 CFLAGS = -Wall -Wextra -Wno-unused-parameter -O2 -DNO_OPENSSL=1
 ifeq ($(KERNEL_VERSION_4),y)
 CFLAGS += -DKERNEL_VERSION_4
