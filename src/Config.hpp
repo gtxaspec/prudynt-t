@@ -20,8 +20,12 @@
 
 #define OSD_AUTO_VALUE 16384
 #define THREAD_SLEEP 100000
-#define STREAM_POLLING_TIMEOUT 5000
+#define STREAM_POLLING_TIMEOUT 500
 #define GET_STREAM_BLOCKING false
+#define OSDPoolSize 100000
+
+//Some more debug output not usefull for users
+//#define DDEBUG
 
 #if defined(PLATFORM_T31)
 #define DEFAULT_ENC_MODE_0 "FIXQP"
@@ -135,6 +139,9 @@ struct _audio {
 struct _osd {            
     int font_size;
     int font_stroke_size;
+    int font_xscale;
+    int font_yscale;
+    int font_stroke;
     int logo_height;
     int logo_width;
     int pos_time_x;
