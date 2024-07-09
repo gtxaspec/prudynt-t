@@ -12,11 +12,8 @@
 #include <arpa/inet.h>
 #include <sys/sysinfo.h>
 
-//#include <ft2build.h>
 #include "schrift.h"
 
-//#include FT_FREETYPE_H
-//#include FT_STROKER_H
 
 #if defined(PLATFORM_T31)
 #define IMPEncoderCHNAttr IMPEncoderChnAttr
