@@ -380,6 +380,10 @@ int IMPEncoder::deinit()
             ret = IMP_System_UnBind(&fs, &enc);
             LOG_DEBUG_OR_ERROR(ret, "IMP_System_UnBind(&fs, &enc)");
         }
+    } else {
+
+        ret = IMP_Encoder_StopRecvPic(encChn);
+        LOG_DEBUG("IMP_Encoder_StopRecvPic(" << encChn << ")");
     }
 
     ret = IMP_Encoder_UnRegisterChn(encChn);
