@@ -1,7 +1,7 @@
 #ifndef OSD_hpp
 #define OSD_hpp
 
-#include <map>
+//#include <map>
 #include <memory>
 #include "Config.hpp"
 #include <imp/imp_osd.h>
@@ -12,10 +12,11 @@
 #include <arpa/inet.h>
 #include <sys/sysinfo.h>
 
-#include <ft2build.h>
+//#include <ft2build.h>
+#include "schrift.h"
 
-#include FT_FREETYPE_H
-#include FT_STROKER_H
+//#include FT_FREETYPE_H
+//#include FT_STROKER_H
 
 #if defined(PLATFORM_T31)
 #define IMPEncoderCHNAttr IMPEncoderChnAttr
@@ -31,6 +32,16 @@ struct OSDItem
     IMPOSDRgnAttrData *rgnAttrData;
 };
 
+struct Glyph {
+    int width;
+    int height;
+    std::vector<uint8_t> bitmap;
+    int advance;
+    int xmin;
+    int ymin;
+    SFT_Glyph glyph;
+};
+
 class OSD
 {
 public:
@@ -41,7 +52,8 @@ public:
     }
     void init();
     int exit();
-    //void update();
+    int start();
+
     void* update();
     static void* updateWrapper(void* arg);
     void updateDisplayEverySecond();
@@ -51,6 +63,19 @@ public:
     static uint16_t get_abs_pos(const uint16_t max,const uint16_t size,const int pos);
 
 private:
+
+    // libschrift
+    std::vector<uint8_t> fontData;
+    std::unordered_map<char, Glyph> glyphs;
+    SFT *sft;
+    int load_font();
+    int libschrift_init();
+    int renderGlyph(const char* characters);
+    void drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineSize, int WIDTH, int HEIGHT);
+    int calculateTextSize(const char* text, uint16_t& width, uint16_t& height, int outlineSize);
+    int drawText(uint8_t* image, const char* text, int WIDTH, int HEIGHT, int outlineSize);
+    uint8_t BGRA_STROKE[4];
+    uint8_t BGRA_TEXT[4];
 
     _osd *osd;
     std::shared_ptr<CFG> cfg;
@@ -62,24 +87,10 @@ private:
     OSDItem osdUptm{};
     OSDItem osdLogo{};
 
-    int freetype_init();
-    void draw_glyph(uint8_t *data, FT_BitmapGlyph bmg,
-                    int *pen_x, int *pen_y,
-                    int item_height, int item_width,
-                    uint32_t color);
     void set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, int posX, int posY, int angle);
     const char * getConfigPath(const char *itemName);
 
-    FT_Library freetype{};
-    FT_Face fontface{};
-    FT_Stroker stroker{};
-
     IMPEncoderCHNAttr channelAttributes;
-
-    std::map<char, FT_BitmapGlyph> bitmaps{};
-    std::map<char, FT_BitmapGlyph> stroke_bitmaps{};
-    std::map<char, FT_BBox> boxes{};
-    std::map<char, FT_Vector> advances{};
 
     bool initialized{0};
     int osdGrp{};
@@ -90,6 +101,15 @@ private:
 
     uint16_t stream_width;
     uint16_t stream_height;
+
+    time_t current;
+    struct tm *ltime;
+
+    char timeFormatted[32];
+    char uptimeFormatted[32];
+    const char *user_text;
+    char fps[4];
+    char bps[8];
 };
 
 #endif
