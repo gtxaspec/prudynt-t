@@ -15,6 +15,12 @@
 #define LOG_NOTICE(str) Logger::log(Logger::NOTICE, FILENAME, LogMsg() << str)
 #define LOG_INFO(str) Logger::log(Logger::INFO, FILENAME, LogMsg() << str)
 
+#if defined(DDEBUG)
+#define LOG_DDEBUG(str) Logger::log(Logger::DEBUG, FILENAME, LogMsg() << str)
+#else
+#define LOG_DDEBUG(str) ((void)0)
+#endif
+
 #if defined(ENABLE_LOG_DEBUG)
 #define LOG_DEBUG(str) Logger::log(Logger::DEBUG, FILENAME, LogMsg() << str)
 #define LOG_DEBUG_OR_ERROR(condition, str) \
