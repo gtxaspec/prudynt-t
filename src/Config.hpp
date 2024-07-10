@@ -25,7 +25,7 @@
 #define OSDPoolSize 100000
 
 //Some more debug output not usefull for users
-//#define DDEBUG
+#define DDEBUG
 
 #if defined(PLATFORM_T31)
 #define DEFAULT_ENC_MODE_0 "FIXQP"
@@ -142,6 +142,7 @@ struct _osd {
     int font_xscale;
     int font_yscale;
     int font_stroke;
+    int font_yoffset;
     int logo_height;
     int logo_width;
     int pos_time_x;

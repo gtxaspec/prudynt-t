@@ -82,11 +82,28 @@ void setPixel(uint8_t* image, int x, int y, const uint8_t* color, int WIDTH, int
         image[index + 3] = color[3]; // A
     }
 }
-
+/*
 void OSD::drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineSize, int WIDTH, int HEIGHT) {
     for (int j = -outlineSize; j <= outlineSize; ++j) {
         for (int i = -outlineSize; i <= outlineSize; ++i) {
             if (i * i + j * j <= outlineSize * outlineSize) { // Use circular distance
+                for (int h = 0; h < g.height; ++h) {
+                    for (int w = 0; w < g.width; ++w) {
+                        int srcIndex = (h * g.width + w) * 4;
+                        if (g.bitmap[srcIndex + 3] > 0) { // Check alpha value
+                            setPixel(image, x + w + i, y + h + j, BGRA_STROKE, WIDTH, HEIGHT);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+*/
+void OSD::drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineSize, int WIDTH, int HEIGHT) {
+    for (int j = -outlineSize; j <= outlineSize; ++j) {
+        for (int i = -outlineSize; i <= outlineSize; ++i) {
+            if (abs(i) + abs(j) <= outlineSize) { // Use Manhattan distance
                 for (int h = 0; h < g.height; ++h) {
                     for (int w = 0; w < g.width; ++w) {
                         int srcIndex = (h * g.width + w) * 4;
@@ -163,7 +180,6 @@ int OSD::calculateTextSize(const char* text, uint16_t& width, uint16_t& height, 
                 SFT_Kerning k;
                 if (sft_kerning(sft, prevGlyph->glyph, g.glyph, &k) == 0) {
                     penX += k.xShift;
-                    if(k.xShift) std::cout << k.xShift << std::endl;
                 }
             }
 
@@ -177,7 +193,8 @@ int OSD::calculateTextSize(const char* text, uint16_t& width, uint16_t& height, 
         ++text;
     }
 
-    height += sft->yScale;
+    height += sft->yScale + ( outlineSize * 2 );
+    width += outlineSize;
 
     return 0;
 }
@@ -212,7 +229,7 @@ int OSD::libschrift_init() {
     sft->flags = SFT_DOWNWARD_Y;
     sft->xScale = osd->font_xscale;
     sft->yScale = osd->font_yscale;
-    sft->yOffset = 4;
+    sft->yOffset = osd->font_yoffset;
 	sft->font = sft_loadmem(fontData.data(), fontData.size());
 	if (!sft->font) {
         LOG_DEBUG("Unable to load font file.");
@@ -274,14 +291,6 @@ void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, i
     return;
 }
 
-
-
-
-
-
-
-
-
 unsigned long getSystemUptime()
 {
     struct sysinfo info;
@@ -319,15 +328,15 @@ int getIp(char *addressBuffer)
 
 const char *OSD::getConfigPath(const char *itemName)
 {
-    static std::string buffer;
+    std::string buffer;
     buffer.clear();
     buffer = std::string(parent) + ".osd." + itemName;
     return buffer.c_str();
 }
 
 int autoFontSize(int pWidth) {
-    double m = 0.00625;
-    double b = 10.0;
+    double m = 0.0046875;
+    double b = 9.0;
     return static_cast<int>(m * pWidth + b + 0.5); 
 }
 
@@ -577,8 +586,9 @@ void OSD::init()
         int fontSize = autoFontSize(channelAttributes.encAttr.picWidth);
 
         // use cfg->set to set noSave, so auto values will not written to config
-        cfg->set<int>(getConfigPath("font_xscale"), fontSize * 0.9, true);
+        cfg->set<int>(getConfigPath("font_xscale"), fontSize, true);
         cfg->set<int>(getConfigPath("font_yscale"), fontSize, true);
+        cfg->set<int>(getConfigPath("font_yoffset"), (int)fontSize*0.2, true);
     }
 
     if (libschrift_init() != 0)
