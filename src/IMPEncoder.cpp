@@ -18,6 +18,7 @@ IMPEncoder *IMPEncoder::createNew(
 }
 
 void IMPEncoder::flush(int encChn) {
+    LOG_DDEBUG("flush(" << encChn << ")");
     IMP_Encoder_RequestIDR(encChn);
     IMP_Encoder_FlushStream(encChn);
 }
@@ -49,6 +50,11 @@ void IMPEncoder::initProfile()
     IMPEncoderRcAttr *rcAttr;
     memset(&chnAttr, 0, sizeof(IMPEncoderCHNAttr));
     rcAttr = &chnAttr.rcAttr;
+
+    if(stream->fps == IMP_AUTO_VALUE) {
+        std::string path = "stream" + std::to_string(encChn) + ".fps";
+        cfg->set<int>(path, cfg->sensor.fps, true);
+    }
 
 #if defined(PLATFORM_T31)
 
