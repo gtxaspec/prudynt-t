@@ -921,7 +921,7 @@ void *OSD::update()
     while (osd->thread_signal.load() & 1)
     {
         updateDisplayEverySecond();
-        usleep(THREAD_SLEEP);
+        usleep(THREAD_SLEEP + 100 * encChn);
     }
 
     return nullptr;
