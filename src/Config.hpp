@@ -18,11 +18,13 @@
 //disable tunings (debugging)
 //#define NO_TUNINGS
 
+#define IMP_AUTO_VALUE 16384
 #define OSD_AUTO_VALUE 16384
 #define THREAD_SLEEP 100000
 #define STREAM_POLLING_TIMEOUT 500
 #define GET_STREAM_BLOCKING false
 #define OSDPoolSize 100000
+//#define NO_FIFO
 
 //Some more debug output not usefull for users
 #define DDEBUG
