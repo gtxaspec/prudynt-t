@@ -16,6 +16,13 @@
 
 #pragma region keys_and_enums
 
+/*
+    ToDo's
+    add new font scales
+    add new font stroke
+    remove old font
+*/
+
 /* ROOT */
 enum
 {
