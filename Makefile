@@ -14,7 +14,7 @@ CFLAGS += -DKERNEL_VERSION_4
 endif
 CXXFLAGS = $(CFLAGS) -std=c++20
 LDFLAGS = -lrt
-LIBS = -limp -lalog -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lwebsockets -lschrift 
+LIBS = -limp -lalog -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lwebsockets -lschrift
 
 ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))
     LIBIMP_INC_DIR = ./include/T31
@@ -46,7 +46,7 @@ ifndef commit_tag
 commit_tag=$(shell git rev-parse --short HEAD)
 endif
 
-LIBGPERF = ./3rdparty/gperftools/.libs/
+LIBWEBSOCKETS = ./3rdparty/install/include/
 VERSION_FILE  = $(LIBIMP_INC_DIR)/version.hpp
 
 $(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
@@ -57,11 +57,11 @@ $(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(VERSION_FILE)
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBGPERF) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(VERSION_FILE) 
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBGPERF) -c $< -o $@
+	$(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -c $< -o $@
 
 $(TARGET): $(OBJECTS) $(VERSION_FILE)
 	@mkdir -p $(@D)
