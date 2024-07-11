@@ -76,6 +76,7 @@ int IMPFramesource::init()
     ret = IMP_FrameSource_SetChnAttr(chnNr, &chnAttr);
     LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnAttr(" << chnNr << ", &chnAttr)");
 
+#if !defined(NO_FIFO)
     IMPFSChnFifoAttr fifo;
     ret = IMP_FrameSource_GetChnFifoAttr(chnNr, &fifo);
     LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_GetChnFifoAttr(" << chnNr << ", &fifo)");
@@ -86,6 +87,7 @@ int IMPFramesource::init()
 
     ret = IMP_FrameSource_SetFrameDepth(chnNr, 0);
     LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(" << chnNr << ", 0)");
+#endif
 
     //ret = IMP_FrameSource_EnableChn(chnNr);
     //LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_FrameSource_EnableChn(" << chnNr << ")");
