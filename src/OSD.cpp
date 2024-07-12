@@ -23,22 +23,27 @@
 
 #include "schrift.h"
 
-int OSD::renderGlyph(const char* characters) {
+int OSD::renderGlyph(const char *characters)
+{
 
-    while (*characters) {
+    while (*characters)
+    {
 
         SFT_LMetrics lmetrics;
         SFT_GMetrics gmetrics;
         SFT_Glyph glyph;
         SFT_Image imageBuffer;
 
-        if (sft_lmetrics(sft, &lmetrics) == 0 && sft_lookup(sft, *characters, &glyph) == 0) {
-            if (sft_gmetrics(sft, glyph, &gmetrics) == 0) {
+        if (sft_lmetrics(sft, &lmetrics) == 0 && sft_lookup(sft, *characters, &glyph) == 0)
+        {
+            if (sft_gmetrics(sft, glyph, &gmetrics) == 0)
+            {
                 imageBuffer.width = gmetrics.minWidth;
                 imageBuffer.height = gmetrics.minHeight;
-                imageBuffer.pixels = (uint8_t*)malloc(imageBuffer.width * imageBuffer.height);
+                imageBuffer.pixels = (uint8_t *)malloc(imageBuffer.width * imageBuffer.height);
 
-                if (sft_render(sft, glyph, imageBuffer) == 0) {
+                if (sft_render(sft, glyph, imageBuffer) == 0)
+                {
                     Glyph g;
                     g.width = imageBuffer.width;
                     g.height = imageBuffer.height;
@@ -48,11 +53,14 @@ int OSD::renderGlyph(const char* characters) {
                     g.glyph = glyph;
 
                     g.bitmap.resize(g.width * g.height * 4);
-                    for (int y = 0; y < g.height; ++y) {
-                        for (int x = 0; x < g.width; ++x) {
+                    for (int y = 0; y < g.height; ++y)
+                    {
+                        for (int x = 0; x < g.width; ++x)
+                        {
                             int pixelIndex = y * g.width + x;
-                            uint8_t alpha = ((uint8_t*)imageBuffer.pixels)[pixelIndex];
-                            if(alpha > 0) {
+                            uint8_t alpha = ((uint8_t *)imageBuffer.pixels)[pixelIndex];
+                            if (alpha > 0)
+                            {
                                 g.bitmap[pixelIndex * 4] = BGRA_TEXT[0];
                                 g.bitmap[pixelIndex * 4 + 1] = BGRA_TEXT[1];
                                 g.bitmap[pixelIndex * 4 + 2] = BGRA_TEXT[2];
@@ -72,9 +80,10 @@ int OSD::renderGlyph(const char* characters) {
     return 0;
 }
 
-
-void setPixel(uint8_t* image, int x, int y, const uint8_t* color, int WIDTH, int HEIGHT) {
-    if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
+void setPixel(uint8_t *image, int x, int y, const uint8_t *color, int WIDTH, int HEIGHT)
+{
+    if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT)
+    {
         int index = (y * WIDTH + x) * 4;
         image[index] = color[0];     // B
         image[index + 1] = color[1]; // G
@@ -100,14 +109,21 @@ void OSD::drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineS
     }
 }
 */
-void OSD::drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineSize, int WIDTH, int HEIGHT) {
-    for (int j = -outlineSize; j <= outlineSize; ++j) {
-        for (int i = -outlineSize; i <= outlineSize; ++i) {
-            if (abs(i) + abs(j) <= outlineSize) { // Use Manhattan distance
-                for (int h = 0; h < g.height; ++h) {
-                    for (int w = 0; w < g.width; ++w) {
+void OSD::drawOutline(uint8_t *image, const Glyph &g, int x, int y, int outlineSize, int WIDTH, int HEIGHT)
+{
+    for (int j = -outlineSize; j <= outlineSize; ++j)
+    {
+        for (int i = -outlineSize; i <= outlineSize; ++i)
+        {
+            if (abs(i) + abs(j) <= outlineSize)
+            { // Use Manhattan distance
+                for (int h = 0; h < g.height; ++h)
+                {
+                    for (int w = 0; w < g.width; ++w)
+                    {
                         int srcIndex = (h * g.width + w) * 4;
-                        if (g.bitmap[srcIndex + 3] > 0) { // Check alpha value
+                        if (g.bitmap[srcIndex + 3] > 0)
+                        { // Check alpha value
                             setPixel(image, x + w + i, y + h + j, BGRA_STROKE, WIDTH, HEIGHT);
                         }
                     }
@@ -117,21 +133,25 @@ void OSD::drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineS
     }
 }
 
-int OSD::drawText(uint8_t* image, const char* text, int WIDTH, int HEIGHT, int outlineSize) {
+int OSD::drawText(uint8_t *image, const char *text, int WIDTH, int HEIGHT, int outlineSize)
+{
     int penX = 1;
     int penY = 1;
 
-    const Glyph* prevGlyph = nullptr;
+    const Glyph *prevGlyph = nullptr;
 
     // Draw text and outline
-    while (*text) {
+    while (*text)
+    {
         auto it = glyphs.find(*text);
-        if (it == glyphs.end()) {
+        if (it == glyphs.end())
+        {
             renderGlyph(text);
             it = glyphs.find(*text);
         }
-        if (it != glyphs.end()) {
-            const Glyph& g = it->second;
+        if (it != glyphs.end())
+        {
+            const Glyph &g = it->second;
 
             int x = penX + g.xmin;
             int y = penY + (sft->yScale + g.ymin);
@@ -140,10 +160,13 @@ int OSD::drawText(uint8_t* image, const char* text, int WIDTH, int HEIGHT, int o
             drawOutline(image, g, x, y, outlineSize, WIDTH, HEIGHT);
 
             // Draw the actual text
-            for (int j = 0; j < g.height; ++j) {
-                for (int i = 0; i < g.width; ++i) {
+            for (int j = 0; j < g.height; ++j)
+            {
+                for (int i = 0; i < g.width; ++i)
+                {
                     int srcIndex = (j * g.width + i) * 4;
-                    if (g.bitmap[srcIndex + 3] > 0) { // Check alpha value
+                    if (g.bitmap[srcIndex + 3] > 0)
+                    { // Check alpha value
                         setPixel(image, x + i, y + j, &g.bitmap[srcIndex], WIDTH, HEIGHT);
                     }
                 }
@@ -158,33 +181,40 @@ int OSD::drawText(uint8_t* image, const char* text, int WIDTH, int HEIGHT, int o
     return 0;
 }
 
-int OSD::calculateTextSize(const char* text, uint16_t& width, uint16_t& height, int outlineSize) {
+int OSD::calculateTextSize(const char *text, uint16_t &width, uint16_t &height, int outlineSize)
+{
     int penX = 1;
     int penY = 1;
 
     width = 0;
     height = 0;
 
-    const Glyph* prevGlyph = nullptr;
+    const Glyph *prevGlyph = nullptr;
 
-    while (*text) {
+    while (*text)
+    {
         auto it = glyphs.find(*text);
-        if (it == glyphs.end()) {
+        if (it == glyphs.end())
+        {
             renderGlyph(text);
             it = glyphs.find(*text);
         }
-        if (it != glyphs.end()) {
-            const Glyph& g = it->second;
+        if (it != glyphs.end())
+        {
+            const Glyph &g = it->second;
 
-            if (prevGlyph) {
+            if (prevGlyph)
+            {
                 SFT_Kerning k;
-                if (sft_kerning(sft, prevGlyph->glyph, g.glyph, &k) == 0) {
+                if (sft_kerning(sft, prevGlyph->glyph, g.glyph, &k) == 0)
+                {
                     penX += k.xShift;
                 }
             }
 
             width += g.advance + outlineSize;
-            if (g.height > height) {
+            if (g.height > height)
+            {
                 height = g.height;
             }
             prevGlyph = &g;
@@ -193,68 +223,72 @@ int OSD::calculateTextSize(const char* text, uint16_t& width, uint16_t& height, 
         ++text;
     }
 
-    height += sft->yScale + ( outlineSize * 2 );
+    height += sft->yScale + (outlineSize * 2);
     width += outlineSize;
 
     return 0;
 }
 
-int OSD::libschrift_init() {
+int OSD::libschrift_init()
+{
 
     LOG_DEBUG("OSD::initFont()");
 
-	std::ifstream fontFile(osd->font_path, std::ios::binary | std::ios::ate);
-	if (!fontFile.is_open()) {
+    std::ifstream fontFile(osd->font_path, std::ios::binary | std::ios::ate);
+    if (!fontFile.is_open())
+    {
         LOG_DEBUG("Unable to open font file.");
-		return -1;
-	}
+        return -1;
+    }
 
     BGRA_TEXT[2] = (osd->font_color >> 16) & 0xFF;
     BGRA_TEXT[1] = (osd->font_color >> 8) & 0xFF;
     BGRA_TEXT[0] = (osd->font_color >> 0) & 0xFF;
-	BGRA_TEXT[3] = 0;
+    BGRA_TEXT[3] = 0;
 
     BGRA_STROKE[2] = (osd->font_stroke_color >> 16) & 0xFF;
     BGRA_STROKE[1] = (osd->font_stroke_color >> 8) & 0xFF;
     BGRA_STROKE[0] = (osd->font_stroke_color >> 0) & 0xFF;
-	BGRA_STROKE[3] = 255;
+    BGRA_STROKE[3] = 255;
 
-	size_t fileSize = fontFile.tellg();
-	fontFile.seekg(0, std::ios::beg);
-	fontData.resize(fileSize);
-	fontFile.read(reinterpret_cast<char*>(fontData.data()), fileSize);
-	fontFile.close();
+    size_t fileSize = fontFile.tellg();
+    fontFile.seekg(0, std::ios::beg);
+    fontData.resize(fileSize);
+    fontFile.read(reinterpret_cast<char *>(fontData.data()), fileSize);
+    fontFile.close();
 
     sft = new SFT();
     sft->flags = SFT_DOWNWARD_Y;
     sft->xScale = osd->font_xscale;
     sft->yScale = osd->font_yscale;
     sft->yOffset = osd->font_yoffset;
-	sft->font = sft_loadmem(fontData.data(), fontData.size());
-	if (!sft->font) {
+    sft->font = sft_loadmem(fontData.data(), fontData.size());
+    if (!sft->font)
+    {
         LOG_DEBUG("Unable to load font file.");
-		return -1;
-	}
+        return -1;
+    }
 
     return 0;
 }
 
-void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, int posX, int posY, int angle) {
+void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, int posX, int posY, int angle)
+{
 
-    //size and stroke
+    // size and stroke
     uint8_t stroke_width = osd->font_stroke;
-    uint16_t item_width = 0 ;
+    uint16_t item_width = 0;
     uint16_t item_height = 0;
 
     calculateTextSize(text, item_width, item_height, stroke_width);
 
-	if (item_width % 2 != 0)
-		++item_width;
+    if (item_width % 2 != 0)
+        ++item_width;
 
     int item_size = item_width * item_height * 4;
 
     free(osdItem->data);
-    osdItem->data = (uint8_t*)malloc(item_size);
+    osdItem->data = (uint8_t *)malloc(item_size);
     memset(osdItem->data, 0, item_size);
 
     drawText(osdItem->data, text, item_width, item_height, stroke_width);
@@ -334,10 +368,11 @@ const char *OSD::getConfigPath(const char *itemName)
     return buffer.c_str();
 }
 
-int autoFontSize(int pWidth) {
+int autoFontSize(int pWidth)
+{
     double m = 0.0046875;
     double b = 9.0;
-    return static_cast<int>(m * pWidth + b + 0.5); 
+    return static_cast<int>(m * pWidth + b + 0.5);
 }
 
 const char *replace(const char *str, const char *oldToken, const char *newToken)
@@ -580,15 +615,35 @@ void OSD::init()
     ret = IMP_OSD_CreateGroup(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_CreateGroup(" << osdGrp << ")");
 
+    int fontSize = autoFontSize(channelAttributes.encAttr.picWidth);
     int autoOffset = round((float)(channelAttributes.encAttr.picWidth * 0.004));
+
     if (osd->font_size == OSD_AUTO_VALUE)
     {
-        int fontSize = autoFontSize(channelAttributes.encAttr.picWidth);
+        // use cfg->set to set noSave, so auto values will not written to config
+        cfg->set<int>(getConfigPath("font_size"), fontSize, true);
+    } else {
+        if (osd->font_xscale == OSD_AUTO_VALUE)
+        {
+            cfg->set<int>(getConfigPath("font_xscale"), osd->font_size, true);
+        }
+        if (osd->font_yscale == OSD_AUTO_VALUE)
+        {
+            cfg->set<int>(getConfigPath("font_yscale"), osd->font_size, true);
+        }
+    }
 
+    if (osd->font_xscale == OSD_AUTO_VALUE)
+    {
         // use cfg->set to set noSave, so auto values will not written to config
         cfg->set<int>(getConfigPath("font_xscale"), fontSize, true);
+    }
+
+    if (osd->font_yscale == OSD_AUTO_VALUE)
+    {
+        // use cfg->set to set noSave, so auto values will not written to config
         cfg->set<int>(getConfigPath("font_yscale"), fontSize, true);
-        cfg->set<int>(getConfigPath("font_yoffset"), (int)fontSize*0.2, true);
+        cfg->set<int>(getConfigPath("font_yoffset"), 0, true);
     }
 
     if (libschrift_init() != 0)
@@ -771,7 +826,8 @@ void OSD::init()
     }
 }
 
-int OSD::start() {
+int OSD::start()
+{
 
     int ret;
 
@@ -848,7 +904,7 @@ void OSD::updateDisplayEverySecond()
                      osd->pos_time_x, osd->pos_time_y, osd->time_rotation);
         }
 
-        //not everything at the same time, it's a separate thread, we have time.
+        // not everything at the same time, it's a separate thread, we have time.
         usleep(50000);
 
         if (osd->user_text_enabled || last_updated_second == -1)
@@ -884,7 +940,7 @@ void OSD::updateDisplayEverySecond()
             delete user_text;
         }
 
-        //not everything at the same time, it's a separate thread, we have time.
+        // not everything at the same time, it's a separate thread, we have time.
         usleep(50000);
 
         // Format and update uptime
@@ -903,7 +959,8 @@ void OSD::updateDisplayEverySecond()
 
         last_updated_second = ltime->tm_sec; // Update the last second tracker
 
-        if(osd->thread_signal.load() & 2) {
+        if (osd->thread_signal.load() & 2)
+        {
             osd->thread_signal.fetch_xor(2);
         }
     }
