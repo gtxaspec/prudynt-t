@@ -72,7 +72,7 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
     rtspServer->addServerMediaSession(sms);
 
     char *url = rtspServer->rtspURL(sms);
-    LOG_INFO("stream 0 available at: " << url);
+    LOG_INFO("stream " << chnNr << " available at: " << url);
 }
 
 void RTSP::run()
