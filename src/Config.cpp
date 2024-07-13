@@ -289,10 +289,10 @@ std::vector<ConfigItem<unsigned int>> CFG::getUintItems()
 {
     return {
         {"sensor.i2c_address", sensor.i2c_address, 0x37, [](const unsigned int &v) { return v <= 0x7F; }, false, "/proc/jz/sensor/i2c_addr"},
-        {"stream0.font_stroke_color", stream0.osd.font_stroke_color, 0xFF000000, validateUint},
+        {"stream0.osd.font_stroke_color", stream0.osd.font_stroke_color, 0xFF000000, validateUint},
         {"stream0.osd.font_color", stream0.osd.font_color, 0xFFFFFFFF, validateUint},
-        {"stream1.font_color", stream1.osd.font_color, 0xFFFFFFFF, validateUint},
-        {"stream1.font_stroke_color", stream1.osd.font_stroke_color, 0xFF000000, validateUint},
+        {"stream1.osd.font_color", stream1.osd.font_color, 0xFFFFFFFF, validateUint},
+        {"stream1.osd.font_stroke_color", stream1.osd.font_stroke_color, 0xFF000000, validateUint},
     };
 };
 
