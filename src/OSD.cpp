@@ -144,11 +144,13 @@ int OSD::drawText(uint8_t *image, const char *text, int WIDTH, int HEIGHT, int o
     while (*text)
     {
         auto it = glyphs.find(*text);
+        /*
         if (it == glyphs.end())
         {
             renderGlyph(text);
             it = glyphs.find(*text);
         }
+        */
         if (it != glyphs.end())
         {
             const Glyph &g = it->second;
@@ -194,22 +196,26 @@ int OSD::calculateTextSize(const char *text, uint16_t &width, uint16_t &height, 
     while (*text)
     {
         auto it = glyphs.find(*text);
+        /*
         if (it == glyphs.end())
         {
             renderGlyph(text);
             it = glyphs.find(*text);
         }
+        */
         if (it != glyphs.end())
         {
             const Glyph &g = it->second;
 
             if (prevGlyph)
             {
+                /*
                 SFT_Kerning k;
                 if (sft_kerning(sft, prevGlyph->glyph, g.glyph, &k) == 0)
                 {
                     penX += k.xShift;
                 }
+                */
             }
 
             width += g.advance + outlineSize;
@@ -252,6 +258,7 @@ int OSD::libschrift_init()
     BGRA_STROKE[3] = 255;
 
     size_t fileSize = fontFile.tellg();
+    std::vector<uint8_t> fontData;
     fontFile.seekg(0, std::ios::beg);
     fontData.resize(fileSize);
     fontFile.read(reinterpret_cast<char *>(fontData.data()), fileSize);
@@ -269,6 +276,9 @@ int OSD::libschrift_init()
         return -1;
     }
 
+    renderGlyph("01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!§$%&/()=?,.-_:;#'+*~}{} ");
+
+    fontData.clear();
     return 0;
 }
 

@@ -62,7 +62,7 @@ public:
 private:
 
     // libschrift
-    std::vector<uint8_t> fontData;
+    //std::vector<uint8_t> fontData;
     std::unordered_map<char, Glyph> glyphs;
     SFT *sft;
     int load_font();
