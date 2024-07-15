@@ -47,7 +47,7 @@ H264NALUnit IMPDeviceSource::wait_read()
     while (nalQueue.empty())
     {
         usleep(1000 * 250);
-        LOG_DDEBUG("wait_read(), nalQueue.empty(), wait for data.");
+        LOG_DDEBUG("wait_read(), nalQueue.empty(), wait for data. " << encChn);
     }
 
     H264NALUnit nal = nalQueue.front();
