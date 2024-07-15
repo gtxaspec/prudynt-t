@@ -41,6 +41,12 @@ int Worker::init()
 {
     LOG_DEBUG("Worker::init()");
     int ret = 0;
+
+#if defined(PLATFORM_T23)
+    ret = IMP_OSD_SetPoolSize(OSDPoolSize);
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_OSD_SetPoolSize(" << OSDPoolSize << ")");
+#endif
+
     if (!impsystem)
     {
         impsystem = IMPSystem::createNew(cfg);
@@ -71,8 +77,10 @@ int Worker::init()
         encoder[2] = IMPEncoder::createNew(&cfg->stream2, cfg, 2, cfg->stream2.jpeg_channel, "stream2");
     }
 
+#if !defined(PLATFORM_T23)
     ret = IMP_OSD_SetPoolSize(OSDPoolSize);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_OSD_SetPoolSize(" << OSDPoolSize << ")");
+#endif
 
     if (cfg->motion.enabled)
     {
