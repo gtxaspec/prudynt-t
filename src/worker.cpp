@@ -360,11 +360,11 @@ void *Worker::stream_grabber(void *arg)
     unsigned long long ms;
     uint32_t bps;
     uint32_t fps;
-    int64_t last_nal_ts;
     int64_t nal_ts;
     struct timeval imp_time_base;
 
     gettimeofday(&imp_time_base, NULL);
+    IMP_System_RebaseTimeStamp(imp_time_base.tv_sec * (uint64_t)1000000);
 
     ret = IMP_Encoder_StartRecvPic(channel->encChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(" << channel->encChn << ")");
@@ -388,15 +388,10 @@ void *Worker::stream_grabber(void *arg)
                 }
 
                 int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
-                if (nal_ts - last_nal_ts > 1.5 * (1000000 / channel->stream->fps))
-                {
-                    // Silence for now until further tests / THINGINO
-                    // LOG_WARN("The encoder 0 dropped a frame. " << (nal_ts - last_nal_ts) << ", " << (1.5 * (1000000 / channel->stream->fps)));
-                }
 
-                struct timeval encode_time;
-                encode_time.tv_sec = nal_ts / 1000000;
-                encode_time.tv_usec = nal_ts % 1000000;
+                struct timeval encoder_time;
+                encoder_time.tv_sec = nal_ts / 1000000;
+                encoder_time.tv_usec = nal_ts % 1000000;
 
                 for (uint32_t i = 0; i < stream.packCount; ++i)
                 {
@@ -414,37 +409,10 @@ void *Worker::stream_grabber(void *arg)
                         uint8_t *end = (uint8_t *)stream.pack[i].virAddr + stream.pack[i].length;
 #endif
                         H264NALUnit nalu;
+
                         nalu.imp_ts = stream.pack[i].timestamp;
-                        timeradd(&imp_time_base, &encode_time, &nalu.time);
-                        nalu.duration = 0;
-#if defined(PLATFORM_T31)
-                        if (stream.pack[i].nalType.h264NalType == 5 || stream.pack[i].nalType.h264NalType == 1)
-                        {
-                            nalu.duration = nal_ts - last_nal_ts;
-                        }
-                        else if (stream.pack[i].nalType.h265NalType == 19 ||
-                                 stream.pack[i].nalType.h265NalType == 20 ||
-                                 stream.pack[i].nalType.h265NalType == 1)
-                        {
-                            nalu.duration = nal_ts - last_nal_ts;
-                        }
-#elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
-                        if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1)
-                        {
-                            nalu.duration = nal_ts - last_nal_ts;
-                        }
-#elif defined(PLATFORM_T30)
-                        if (stream.pack[i].dataType.h264Type == 5 || stream.pack[i].dataType.h264Type == 1)
-                        {
-                            nalu.duration = nal_ts - last_nal_ts;
-                        }
-                        else if (stream.pack[i].dataType.h265Type == 19 ||
-                                 stream.pack[i].dataType.h265Type == 20 ||
-                                 stream.pack[i].dataType.h265Type == 1)
-                        {
-                            nalu.duration = nal_ts - last_nal_ts;
-                        }
-#endif
+                        nalu.time = encoder_time;
+
                         // We use start+4 because the encoder inserts 4-byte MPEG
                         //'startcodes' at the beginning of each NAL. Live555 complains
                         nalu.data.insert(nalu.data.end(), start + 4, end);
@@ -496,7 +464,6 @@ void *Worker::stream_grabber(void *arg)
                 }
 
                 IMP_Encoder_ReleaseStream(channel->encChn, &stream);
-                last_nal_ts = nal_ts;
 
                 ms = tDiffInMs(&channel->stream->osd.stats.ts);
                 if (ms > 1000)
@@ -524,6 +491,7 @@ void *Worker::stream_grabber(void *arg)
             }
             else
             {
+                usleep(25000);
                 LOG_DDEBUG("IMP_Encoder_PollingStream(" << channel->encChn << ", " << STREAM_POLLING_TIMEOUT << ") timeout !");
             }
         }
@@ -559,8 +527,6 @@ void Worker::run()
             if (ret != 0)
                 return;
 
-            IMP_System_RebaseTimeStamp(0);
-
             int policy = SCHED_RR;
 
             pthread_attr_init(&osd_thread_attr);
@@ -576,7 +542,7 @@ void Worker::run()
 
             osd_thread_sheduler.sched_priority = min_priority;  //(int)max_priority * 0.1;
             jpeg_thread_sheduler.sched_priority = min_priority; //(int)max_priority * 0.1;
-            stream_thread_sheduler.sched_priority = (int)max_priority * 0.9;
+            stream_thread_sheduler.sched_priority = (int)max_priority * 0.8;
 
             pthread_attr_setschedparam(&osd_thread_attr, &osd_thread_sheduler);
             pthread_attr_setschedparam(&jpeg_thread_attr, &jpeg_thread_sheduler);

@@ -79,7 +79,6 @@ void IMPDeviceSource::deliverFrame()
             fFrameSize = nal.data.size();
         }
         fPresentationTime = nal.time;
-        // fDurationInMicroseconds = nal.duration;
         memcpy(fTo, &nal.data[0], fFrameSize);
 
         if (fFrameSize > 0)

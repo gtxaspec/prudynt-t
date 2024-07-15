@@ -90,12 +90,14 @@ public:
 		if (encChn == 0)
 		{
 			pthread_mutex_lock(&sink_lock0);
+			stream0_sink->IDR = false;
 			stream0_sink->data_available_callback = nullptr;
 			pthread_mutex_unlock(&sink_lock0);
 		}
 		else if (encChn == 1)
 		{
 			pthread_mutex_lock(&sink_lock1);
+			stream1_sink->IDR = false;
 			stream1_sink->data_available_callback = nullptr;
 			pthread_mutex_unlock(&sink_lock1);
 		}
