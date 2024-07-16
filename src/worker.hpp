@@ -117,21 +117,24 @@ public:
 
 	static std::vector<uint8_t> capture_jpeg_image(int encChn);
 
+	Channel *channels[3] = {nullptr, nullptr, nullptr};
+	IMPEncoder *encoder[3] = {nullptr, nullptr, nullptr};
+	std::atomic<int> osd_thread_signal;
 private:
 	Motion motion;
 
 	std::shared_ptr<CFG> cfg;
 	static void *jpeg_grabber(void *arg);
 	static void *stream_grabber(void *arg);
+	static void *update_osd(void *arg);
 
 	void start_stream(int encChn);
 	void exit_stream(int encChn);
 
-	Channel *channels[3] = {nullptr, nullptr, nullptr};
 	IMPSystem *impsystem = nullptr;
-	IMPEncoder *encoder[3] = {nullptr, nullptr, nullptr};
 	IMPFramesource *framesources[2] = {nullptr, nullptr};
 
+	pthread_t osd_thread;
 	pthread_t osd_threads[2];
 	pthread_t worker_threads[3];
 
@@ -143,7 +146,6 @@ private:
 	pthread_attr_t jpeg_thread_attr;
 	pthread_attr_t stream_thread_attr;
 	bool delay_osd;
-
 };
 
 #endif

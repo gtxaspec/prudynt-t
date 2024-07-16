@@ -784,15 +784,20 @@ int OSD::start()
 
     int ret;
 
+    //set "startet" flag
+    flag |= 16;
     ret = IMP_OSD_Start(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_Start(" << osdGrp << ")");
-
+    
     return ret;
 }
 
 int OSD::exit()
 {
     int ret;
+
+    //remove "startet" flag
+    flag ^= 16;
 
     ret = IMP_OSD_Stop(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_Stop(" << osdGrp << ")");
@@ -841,98 +846,89 @@ int OSD::exit()
 
 void OSD::updateDisplayEverySecond()
 {
+    struct timeval tm;
+    gettimeofday(&tm, NULL);
+
     current = time(nullptr);
     ltime = localtime(&current);
 
     // Check if we have moved to a new second
     if (ltime->tm_sec != last_updated_second)
     {
-
-        // Format and update system time
-        if (osd->time_enabled)
-        {
-            strftime(timeFormatted, sizeof(timeFormatted), osd->time_format, ltime);
-
-            set_text(&osdTime, nullptr, timeFormatted,
-                     osd->pos_time_x, osd->pos_time_y, osd->time_rotation);
-        }
-
-        // not everything at the same time, it's a separate thread, we have time.
-        usleep(50000);
-
-        if (osd->user_text_enabled || last_updated_second == -1)
-        {
-            user_text = osd->user_text_format;
-            if (strstr(user_text, "%hostname") != nullptr)
-            {
-                user_text = replace(user_text, "%hostname", hostname);
-            }
-
-            if (strstr(user_text, "%ipaddress") != nullptr)
-            {
-                user_text = replace(user_text, "%ipaddress", ip);
-            }
-
-            if (strstr(user_text, "%fps") != nullptr)
-            {
-                char fps[4];
-                snprintf(fps, 4, "%3d", osd->stats.fps);
-                user_text = replace(user_text, "%fps", fps);
-            }
-
-            if (strstr(user_text, "%bps") != nullptr)
-            {
-                char bps[8];
-                snprintf(bps, 8, "%5d", osd->stats.bps);
-                user_text = replace(user_text, "%bps", bps);
-            }
-
-            set_text(&osdUser, nullptr, user_text,
-                     osd->pos_user_text_x, osd->pos_user_text_y, osd->user_text_rotation);
-
-            delete user_text;
-        }
-
-        // not everything at the same time, it's a separate thread, we have time.
-        usleep(50000);
-
-        // Format and update uptime
-        if (osd->uptime_enabled)
-        {
-            unsigned long currentUptime = getSystemUptime();
-            unsigned long hours = currentUptime / 3600;
-            unsigned long minutes = (currentUptime % 3600) / 60;
-            unsigned long seconds = currentUptime % 60;
-
-            snprintf(uptimeFormatted, sizeof(uptimeFormatted), osd->uptime_format, hours, minutes, seconds);
-
-            set_text(&osdUptm, nullptr, uptimeFormatted,
-                     osd->pos_uptime_x, osd->pos_uptime_y, osd->uptime_rotation);
-        }
-
-        last_updated_second = ltime->tm_sec; // Update the last second tracker
-
-        if (osd->thread_signal.load() & 2)
-        {
-            osd->thread_signal.fetch_xor(2);
-        }
+        flag |= 7;
+        // Update the last second tracker
+        last_updated_second = ltime->tm_sec; 
     }
-}
-
-void *OSD::updateWrapper(void *arg)
-{
-    OSD *osd = static_cast<OSD *>(arg);
-    return osd->update();
-}
-
-void *OSD::update()
-{
-    osd->thread_signal.fetch_or(1);
-    while (osd->thread_signal.load() & 1)
+    else
     {
-        updateDisplayEverySecond();
-        usleep(THREAD_SLEEP + 100 * encChn);
-    }
+        if (flag != 0)
+        {
+            
+            // Format and update system time
+            if ((flag & 1) && osd->time_enabled)
+            {
+                strftime(timeFormatted, sizeof(timeFormatted), osd->time_format, ltime);
 
-    return nullptr;
+                set_text(&osdTime, nullptr, timeFormatted,
+                         osd->pos_time_x, osd->pos_time_y, osd->time_rotation);
+
+                flag ^= 1;
+                return;
+            }
+
+            // Format and update user text
+            if ((flag & 2) && osd->user_text_enabled)
+            {
+                user_text = osd->user_text_format;
+                if (strstr(user_text, "%hostname") != nullptr)
+                {
+                    user_text = replace(user_text, "%hostname", hostname);
+                }
+
+                if (strstr(user_text, "%ipaddress") != nullptr)
+                {
+                    user_text = replace(user_text, "%ipaddress", ip);
+                }
+
+                if (strstr(user_text, "%fps") != nullptr)
+                {
+                    char fps[4];
+                    snprintf(fps, 4, "%3d", osd->stats.fps);
+                    user_text = replace(user_text, "%fps", fps);
+                }
+
+                if (strstr(user_text, "%bps") != nullptr)
+                {
+                    char bps[8];
+                    snprintf(bps, 8, "%5d", osd->stats.bps);
+                    user_text = replace(user_text, "%bps", bps);
+                }
+
+                set_text(&osdUser, nullptr, user_text,
+                         osd->pos_user_text_x, osd->pos_user_text_y, osd->user_text_rotation);
+
+                delete user_text;
+
+                flag ^= 2;
+                return;
+            }
+
+            // Format and update uptime
+            if ((flag & 4) && osd->uptime_enabled)
+            {
+                unsigned long currentUptime = getSystemUptime();
+                unsigned long hours = currentUptime / 3600;
+                unsigned long minutes = (currentUptime % 3600) / 60;
+                unsigned long seconds = currentUptime % 60;
+
+                snprintf(uptimeFormatted, sizeof(uptimeFormatted), osd->uptime_format, hours, minutes, seconds);
+
+                set_text(&osdUptm, nullptr, uptimeFormatted,
+                         osd->pos_uptime_x, osd->pos_uptime_y, osd->uptime_rotation);
+
+                flag ^= 4;
+                return;
+            }          
+        }
+    }
 }

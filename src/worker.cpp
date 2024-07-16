@@ -46,7 +46,7 @@ int Worker::init()
     ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
 #endif
-    
+
     if (!impsystem)
     {
         impsystem = IMPSystem::createNew(cfg);
@@ -356,11 +356,13 @@ void *Worker::stream_grabber(void *arg)
 
     LOG_DEBUG("Start stream_grabber thread for stream " << channel->encChn);
 
-    int ret, errorCount, signal;
-    unsigned long long ms;
+    int ret;
+    int flags{0};
     uint32_t bps;
     uint32_t fps;
     int64_t nal_ts;
+    uint32_t error_count;
+    unsigned long long ms;
     struct timeval imp_time_base;
 
     gettimeofday(&imp_time_base, NULL);
@@ -383,7 +385,7 @@ void *Worker::stream_grabber(void *arg)
                 if (IMP_Encoder_GetStream(channel->encChn, &stream, GET_STREAM_BLOCKING) != 0)
                 {
                     LOG_ERROR("IMP_Encoder_GetStream(" << channel->encChn << ") failed");
-                    errorCount++;
+                    error_count++;
                     continue;
                 }
 
@@ -487,17 +489,24 @@ void *Worker::stream_grabber(void *arg)
                     */
                 }
 
-                channel->thread_signal.fetch_or(2);
+                //setting thread_signal to already run. Osd can be updated.
+                //is triggered first by RTSP, so don't reset it until rtsp restarts
+                //otherwise osd updates won't work after encoder restart
+                if (!(flags & 1))
+                {
+                    channel->thread_signal.fetch_or(2);
+                    flags |= 1;
+                }
             }
             else
             {
-                usleep(25000);
+                error_count++;
                 LOG_DDEBUG("IMP_Encoder_PollingStream(" << channel->encChn << ", " << STREAM_POLLING_TIMEOUT << ") timeout !");
+                usleep(THREAD_SLEEP);
             }
         }
         else
-        {
-
+        {          
             channel->stream->osd.stats.bps = 0;
             channel->stream->osd.stats.fps = 1;
             usleep(THREAD_SLEEP);
@@ -507,6 +516,33 @@ void *Worker::stream_grabber(void *arg)
     ret = IMP_Encoder_StopRecvPic(channel->encChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StopRecvPic(" << channel->encChn << ")");
 
+    return 0;
+}
+
+void *Worker::update_osd(void *arg) {
+
+    Worker *worker = static_cast<Worker *>(arg);
+
+    LOG_DEBUG("start osd update thread.");
+
+    while(worker->osd_thread_signal.load() & 1) {
+        for(auto chn : worker->channels) {
+            if(chn != nullptr) {
+                if(chn->thread_signal.load() & 3) {
+                    if((worker->encoder[chn->encChn]->osd != nullptr)) {
+                        if((worker->encoder[chn->encChn]->osd->flag & 16)) {
+                            worker->encoder[chn->encChn]->osd->updateDisplayEverySecond();
+                        } else {
+                            worker->encoder[chn->encChn]->osd->start();
+                        }
+                    }
+                }
+            }
+        }
+        usleep(THREAD_SLEEP*2);
+    }
+
+    LOG_DEBUG("exit osd update thread.");
     return 0;
 }
 
@@ -576,6 +612,9 @@ void Worker::run()
                 pthread_create(&worker_threads[2], &jpeg_thread_attr, jpeg_grabber, channels[2]);
             }
 
+            osd_thread_signal.fetch_or(1);
+            pthread_create(&osd_thread, &osd_thread_attr, update_osd, this);
+            
             cfg->worker_thread_signal.fetch_or(2);
         }
 
@@ -590,6 +629,14 @@ void Worker::run()
         // 4 = Stop threads
         if (cfg->worker_thread_signal.load() & 4)
         {
+            //stop osd thread
+            osd_thread_signal.fetch_xor(1);
+            LOG_DEBUG("stop signal is sent to osd thread " << cfg->worker_thread_signal.load());
+            if (pthread_join(osd_thread, NULL) == 0)
+            {
+                LOG_DEBUG("wait for exit osd thread done.");
+            }
+
             if (channels[0])
             {
                 exit_stream(0);
@@ -625,48 +672,11 @@ void Worker::start_stream(int encChn)
 
     pthread_mutex_init(&channels[encChn]->lock, NULL);
     gettimeofday(&channels[encChn]->stream->osd.stats.ts, NULL);
-    if (encoder[encChn]->osd)
-    {
-        // channels[encChn]->stream->osd.thread_signal.fetch_or(1);
-        pthread_create(&osd_threads[encChn], &osd_thread_attr, OSD::updateWrapper, encoder[encChn]->osd);
-    }
     pthread_create(&worker_threads[encChn], &stream_thread_attr, stream_grabber, channels[encChn]);
-
-    // OSD delayed start, osd is only started when the
-    // stream_grabber thread has transferred data for the first time
-    // identified by 'channels[encChn]->thread_signal.fetch_or(2)'
-    if (delay_osd)
-    {
-        while (channels[encChn]->thread_signal.load() != 3 && i < 100)
-        {
-            usleep(1000 * 10);
-            ++i;
-        }
-    }
-    else
-    {
-        channels[encChn]->thread_signal.fetch_or(2);
-    }
-
-    if (encoder[encChn]->osd)
-    {
-        encoder[encChn]->osd->start();
-    }
 }
 
 void Worker::exit_stream(int encChn)
 {
-    if (encoder[encChn]->osd)
-    {
-        channels[encChn]->stream->osd.thread_signal.fetch_xor(1);
-        LOG_DEBUG("stop signal is sent to stream" << encChn << " osd thread");
-        if (pthread_join(osd_threads[encChn], NULL) == 0)
-        {
-            LOG_DEBUG("wait for exit stream" << encChn << " osd thread");
-        }
-        LOG_DEBUG("osd thread for stream" << encChn << " has been terminated");
-    }
-
     LOG_DEBUG("stop signal is sent to stream_grabber for stream" << encChn);
     channels[encChn]->thread_signal.fetch_xor(1);
     if (pthread_join(worker_threads[encChn], NULL) == 0)
