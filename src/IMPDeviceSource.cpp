@@ -44,6 +44,8 @@ void IMPDeviceSource::deliverFrame0(void *clientData)
 
 H264NALUnit IMPDeviceSource::wait_read()
 {
+    usleep(1000 * 100);
+
     while (nalQueue.empty())
     {
         usleep(1000 * 250);
