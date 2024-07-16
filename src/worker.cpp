@@ -43,10 +43,10 @@ int Worker::init()
     int ret = 0;
 
 #if defined(PLATFORM_T23)
-    ret = IMP_OSD_SetPoolSize(OSDPoolSize);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_OSD_SetPoolSize(" << OSDPoolSize << ")");
+    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
 #endif
-
+    
     if (!impsystem)
     {
         impsystem = IMPSystem::createNew(cfg);
@@ -78,8 +78,8 @@ int Worker::init()
     }
 
 #if !defined(PLATFORM_T23)
-    ret = IMP_OSD_SetPoolSize(OSDPoolSize);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_OSD_SetPoolSize(" << OSDPoolSize << ")");
+    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
 #endif
 
     if (cfg->motion.enabled)
