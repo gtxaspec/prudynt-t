@@ -12,6 +12,9 @@
 //~65k
 #define ENABLE_LOG_DEBUG
 
+//Some more debug output not usefull for users (Developer Debug)
+#define DDEBUG
+
 //~10k
 //#define AUDIO_SUPPORT
 
@@ -24,9 +27,6 @@
 #define STREAM_POLLING_TIMEOUT 100
 #define GET_STREAM_BLOCKING false
 //#define NO_FIFO
-
-//Some more debug output not usefull for users
-#define DDEBUG
 
 #if defined(PLATFORM_T31)
 #define DEFAULT_ENC_MODE_0 "FIXQP"
