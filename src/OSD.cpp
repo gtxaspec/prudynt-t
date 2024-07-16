@@ -266,8 +266,8 @@ int OSD::libschrift_init()
 
     sft = new SFT();
     sft->flags = SFT_DOWNWARD_Y;
-    sft->xScale = osd->font_xscale;
-    sft->yScale = osd->font_yscale;
+    sft->xScale = osd->font_size * osd->font_xscale / 100;
+    sft->yScale = osd->font_size * osd->font_yscale / 100;
     sft->yOffset = osd->font_yoffset;
     sft->font = sft_loadmem(fontData.data(), fontData.size());
     if (!sft->font)
@@ -632,7 +632,9 @@ void OSD::init()
     {
         // use cfg->set to set noSave, so auto values will not written to config
         cfg->set<int>(getConfigPath("font_size"), fontSize, true);
-    } else {
+    } 
+    /*
+    else {
         if (osd->font_xscale == OSD_AUTO_VALUE)
         {
             cfg->set<int>(getConfigPath("font_xscale"), osd->font_size, true);
@@ -655,6 +657,7 @@ void OSD::init()
         cfg->set<int>(getConfigPath("font_yscale"), fontSize, true);
         cfg->set<int>(getConfigPath("font_yoffset"), 0, true);
     }
+    */
 
     if (libschrift_init() != 0)
     {
