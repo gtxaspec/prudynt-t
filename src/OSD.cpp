@@ -138,24 +138,15 @@ int OSD::drawText(uint8_t *image, const char *text, int WIDTH, int HEIGHT, int o
     int penX = 1;
     int penY = 1;
 
-    const Glyph *prevGlyph = nullptr;
-
     // Draw text and outline
     while (*text)
     {
         auto it = glyphs.find(*text);
-        /*
-        if (it == glyphs.end())
-        {
-            renderGlyph(text);
-            it = glyphs.find(*text);
-        }
-        */
         if (it != glyphs.end())
         {
             const Glyph &g = it->second;
 
-            int x = penX + g.xmin;
+            int x = penX + g.xmin + outlineSize;
             int y = penY + (sft->yScale + g.ymin);
 
             // Draw the outline
@@ -175,7 +166,6 @@ int OSD::drawText(uint8_t *image, const char *text, int WIDTH, int HEIGHT, int o
             }
 
             penX += g.advance + outlineSize;
-            prevGlyph = &g;
         }
         ++text;
     }
@@ -185,59 +175,34 @@ int OSD::drawText(uint8_t *image, const char *text, int WIDTH, int HEIGHT, int o
 
 int OSD::calculateTextSize(const char *text, uint16_t &width, uint16_t &height, int outlineSize)
 {
-    int penX = 1;
-    int penY = 1;
-
     width = 0;
     height = 0;
-
-    const Glyph *prevGlyph = nullptr;
 
     while (*text)
     {
         auto it = glyphs.find(*text);
-        /*
-        if (it == glyphs.end())
-        {
-            renderGlyph(text);
-            it = glyphs.find(*text);
-        }
-        */
         if (it != glyphs.end())
         {
             const Glyph &g = it->second;
-
-            if (prevGlyph)
-            {
-                /*
-                SFT_Kerning k;
-                if (sft_kerning(sft, prevGlyph->glyph, g.glyph, &k) == 0)
-                {
-                    penX += k.xShift;
-                }
-                */
-            }
 
             width += g.advance + outlineSize;
             if (g.height > height)
             {
                 height = g.height;
             }
-            prevGlyph = &g;
         }
 
         ++text;
     }
 
-    height += sft->yScale + (outlineSize * 2);
-    width += outlineSize;
+    height += sft->yScale;
+    width += 1 + outlineSize;
 
     return 0;
 }
 
 int OSD::libschrift_init()
 {
-
     LOG_DEBUG("OSD::initFont()");
 
     std::ifstream fontFile(osd->font_path, std::ios::binary | std::ios::ate);
@@ -633,31 +598,6 @@ void OSD::init()
         // use cfg->set to set noSave, so auto values will not written to config
         cfg->set<int>(getConfigPath("font_size"), fontSize, true);
     } 
-    /*
-    else {
-        if (osd->font_xscale == OSD_AUTO_VALUE)
-        {
-            cfg->set<int>(getConfigPath("font_xscale"), osd->font_size, true);
-        }
-        if (osd->font_yscale == OSD_AUTO_VALUE)
-        {
-            cfg->set<int>(getConfigPath("font_yscale"), osd->font_size, true);
-        }
-    }
-
-    if (osd->font_xscale == OSD_AUTO_VALUE)
-    {
-        // use cfg->set to set noSave, so auto values will not written to config
-        cfg->set<int>(getConfigPath("font_xscale"), fontSize, true);
-    }
-
-    if (osd->font_yscale == OSD_AUTO_VALUE)
-    {
-        // use cfg->set to set noSave, so auto values will not written to config
-        cfg->set<int>(getConfigPath("font_yscale"), fontSize, true);
-        cfg->set<int>(getConfigPath("font_yoffset"), 0, true);
-    }
-    */
 
     if (libschrift_init() != 0)
     {
