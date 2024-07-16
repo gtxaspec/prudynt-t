@@ -169,6 +169,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"audio.output_gain", audio.output_gain, 0, [](const int &v) { return v >= 0 && v <= 31; }},
         {"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }},
 #endif
+        {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 1024; }},
         {"image.ae_compensation", image.ae_compensation, 128, validateInt255},
         {"image.anti_flicker", image.anti_flicker, 2, validateInt2},
         {"image.backlight_compensation", image.backlight_compensation, 0, [](const int &v) { return v >= 0 && v <= 10; }},

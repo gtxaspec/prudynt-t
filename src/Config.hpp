@@ -23,7 +23,6 @@
 #define THREAD_SLEEP 100000
 #define STREAM_POLLING_TIMEOUT 500
 #define GET_STREAM_BLOCKING false
-#define OSDPoolSize 100000
 //#define NO_FIFO
 
 //Some more debug output not usefull for users
@@ -80,6 +79,7 @@ struct _regions {
 };
 struct _general {
     const char *loglevel;
+    int osd_pool_size;
 };
 struct _rtsp {
     int port;
