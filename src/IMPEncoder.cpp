@@ -57,14 +57,12 @@ void IMPEncoder::initProfile()
     }
 
 #if defined(PLATFORM_T31)
-
     IMPEncoderRcMode rcMode = IMP_ENC_RC_MODE_CAPPED_QUALITY;
     IMPEncoderProfile encoderProfile = IMP_ENC_PROFILE_AVC_HIGH;
 
     if (strcmp(stream->format, "H265") == 0)
     {
         encoderProfile = IMP_ENC_PROFILE_HEVC_MAIN;
-        LOG_DEBUG("H265");
     }
     else if (strcmp(stream->format, "JPEG") == 0)
     {
@@ -146,7 +144,6 @@ void IMPEncoder::initProfile()
         rcAttr->attrRcMode.attrCappedVbr.uMaxPSNR = 42;
         break;
     case IMP_ENC_RC_MODE_CAPPED_QUALITY:
-        LOG_DEBUG("IMP_ENC_RC_MODE_CAPPED_QUALITY");
         rcAttr->attrRcMode.attrCappedQuality.uTargetBitRate = stream->bitrate;
         rcAttr->attrRcMode.attrCappedQuality.uMaxBitRate = stream->bitrate;
         rcAttr->attrRcMode.attrCappedQuality.iInitialQP = -1;
@@ -321,7 +318,6 @@ int IMPEncoder::init()
 
     if (strcmp(stream->format, "JPEG") != 0)
     {
-
         ret = IMP_Encoder_CreateGroup(encGrp);
         LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_CreateGroup(" << encGrp << ")");
 
