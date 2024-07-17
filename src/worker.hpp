@@ -32,6 +32,7 @@ struct Channel
 {
 	const int encChn;
 	_stream *stream;
+	int polling_timeout;	
 	EncoderSink *sink;
 	pthread_mutex_t lock;
 	std::function<void()> updateOsd = nullptr;

@@ -80,6 +80,7 @@ struct _regions {
 struct _general {
     const char *loglevel;
     int osd_pool_size;
+    int imp_polling_timeout;
 };
 struct _rtsp {
     int port;
@@ -319,6 +320,7 @@ class CFG {
         return false;
     }
 
+    /*
     bool initImageValue(const char *name, const unsigned char value) {
         for (auto &item : intItems) {
             if (item.path == name) {
@@ -338,6 +340,7 @@ class CFG {
         }
         return false;
     }
+    */
 
     private:
 

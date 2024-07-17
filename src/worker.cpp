@@ -154,7 +154,7 @@ std::vector<uint8_t> Worker::capture_jpeg_image(int encChn)
         return jpeg_data;
     }
 
-    if (IMP_Encoder_PollingStream(encChn, STREAM_POLLING_TIMEOUT) == 0)
+    if (IMP_Encoder_PollingStream(encChn, 1000) == 0)
     {
 
         IMPEncoderStream stream;
@@ -286,7 +286,7 @@ void *Worker::jpeg_grabber(void *arg)
         if (tDiffInMs(&ts) > 1000)
         {
             // LOG_DEBUG("IMP_Encoder_PollingStream 1 " << channel->encChn);
-            if (IMP_Encoder_PollingStream(channel->encChn, STREAM_POLLING_TIMEOUT) == 0)
+            if (IMP_Encoder_PollingStream(channel->encChn, channel->polling_timeout) == 0)
             {
                 // LOG_DEBUG("IMP_Encoder_PollingStream 2 " << channel->encChn);
 
@@ -379,7 +379,7 @@ void *Worker::stream_grabber(void *arg)
     {
         if (channel->sink->data_available_callback != nullptr)
         {
-            if (IMP_Encoder_PollingStream(channel->encChn, STREAM_POLLING_TIMEOUT) == 0)
+            if (IMP_Encoder_PollingStream(channel->encChn, channel->polling_timeout) == 0)
             {
                 IMPEncoderStream stream;
                 if (IMP_Encoder_GetStream(channel->encChn, &stream, GET_STREAM_BLOCKING) != 0)
@@ -501,7 +501,7 @@ void *Worker::stream_grabber(void *arg)
             else
             {
                 error_count++;
-                LOG_DDEBUG("IMP_Encoder_PollingStream(" << channel->encChn << ", " << STREAM_POLLING_TIMEOUT << ") timeout !");
+                LOG_DDEBUG("IMP_Encoder_PollingStream(" << channel->encChn << ", " << channel->polling_timeout << ") timeout !");
                 usleep(THREAD_SLEEP);
             }
         }
@@ -596,19 +596,19 @@ void Worker::run()
 
             if (cfg->stream0.enabled)
             {
-                channels[0] = new Channel{0, &cfg->stream0, stream0_sink, sink_lock0};
+                channels[0] = new Channel{0, &cfg->stream0, cfg->general.imp_polling_timeout, stream0_sink, sink_lock0};
                 start_stream(0);
             }
 
             if (cfg->stream1.enabled)
             {
-                channels[1] = new Channel{1, &cfg->stream1, stream1_sink, sink_lock1};
+                channels[1] = new Channel{1, &cfg->stream1, cfg->general.imp_polling_timeout, stream1_sink, sink_lock1};
                 start_stream(1);
             }
 
             if (cfg->stream2.enabled)
             {
-                channels[2] = new Channel{2, &cfg->stream2};
+                channels[2] = new Channel{2, &cfg->stream2, cfg->general.imp_polling_timeout};
                 pthread_create(&worker_threads[2], &jpeg_thread_attr, jpeg_grabber, channels[2]);
             }
 
