@@ -20,7 +20,8 @@
     ToDo's
     add new font scales
     add new font stroke
-    remove old font
+    add osd pool size
+    add polling timeout
 */
 
 /* ROOT */
