@@ -84,7 +84,7 @@ private:
     OSDItem osdLogo{};
 
     void set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, int posX, int posY, int angle);
-    const char * getConfigPath(const char *itemName);
+    std::string getConfigPath(const char *itemName);
 
     IMPEncoderCHNAttr channelAttributes;
 
@@ -100,10 +100,10 @@ private:
 
     time_t current;
     struct tm *ltime;
+    struct timeval tm;
 
     char timeFormatted[32];
     char uptimeFormatted[32];
-    const char *user_text;
     char fps[4];
     char bps[8];
 };

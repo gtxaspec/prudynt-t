@@ -237,7 +237,7 @@ int OSD::libschrift_init()
     sft->font = sft_loadmem(fontData.data(), fontData.size());
     if (!sft->font)
     {
-        LOG_DEBUG("Unable to load font file.");
+        LOG_DEBUG("Unable to load font data.");
         return -1;
     }
 
@@ -335,12 +335,9 @@ int getIp(char *addressBuffer)
     return 0;
 }
 
-const char *OSD::getConfigPath(const char *itemName)
+std::string OSD::getConfigPath(const char *itemName)
 {
-    std::string buffer;
-    buffer.clear();
-    buffer = std::string(parent) + ".osd." + itemName;
-    return buffer.c_str();
+    return std::string(parent) + ".osd." + itemName;
 }
 
 int autoFontSize(int pWidth)
@@ -350,67 +347,12 @@ int autoFontSize(int pWidth)
     return static_cast<int>(m * pWidth + b + 0.5);
 }
 
-const char *replace(const char *str, const char *oldToken, const char *newToken)
-{
-    int strLen = 0;
-    while (str[strLen] != '\0')
-        strLen++;
-
-    int oldTokenLen = 0;
-    while (oldToken[oldTokenLen] != '\0')
-        oldTokenLen++;
-
-    int newTokenLen = 0;
-    while (newToken[newTokenLen] != '\0')
-        newTokenLen++;
-
-    const char *pos = nullptr;
-    for (int i = 0; i <= strLen - oldTokenLen; ++i)
-    {
-        bool match = true;
-        for (int j = 0; j < oldTokenLen; ++j)
-        {
-            if (str[i + j] != oldToken[j])
-            {
-                match = false;
-                break;
-            }
-        }
-        if (match)
-        {
-            pos = str + i;
-            break;
-        }
+void replace(std::string& str, const std::string& oldToken, const std::string& newToken) {
+    size_t pos = 0;
+    while ((pos = str.find(oldToken, pos)) != std::string::npos) {
+        str.replace(pos, oldToken.length(), newToken);
+        pos += newToken.length();
     }
-
-    if (!pos)
-    {
-        return str;
-    }
-
-    int newStrLen = strLen - oldTokenLen + newTokenLen;
-
-    char *newStr = new char[newStrLen + 1];
-
-    int i = 0;
-    for (; str + i != pos; ++i)
-    {
-        newStr[i] = str[i];
-    }
-
-    for (int j = 0; j < newTokenLen; ++j, ++i)
-    {
-        newStr[i] = newToken[j];
-    }
-
-    for (int j = 0; pos[j + oldTokenLen] != '\0'; ++j, ++i)
-    {
-        newStr[i] = pos[j + oldTokenLen];
-    }
-
-    newStr[i] = '\0';
-
-    return newStr;
 }
 
 void OSD::rotateBGRAImage(uint8_t *&inputImage, uint16_t &width, uint16_t &height, int angle, bool del = true)
@@ -519,7 +461,6 @@ void OSD::set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, uint16_t width, uint16_t
 
 unsigned char *loadBGRAImage(const char *filepath, size_t &length)
 {
-    // Datei öffnen
     FILE *file = fopen(filepath, "rb");
     if (!file)
     {
@@ -527,12 +468,10 @@ unsigned char *loadBGRAImage(const char *filepath, size_t &length)
         return nullptr;
     }
 
-    // Dateiende suchen, um die Größe zu ermitteln
     fseek(file, 0, SEEK_END);
     length = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    // Speicher für das Bild allokieren
     unsigned char *data = (unsigned char *)malloc(length);
     if (!data)
     {
@@ -541,7 +480,6 @@ unsigned char *loadBGRAImage(const char *filepath, size_t &length)
         return nullptr;
     }
 
-    // Bilddaten lesen
     if (fread(data, 1, length, file) != length)
     {
         printf("Failed to read OSD logo data.\n");
@@ -550,7 +488,6 @@ unsigned char *loadBGRAImage(const char *filepath, size_t &length)
         return nullptr;
     }
 
-    // Datei schließen
     fclose(file);
     return data;
 }
@@ -568,7 +505,7 @@ OSD *OSD::createNew(
 void OSD::init()
 {
     int ret = 0;
-    LOG_DEBUG("OSD init for  begin");
+    LOG_DEBUG("OSD init for begin");
 
     // cfg = _cfg;
     last_updated_second = -1;
@@ -609,13 +546,12 @@ void OSD::init()
         /* OSD Time */
         if (osd->pos_time_x == OSD_AUTO_VALUE)
         {
-            // use cfg->set to set noSave, so auto values will not written to config
-            cfg->set<int>(getConfigPath("pos_time_x"), autoOffset, true);
+            cfg->set<int>(getConfigPath("pos_time_x").c_str(), autoOffset, true);
         }
         if (osd->pos_time_y == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
-            cfg->set<int>(getConfigPath("pos_time_y"), autoOffset, true);
+            cfg->set<int>(getConfigPath("pos_time_y").c_str(), autoOffset, true);
         }
 
         osdTime.data = nullptr;
@@ -627,8 +563,8 @@ void OSD::init()
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;
-        set_text(&osdTime, &rgnAttr, osd->time_format,
-                 osd->pos_time_x, osd->pos_time_y, osd->time_rotation);
+        //set_text(&osdTime, &rgnAttr, osd->time_format,
+        //         osd->pos_time_x, osd->pos_time_y, osd->time_rotation);
         IMP_OSD_SetRgnAttr(osdTime.imp_rgn, &rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
@@ -649,12 +585,12 @@ void OSD::init()
         if (osd->pos_user_text_x == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
-            cfg->set<int>(getConfigPath("pos_user_text_x"), 0, true);
+            cfg->set<int>(getConfigPath("pos_user_text_x").c_str(), 0, true);
         }
         if (osd->pos_user_text_y == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
-            cfg->set<int>(getConfigPath("pos_user_text_y"), autoOffset, true);
+            cfg->set<int>(getConfigPath("pos_user_text_y").c_str(), autoOffset, true);
         }
 
         osdUser.data = nullptr;
@@ -666,8 +602,8 @@ void OSD::init()
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;
-        set_text(&osdUser, &rgnAttr, osd->user_text_format,
-                 osd->pos_user_text_x, osd->pos_user_text_y, osd->user_text_rotation);
+        //set_text(&osdUser, &rgnAttr, osd->user_text_format,
+        //         osd->pos_user_text_x, osd->pos_user_text_y, osd->user_text_rotation);
         IMP_OSD_SetRgnAttr(osdUser.imp_rgn, &rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
@@ -685,12 +621,12 @@ void OSD::init()
         if (osd->pos_uptime_x == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
-            cfg->set<int>(getConfigPath("pos_uptime_x"), -autoOffset, true);
+            cfg->set<int>(getConfigPath("pos_uptime_x").c_str(), -autoOffset, true);
         }
         if (osd->pos_uptime_y == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
-            cfg->set<int>(getConfigPath("pos_uptime_y"), autoOffset, true);
+            cfg->set<int>(getConfigPath("pos_uptime_y").c_str(), autoOffset, true);
         }
 
         osdUptm.data = nullptr;
@@ -702,8 +638,8 @@ void OSD::init()
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;
-        set_text(&osdUptm, &rgnAttr, osd->uptime_format,
-                 osd->pos_uptime_x, osd->pos_uptime_y, osd->uptime_rotation);
+        //set_text(&osdUptm, &rgnAttr, osd->uptime_format,
+        //         osd->pos_uptime_x, osd->pos_uptime_y, osd->uptime_rotation);
         IMP_OSD_SetRgnAttr(osdUptm.imp_rgn, &rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
@@ -721,12 +657,12 @@ void OSD::init()
         if (osd->pos_logo_x == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
-            cfg->set<int>(getConfigPath("pos_logo_x"), -autoOffset, true);
+            cfg->set<int>(getConfigPath("pos_logo_x").c_str(), -autoOffset, true);
         }
         if (osd->pos_logo_y == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
-            cfg->set<int>(getConfigPath("pos_logo_y"), -autoOffset, true);
+            cfg->set<int>(getConfigPath("pos_logo_y").c_str(), -autoOffset, true);
         }
 
         size_t imageSize;
@@ -846,7 +782,6 @@ int OSD::exit()
 
 void OSD::updateDisplayEverySecond()
 {
-    struct timeval tm;
     gettimeofday(&tm, NULL);
 
     current = time(nullptr);
@@ -879,35 +814,36 @@ void OSD::updateDisplayEverySecond()
             // Format and update user text
             if ((flag & 2) && osd->user_text_enabled)
             {
-                user_text = osd->user_text_format;
-                if (strstr(user_text, "%hostname") != nullptr)
+                std::string user_text = osd->user_text_format;
+
+                if (strstr(osd->user_text_format, "%hostname") != nullptr)
                 {
-                    user_text = replace(user_text, "%hostname", hostname);
+                    replace(user_text, "%hostname", hostname);
                 }
 
-                if (strstr(user_text, "%ipaddress") != nullptr)
+                if (strstr(osd->user_text_format, "%ipaddress") != nullptr)
                 {
-                    user_text = replace(user_text, "%ipaddress", ip);
+                    replace(user_text, "%ipaddress", ip);
                 }
 
-                if (strstr(user_text, "%fps") != nullptr)
+                if (strstr(osd->user_text_format, "%fps") != nullptr)
                 {
                     char fps[4];
                     snprintf(fps, 4, "%3d", osd->stats.fps);
-                    user_text = replace(user_text, "%fps", fps);
+                    replace(user_text, "%fps", fps);
                 }
 
-                if (strstr(user_text, "%bps") != nullptr)
+                if (strstr(osd->user_text_format, "%bps") != nullptr)
                 {
                     char bps[8];
                     snprintf(bps, 8, "%5d", osd->stats.bps);
-                    user_text = replace(user_text, "%bps", bps);
+                    replace(user_text, "%bps", bps);
                 }
 
-                set_text(&osdUser, nullptr, user_text,
+                set_text(&osdUser, nullptr, user_text.c_str(),
                          osd->pos_user_text_x, osd->pos_user_text_y, osd->user_text_rotation);
 
-                delete user_text;
+                user_text.clear();
 
                 flag ^= 2;
                 return;
