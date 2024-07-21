@@ -16,7 +16,7 @@
 //#define DDEBUG
 
 //~10k
-//#define AUDIO_SUPPORT
+#define AUDIO_SUPPORT
 
 //disable tunings (debugging)
 //#define NO_TUNINGS
@@ -27,23 +27,32 @@
 #define GET_STREAM_BLOCKING false
 
 #if defined(PLATFORM_T31)
-#define DEFAULT_ENC_MODE_0 "FIXQP"
-#define DEFAULT_ENC_MODE_1 "CAPPED_QUALITY"
-#define DEFAULT_BUFFERS_0 4
-#define DEFAULT_BUFFERS_1 2
-#define DEFAULT_SINTER 128
-#define DEFAULT_TEMPER 128
-#define DEFAULT_SINTER_VALIDATE validateInt255
-#define DEFAULT_TEMPER_VALIDATE validateInt255
+    #define DEFAULT_ENC_MODE_0 "FIXQP"
+    #define DEFAULT_ENC_MODE_1 "CAPPED_QUALITY"
+    #define DEFAULT_BUFFERS_0 4
+    #define DEFAULT_BUFFERS_1 2
+    #define DEFAULT_SINTER 128
+    #define DEFAULT_TEMPER 128
+    #define DEFAULT_SINTER_VALIDATE validateInt255
+    #define DEFAULT_TEMPER_VALIDATE validateInt255
+#elif defined(PLATFORM_T23)
+    #define DEFAULT_ENC_MODE_0 "SMART"
+    #define DEFAULT_ENC_MODE_1 "SMART"
+    #define DEFAULT_BUFFERS_0 2
+    #define DEFAULT_BUFFERS_1 2
+    #define DEFAULT_SINTER 128
+    #define DEFAULT_TEMPER 128
+    #define DEFAULT_SINTER_VALIDATE validateInt255
+    #define DEFAULT_TEMPER_VALIDATE validateInt255
 #else
-#define DEFAULT_ENC_MODE_0 "SMART"
-#define DEFAULT_ENC_MODE_1 "SMART"
-#define DEFAULT_BUFFERS_0 2
-#define DEFAULT_BUFFERS_1 2
-#define DEFAULT_SINTER 50
-#define DEFAULT_TEMPER 50
-#define DEFAULT_SINTER_VALIDATE validateInt50_150
-#define DEFAULT_TEMPER_VALIDATE validateInt50_150
+    #define DEFAULT_ENC_MODE_0 "SMART"
+    #define DEFAULT_ENC_MODE_1 "SMART"
+    #define DEFAULT_BUFFERS_0 2
+    #define DEFAULT_BUFFERS_1 2
+    #define DEFAULT_SINTER 50
+    #define DEFAULT_TEMPER 50
+    #define DEFAULT_SINTER_VALIDATE validateInt50_150
+    #define DEFAULT_TEMPER_VALIDATE validateInt50_150
 #endif
 
 struct roi{
@@ -128,13 +137,8 @@ struct _audio {
     int input_vol;
     int input_gain;
     int input_alc_gain;
-    bool output_enabled;            
-    int output_vol;
-    int output_gain;
     int input_noise_suppression;            
-    bool input_echo_cancellation;
     bool input_high_pass_filter;
-    bool output_high_pass_filter;
 };
 #endif      
 struct _osd {            
@@ -202,6 +206,9 @@ struct _stream {
     int jpeg_channel;
     const char *jpeg_path;
     _osd osd;
+#if defined(AUDIO_SUPPORT)    
+    bool audio_enabled;
+#endif
 };	
 struct _motion {
     int debounce_time;
@@ -242,13 +249,13 @@ class CFG {
         bool readConfig();
         bool updateConfig();
 
+#if defined(AUDIO_SUPPORT)
+        _audio audio{};
+#endif  
 		_general general{};
 		_rtsp rtsp{};
 		_sensor sensor{};
         _image image{};
-#if defined(AUDIO_SUPPORT)           
-        _audio audio{};
-#endif
 		_stream stream0{};
         _stream stream1{};
 		_stream stream2{};

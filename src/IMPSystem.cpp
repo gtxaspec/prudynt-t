@@ -164,7 +164,7 @@ int IMPSystem::init()
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
 #endif
 
-#if defined(AUDIO_SUPPORT)
+#if defined(AUDIO_SUPPORT_DUMMY)
     /* Audio tuning */
     /*     input    */
     if (cfg->audio.input_enabled)

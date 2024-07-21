@@ -86,22 +86,25 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
     return {
 #if defined(WITH_AUDIO)
         {"audio.input_enabled", audio.input_enabled, false, validateBool},
-        {"audio.output_enabled", audio.output_enabled, false, validateBool},
-        {"audio.input_echo_cancellation", audio.input_echo_cancellation, false, validateBool},
         {"audio.output_high_pass_filter", audio.input_high_pass_filter, false, validateBool},
-        {"audio.output_high_pass_filter", audio.output_high_pass_filter, false, validateBool},
-#endif
+#endif                
         {"image.vflip", image.vflip, false, validateBool},
         {"image.hflip", image.hflip, false, validateBool},
         {"motion.enabled", motion.enabled, false, validateBool},
         {"rtsp.auth_required", rtsp.auth_required, true, validateBool},
+#if defined(WITH_AUDIO)
+        {"stream0.audio_enabled", stream0.audio_enabled, false, validateBool},
+#endif         
         {"stream0.enabled", stream0.enabled, true, validateBool},
         {"stream0.osd.enabled", stream0.osd.enabled, true, validateBool},
         {"stream0.osd.font_stroke_enabled", stream0.osd.font_stroke_enabled, true, validateBool},
         {"stream0.osd.logo_enabled", stream0.osd.logo_enabled, true, validateBool},
         {"stream0.osd.time_enabled", stream0.osd.time_enabled, true, validateBool},
         {"stream0.osd.uptime_enabled", stream0.osd.uptime_enabled, true, validateBool},
-        {"stream0.osd.user_text_enabled", stream0.osd.user_text_enabled, true, validateBool},
+        {"stream0.osd.user_text_enabled", stream0.osd.user_text_enabled, true, validateBool},      
+#if defined(WITH_AUDIO)
+        {"stream1.audio_enabled", stream1.audio_enabled, false, validateBool},
+#endif          
         {"stream1.enabled", stream1.enabled, true, validateBool},
         {"stream1.osd.enabled", stream1.osd.enabled, true, validateBool},
         {"stream1.osd.font_stroke_enabled", stream1.osd.font_stroke_enabled, true, validateBool},
@@ -165,10 +168,8 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"audio.input_vol", audio.input_vol, 0, [](const int &v) { return v >= -30 && v <= 120; }},
         {"audio.input_gain", audio.input_gain, 0, [](const int &v) { return v >= 0 && v <= 31; }},
         {"audio.input_alc_gain", audio.input_alc_gain, 0, [](const int &v) { return v >= 0 && v <= 7; }},
-        {"audio.output_vol", audio.output_vol, 0, [](const int &v) { return v >= -30 && v <= 120; }},
-        {"audio.output_gain", audio.output_gain, 0, [](const int &v) { return v >= 0 && v <= 31; }},
         {"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }},
-#endif
+#endif           
         {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 1024; }},
         {"general.imp_polling_timeout", general.imp_polling_timeout, 100, [](const int &v) { return v >= 1 && v <= 5000; }},
         {"image.ae_compensation", image.ae_compensation, 128, validateInt255},
@@ -211,7 +212,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"rtsp.send_buffer_size", rtsp.send_buffer_size, 307200, validateIntGe0},
         {"sensor.fps", sensor.fps, 24, validateInt60, false, "/proc/jz/sensor/max_fps"},
         {"sensor.height", sensor.height, 1080, validateIntGe0, false, "/proc/jz/sensor/height"},
-        {"sensor.width", sensor.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},
+        {"sensor.width", sensor.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},     
         {"stream0.bitrate", stream0.bitrate, 3000, validateIntGe0},
         {"stream0.buffers", stream0.buffers, DEFAULT_BUFFERS_0, validateInt32},
         {"stream0.fps", stream0.fps, IMP_AUTO_VALUE, validateInt60},
@@ -244,7 +245,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream0.osd.user_text_transparency", stream0.osd.user_text_transparency, 255, validateInt255},
         {"stream0.rotation", stream0.rotation, 0, validateInt2},
         {"stream0.width", stream0.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},
-        {"stream0.profile", stream0.profile, 2, validateInt2},
+        {"stream0.profile", stream0.profile, 2, validateInt2},       
         {"stream1.bitrate", stream1.bitrate, 1000, validateIntGe0},
         {"stream1.buffers", stream1.buffers, DEFAULT_BUFFERS_1, validateInt32},
         {"stream1.fps", stream1.fps, IMP_AUTO_VALUE, validateInt60},
