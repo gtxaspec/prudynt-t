@@ -36,11 +36,18 @@ deps() {
 	rm -rf libschrift
 	git clone https://github.com/tomolt/libschrift/
 	cd libschrift
-	${PRUDYNT_CROSS}gcc -std=c99 -pedantic -Wall -Wextra -Wconversion -fPIC -c -o schrift.o schrift.c
-	${PRUDYNT_CROSS}gcc -shared -o libschrift.so schrift.o
 	mkdir -p $TOP/3rdparty/install/lib
 	mkdir -p $TOP/3rdparty/install/include
-	cp libschrift.so $TOP/3rdparty/install/lib/
+	if [[ "$2" == "-static" ]]; then
+		${PRUDYNT_CROSS}gcc -std=c99 -pedantic -Wall -Wextra -Wconversion -c -o schrift.o schrift.c
+		${PRUDYNT_CROSS}ar rc libschrift.a schrift.o
+		${PRUDYNT_CROSS}ranlib libschrift.a
+		cp libschrift.a $TOP/3rdparty/install/lib/
+	else
+		${PRUDYNT_CROSS}gcc -std=c99 -pedantic -Wall -Wextra -Wconversion -fPIC -c -o schrift.o schrift.c
+		${PRUDYNT_CROSS}gcc -shared -o libschrift.so schrift.o
+		cp libschrift.so $TOP/3rdparty/install/lib/
+	fi
 	cp schrift.h $TOP/3rdparty/install/include/
 	cd ../../
 
