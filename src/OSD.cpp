@@ -563,8 +563,8 @@ void OSD::init()
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;
-        //set_text(&osdTime, &rgnAttr, osd->time_format,
-        //         osd->pos_time_x, osd->pos_time_y, osd->time_rotation);
+        set_text(&osdTime, &rgnAttr, osd->time_format,
+                 osd->pos_time_x, osd->pos_time_y, osd->time_rotation);
         IMP_OSD_SetRgnAttr(osdTime.imp_rgn, &rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
@@ -602,8 +602,8 @@ void OSD::init()
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;
-        //set_text(&osdUser, &rgnAttr, osd->user_text_format,
-        //         osd->pos_user_text_x, osd->pos_user_text_y, osd->user_text_rotation);
+        set_text(&osdUser, &rgnAttr, osd->user_text_format,
+                 osd->pos_user_text_x, osd->pos_user_text_y, osd->user_text_rotation);
         IMP_OSD_SetRgnAttr(osdUser.imp_rgn, &rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
@@ -638,8 +638,8 @@ void OSD::init()
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;
-        //set_text(&osdUptm, &rgnAttr, osd->uptime_format,
-        //         osd->pos_uptime_x, osd->pos_uptime_y, osd->uptime_rotation);
+        set_text(&osdUptm, &rgnAttr, osd->uptime_format,
+                 osd->pos_uptime_x, osd->pos_uptime_y, osd->uptime_rotation);
         IMP_OSD_SetRgnAttr(osdUptm.imp_rgn, &rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
