@@ -91,7 +91,7 @@ void setPixel(uint8_t *image, int x, int y, const uint8_t *color, int WIDTH, int
         image[index + 3] = color[3]; // A
     }
 }
-/*
+
 void OSD::drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineSize, int WIDTH, int HEIGHT) {
     for (int j = -outlineSize; j <= outlineSize; ++j) {
         for (int i = -outlineSize; i <= outlineSize; ++i) {
@@ -108,7 +108,7 @@ void OSD::drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineS
         }
     }
 }
-*/
+/*
 void OSD::drawOutline(uint8_t *image, const Glyph &g, int x, int y, int outlineSize, int WIDTH, int HEIGHT)
 {
     for (int j = -outlineSize; j <= outlineSize; ++j)
@@ -132,7 +132,7 @@ void OSD::drawOutline(uint8_t *image, const Glyph &g, int x, int y, int outlineS
         }
     }
 }
-
+*/
 int OSD::drawText(uint8_t *image, const char *text, int WIDTH, int HEIGHT, int outlineSize)
 {
     int penX = 1;
@@ -165,7 +165,7 @@ int OSD::drawText(uint8_t *image, const char *text, int WIDTH, int HEIGHT, int o
                 }
             }
 
-            penX += g.advance + outlineSize;
+            penX += g.advance + (outlineSize * 2);
         }
         ++text;
     }
@@ -185,7 +185,7 @@ int OSD::calculateTextSize(const char *text, uint16_t &width, uint16_t &height, 
         {
             const Glyph &g = it->second;
 
-            width += g.advance + outlineSize;
+            width += g.advance + (outlineSize * 2);
             if (g.height > height)
             {
                 height = g.height;
