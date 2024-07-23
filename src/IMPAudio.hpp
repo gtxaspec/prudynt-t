@@ -8,9 +8,9 @@
 class IMPAudio
 {
 public:
-    static IMPAudio *createNew(_stream *stream, std::shared_ptr<CFG> cfg, int inChn, int devId, const char *name);
+    static IMPAudio *createNew(std::shared_ptr<CFG> cfg,  int devId, int inChn);
 
-    IMPAudio(_stream *stream, std::shared_ptr<CFG> cfg, int inChn, int devId, const char *name) : stream(stream), cfg(cfg), inChn(inChn), devId(devId), name(name)
+    IMPAudio(std::shared_ptr<CFG> cfg, int devId, int inChn) : cfg(cfg), devId(devId), inChn(inChn)
     {
         init();
     };
@@ -23,13 +23,13 @@ public:
     int deinit();
     int destroy();
 
+    int inChn{};
+    int devId{};
 private:
     
     const char *name{};
     std::shared_ptr<CFG> cfg{};
     _stream *stream{};
-    int inChn{};
-    int devId{};
 };
 
 #endif

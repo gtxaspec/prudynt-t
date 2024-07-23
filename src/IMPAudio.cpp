@@ -2,13 +2,37 @@
 
 #define MODULE "IMPAUDIO"
 
+IMPAudio *IMPAudio::createNew(
+    std::shared_ptr<CFG> cfg,
+    int devId,
+    int inChn)
+{
+    return new IMPAudio(cfg, devId, inChn);
+}
+
 int IMPAudio::init()
 {
     LOG_DEBUG("IMPAudio::init()");
     int ret;
 
+    IMPAudioIOAttr attr;
+    attr.samplerate = AUDIO_SAMPLE_RATE_8000;
+    attr.bitwidth = AUDIO_BIT_WIDTH_16;
+    attr.soundmode = AUDIO_SOUND_MODE_MONO;
+    attr.frmNum = 20;
+    attr.numPerFrm = 400;
+    attr.chnCnt = 1;
+
+    ret = IMP_AI_SetPubAttr(devId, &attr);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetPubAttr(" << devId << ")");
+
     ret = IMP_AI_Enable(devId);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Enable(" << devId << ")");
+
+    IMPAudioIChnParam chnParam {};
+    chnParam.usrFrmDepth = 20;
+    ret = IMP_AI_SetChnParam(devId, inChn, &chnParam);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetChnParam(" << devId << ", " << inChn << ")");
 
     ret = IMP_AI_EnableChn(devId, inChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableChn(" << devId << ", " << inChn << ")");
@@ -20,10 +44,8 @@ int IMPAudio::init()
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetGain(" << devId << ", " << inChn << ", " << cfg->audio.input_gain << ")");
 
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-
     ret = IMP_AI_SetAlcGain(devId, inChn, cfg->audio.input_alc_gain);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetAlcGain(" << devId << ", " << inChn << ", " << cfg->audio.input_alc_gain << ")");
-
 #endif
 
     IMPAudioIOAttr ioattr;

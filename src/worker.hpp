@@ -3,6 +3,7 @@
 
 #include "Logger.hpp"
 #include "Config.hpp"
+#include "IMPAudio.hpp"
 #include "IMPSystem.hpp"
 #include "IMPEncoder.hpp"
 #include "IMPFramesource.hpp"
@@ -122,10 +123,14 @@ public:
 	IMPEncoder *encoder[3] = {nullptr, nullptr, nullptr};
 	std::atomic<int> osd_thread_signal;
 private:
+	IMPAudio *audio0;
+	IMPAudio *audio1;
+
 	Motion motion;
 
 	std::shared_ptr<CFG> cfg;
 	static void *jpeg_grabber(void *arg);
+	static void *audio_grabber(void *arg);
 	static void *stream_grabber(void *arg);
 	static void *update_osd(void *arg);
 
@@ -137,6 +142,7 @@ private:
 
 	pthread_t osd_thread;
 	pthread_t osd_threads[2];
+	pthread_t audio_threads[2];
 	pthread_t worker_threads[3];
 
 	struct sched_param osd_thread_sheduler;

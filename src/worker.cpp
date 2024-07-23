@@ -352,8 +352,6 @@ void *Worker::stream_grabber(void *arg)
 {
     Channel *channel = static_cast<Channel *>(arg);
 
-    // nice(-19);
-
     LOG_DEBUG("Start stream_grabber thread for stream " << channel->encChn);
 
     int ret;
@@ -519,6 +517,34 @@ void *Worker::stream_grabber(void *arg)
     return 0;
 }
 
+void *Worker::audio_grabber(void *arg)
+{
+    IMPAudio *audio = static_cast<IMPAudio *>(arg);
+
+    LOG_DEBUG("Start audio_grabber thread for device " << audio->devId << " and channel " << audio->inChn);
+
+    while(true) {
+            
+        if (IMP_AI_PollingFrame(audio->devId, audio->inChn, 1000) == 0)
+        {
+            IMPAudioFrame frame;
+            if (IMP_AI_GetFrame(audio->devId, audio->inChn, &frame, IMPBlock::BLOCK) != 0)
+            {
+                LOG_ERROR("IMP_AI_GetFrame(" << audio->devId << ", " << audio->inChn << ") failed");
+            }
+
+            LOG_DEBUG(audio->devId << ", " << audio->inChn << " == " << frame.len);
+        } else {
+
+            LOG_DEBUG(audio->devId << ", " << audio->inChn << " POLLING TIMEOUT");
+        }
+
+        usleep(1000 * 1000);
+    }
+
+    return 0;
+}
+
 void *Worker::update_osd(void *arg) {
 
     Worker *worker = static_cast<Worker *>(arg);
@@ -583,6 +609,11 @@ void Worker::run()
             pthread_attr_setschedparam(&osd_thread_attr, &osd_thread_sheduler);
             pthread_attr_setschedparam(&jpeg_thread_attr, &jpeg_thread_sheduler);
             pthread_attr_setschedparam(&stream_thread_attr, &stream_thread_sheduler);
+
+            audio0 = IMPAudio::createNew(cfg, 0, 0);
+            audio1 = IMPAudio::createNew(cfg, 0, 1);
+            pthread_create(&audio_threads[0], nullptr, audio_grabber, audio0);
+            pthread_create(&audio_threads[1], nullptr, audio_grabber, audio1);
 
             if (cfg->rtsp_thread_signal == 0)
             {
