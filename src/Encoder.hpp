@@ -5,6 +5,7 @@
 #include <memory>
 #include <ctime>
 #include <map>
+#include <functional>
 
 #include <sys/file.h>
 
@@ -49,10 +50,12 @@ struct H264NALUnit {
     int64_t duration;
 };
 
+using CallbackFunction = std::function<void(void)>;
 struct EncoderSink {
     std::shared_ptr<MsgChannel<H264NALUnit>> chn;
     bool IDR;
     std::string name;
+    CallbackFunction onDataCallback;
 };
 
 class Encoder {
@@ -67,11 +70,11 @@ public:
         IMP_Encoder_FlushStream(0);
     }
 
-    template <class T> static uint32_t connect_sink(T *c, std::string name = "Unnamed") {
+    template <class T> static uint32_t connect_sink(T *c, std::string name = "Unnamed", CallbackFunction onDataCallback = [](){}) {
         LOG_DEBUG("Create Sink: " << Encoder::sink_id);
         std::shared_ptr<MsgChannel<H264NALUnit>> chn = std::make_shared<MsgChannel<H264NALUnit>>(20);
         std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-        Encoder::sinks.insert(std::pair<uint32_t,EncoderSink>(Encoder::sink_id, {chn, false, name}));
+        Encoder::sinks.insert(std::pair<uint32_t,EncoderSink>(Encoder::sink_id, {chn, false, name, onDataCallback}));
         c->set_framesource(chn);
         Encoder::flush();
         return Encoder::sink_id++;

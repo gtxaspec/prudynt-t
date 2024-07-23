@@ -10,22 +10,32 @@ IMPDeviceSource::IMPDeviceSource(UsageEnvironment& env)
     : FramedSource(env)
 {
     LOG_DEBUG("Device source construct");
-    sink_id = Encoder::connect_sink(this, "IMPDeviceSource");
+    eventTriggerId = envir().taskScheduler()
+        .createEventTrigger(reinterpret_cast<TaskFunc *>(+[] (void *dev) {
+            reinterpret_cast<IMPDeviceSource *>(dev)->doGetNextFrame();
+        }));
+
+    sink_id = Encoder::connect_sink(this, "IMPDeviceSource", [this]() {
+        if (eventTriggerId != 0) {
+            envir().taskScheduler().triggerEvent(eventTriggerId, this);
+        }
+    });
 }
 
 IMPDeviceSource::~IMPDeviceSource() {
     LOG_DEBUG("Device source destruct");
+    envir().taskScheduler().deleteEventTrigger(eventTriggerId);
     Encoder::remove_sink(sink_id);
 }
 
 void IMPDeviceSource::doGetNextFrame() {
     if (!isCurrentlyAwaitingData()) return;
 
-    //XXX: We aren't supposed to block here. The correct thing would be
-    //to return early if we don't have a frame available, and then signal
-    //an event to deliver the frame when it becomes available.
-    //See DeviceSource.cpp in 3rdparty/live/liveMedia/
-    H264NALUnit nal = encoder->wait_read();
+    H264NALUnit nal;
+    if (!encoder->read(&nal)) {
+        // nothing to read, wait for event to be triggered
+        return;
+    }
 
     if (nal.data.size() > fMaxSize) {
         fFrameSize = fMaxSize;

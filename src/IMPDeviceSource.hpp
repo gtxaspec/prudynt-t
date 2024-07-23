@@ -13,8 +13,8 @@ public:
         encoder = chn;
     }
 
-public:
-    static EventTriggerId eventTriggerId;
+private:
+    EventTriggerId eventTriggerId;
 
 protected:
     IMPDeviceSource(UsageEnvironment& env);

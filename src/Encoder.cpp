@@ -521,6 +521,7 @@ void Encoder::run() {
                         //H264NALUnit old_nal;
                         //it->second.chn->read(&old_nal);
                     }
+                    it->second.onDataCallback();
                 }
             }
         }
