@@ -71,6 +71,15 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
     );
 
     sms->addSubsession(sub);
+
+    /*
+    if (stream.audio_enabled) {
+        IMPAudioServerMediaSubsession *audioSub = IMPAudioServerMediaSubsession::createNew(*env, chnNr);
+        sms->addSubsession(audioSub);
+        LOG_INFO("Audio stream " << chnNr << " added to session");
+    }
+    */
+
     rtspServer->addServerMediaSession(sms);
 
     char *url = rtspServer->rtspURL(sms);

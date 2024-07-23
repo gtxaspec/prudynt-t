@@ -84,7 +84,7 @@ bool validateUint(const unsigned int &v)
 std::vector<ConfigItem<bool>> CFG::getBoolItems()
 {
     return {
-#if defined(WITH_AUDIO)
+#if defined(AUDIO_SUPPORT)
         {"audio.input_enabled", audio.input_enabled, false, validateBool},
         {"audio.output_high_pass_filter", audio.input_high_pass_filter, false, validateBool},
 #endif                
@@ -92,8 +92,8 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
         {"image.hflip", image.hflip, false, validateBool},
         {"motion.enabled", motion.enabled, false, validateBool},
         {"rtsp.auth_required", rtsp.auth_required, true, validateBool},
-#if defined(WITH_AUDIO)
-        {"stream0.audio_enabled", stream0.audio_enabled, false, validateBool},
+#if defined(AUDIO_SUPPORT)
+        {"stream0.audio_enabled", stream0.audio_enabled, true, validateBool},
 #endif         
         {"stream0.enabled", stream0.enabled, true, validateBool},
         {"stream0.osd.enabled", stream0.osd.enabled, true, validateBool},
@@ -102,8 +102,8 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
         {"stream0.osd.time_enabled", stream0.osd.time_enabled, true, validateBool},
         {"stream0.osd.uptime_enabled", stream0.osd.uptime_enabled, true, validateBool},
         {"stream0.osd.user_text_enabled", stream0.osd.user_text_enabled, true, validateBool},      
-#if defined(WITH_AUDIO)
-        {"stream1.audio_enabled", stream1.audio_enabled, false, validateBool},
+#if defined(AUDIO_SUPPORT)
+        {"stream1.audio_enabled", stream1.audio_enabled, true, validateBool},
 #endif          
         {"stream1.enabled", stream1.enabled, true, validateBool},
         {"stream1.osd.enabled", stream1.osd.enabled, true, validateBool},
@@ -164,7 +164,7 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
 std::vector<ConfigItem<int>> CFG::getIntItems()
 {
     return {
-#if defined(WITH_AUDIO)
+#if defined(AUDIO_SUPPORT)
         {"audio.input_vol", audio.input_vol, 0, [](const int &v) { return v >= -30 && v <= 120; }},
         {"audio.input_gain", audio.input_gain, 0, [](const int &v) { return v >= 0 && v <= 31; }},
         {"audio.input_alc_gain", audio.input_alc_gain, 0, [](const int &v) { return v >= 0 && v <= 7; }},

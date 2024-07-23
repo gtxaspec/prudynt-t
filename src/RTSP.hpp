@@ -5,6 +5,7 @@
 #include "BasicUsageEnvironment.hh"
 #include "IMPServerMediaSubsession.hpp"
 #include "IMPDeviceSource.hpp"
+#include "IMPAudioDeviceSource.hpp"
 #include "IMPEncoder.hpp"
 #include "Logger.hpp"
 

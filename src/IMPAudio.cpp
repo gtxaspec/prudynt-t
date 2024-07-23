@@ -16,11 +16,11 @@ int IMPAudio::init()
     int ret;
 
     IMPAudioIOAttr attr;
-    attr.samplerate = AUDIO_SAMPLE_RATE_8000;
+    attr.samplerate = AUDIO_SAMPLE_RATE_16000;
     attr.bitwidth = AUDIO_BIT_WIDTH_16;
     attr.soundmode = AUDIO_SOUND_MODE_MONO;
-    attr.frmNum = 20;
-    attr.numPerFrm = 400;
+    attr.frmNum = 40;
+    attr.numPerFrm = attr.samplerate * 0.040;
     attr.chnCnt = 1;
 
     ret = IMP_AI_SetPubAttr(devId, &attr);
@@ -30,7 +30,7 @@ int IMPAudio::init()
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Enable(" << devId << ")");
 
     IMPAudioIChnParam chnParam {};
-    chnParam.usrFrmDepth = 20;
+    chnParam.usrFrmDepth = 40;
     ret = IMP_AI_SetChnParam(devId, inChn, &chnParam);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetChnParam(" << devId << ", " << inChn << ")");
 

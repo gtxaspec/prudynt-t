@@ -13,12 +13,23 @@
 #include <sched.h>
 #include "imp/imp_encoder.h"
 
+struct AudioFrame
+{
+	std::vector<uint8_t> data;
+	struct timeval time;
+};
+
 struct H264NALUnit
 {
 	std::vector<uint8_t> data;
 	struct timeval time;
 	int64_t imp_ts;
-	int64_t duration;
+};
+
+struct AudioSink
+{
+	std::string name;
+	std::function<int(const AudioFrame &)> data_available_callback;
 };
 
 struct EncoderSink
@@ -37,6 +48,16 @@ struct Channel
 	EncoderSink *sink;
 	pthread_mutex_t lock;
 	std::function<void()> updateOsd = nullptr;
+	std::atomic<int> thread_signal;
+};
+
+struct AudioChannel
+{
+	const int devId;
+	const int inChn;
+	int polling_timeout;	
+	AudioSink *sink;
+	pthread_mutex_t lock;
 	std::atomic<int> thread_signal;
 };
 
@@ -83,6 +104,21 @@ public:
 			pthread_mutex_unlock(&sink_lock1);
 		}
 		Worker::flush(encChn);
+		
+	/*
+	else if constexpr (std::is_same_v<T, IMPAudioDeviceSource>)
+	{
+		LOG_DEBUG("Audio Sink: " << encChn);
+		if( audio_sink->data_available_callback == nullptr ) {
+			pthread_mutex_lock(&sink_lock2);
+			audio_sink->data_available_callback =
+				[c](const AudioFrame &frame)
+			{ return c->on_data_available(frame); };
+			pthread_mutex_unlock(&sink_lock2);
+		}
+	}
+	*/
+
 	};
 
 	static void remove_sink(int encChn)
@@ -103,6 +139,17 @@ public:
 			stream1_sink->data_available_callback = nullptr;
 			pthread_mutex_unlock(&sink_lock1);
 		}
+
+		/*
+		else
+		{
+			pthread_mutex_lock(&sink_lock2);
+			if(stream0_sink->data_available_callback == nullptr && stream1_sink->data_available_callback == nullptr) {
+				audio_sink->data_available_callback = nullptr;
+			}
+			pthread_mutex_unlock(&sink_lock2);
+		}
+		*/
 	}
 
 	int init();
@@ -116,15 +163,15 @@ public:
 
 	static EncoderSink *stream0_sink;
 	static EncoderSink *stream1_sink;
+	static AudioSink *audio_sink;
 
 	static std::vector<uint8_t> capture_jpeg_image(int encChn);
 
+	AudioChannel *audio_channel = {nullptr};
 	Channel *channels[3] = {nullptr, nullptr, nullptr};
 	IMPEncoder *encoder[3] = {nullptr, nullptr, nullptr};
 	std::atomic<int> osd_thread_signal;
 private:
-	IMPAudio *audio0;
-	IMPAudio *audio1;
 
 	Motion motion;
 
@@ -137,12 +184,12 @@ private:
 	void start_stream(int encChn);
 	void exit_stream(int encChn);
 
+	IMPAudio *audio0;
 	IMPSystem *impsystem = nullptr;
 	IMPFramesource *framesources[2] = {nullptr, nullptr};
 
 	pthread_t osd_thread;
-	pthread_t osd_threads[2];
-	pthread_t audio_threads[2];
+	pthread_t audio_threads[1];
 	pthread_t worker_threads[3];
 
 	struct sched_param osd_thread_sheduler;

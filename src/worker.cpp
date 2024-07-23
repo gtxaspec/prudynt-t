@@ -30,6 +30,7 @@ pthread_mutex_t Worker::sink_lock1;
 pthread_mutex_t Worker::sink_lock2;
 EncoderSink *Worker::stream0_sink = new EncoderSink{"Stream0Sink", 0, false, nullptr};
 EncoderSink *Worker::stream1_sink = new EncoderSink{"Stream1Sink", 1, false, nullptr};
+AudioSink *Worker::audio_sink = new AudioSink{"AudioSink", nullptr};
 
 Worker *Worker::createNew(
     std::shared_ptr<CFG> cfg)
@@ -387,6 +388,8 @@ void *Worker::stream_grabber(void *arg)
                     continue;
                 }
 
+                LOG_DDEBUG("IMP_Encoder_GetStream(" << channel->encChn << ") OK");
+
                 int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
 
                 struct timeval encoder_time;
@@ -519,24 +522,50 @@ void *Worker::stream_grabber(void *arg)
 
 void *Worker::audio_grabber(void *arg)
 {
-    IMPAudio *audio = static_cast<IMPAudio *>(arg);
+    AudioChannel *channel = static_cast<AudioChannel *>(arg);
 
-    LOG_DEBUG("Start audio_grabber thread for device " << audio->devId << " and channel " << audio->inChn);
+    LOG_DEBUG("Start audio_grabber thread for device " << channel->devId << " and channel " << channel->inChn);
 
     while(true) {
             
-        if (IMP_AI_PollingFrame(audio->devId, audio->inChn, 1000) == 0)
+        if (IMP_AI_PollingFrame(channel->devId, channel->inChn, 1000) == 0)
         {
             IMPAudioFrame frame;
-            if (IMP_AI_GetFrame(audio->devId, audio->inChn, &frame, IMPBlock::BLOCK) != 0)
+            if (IMP_AI_GetFrame(channel->devId, channel->inChn, &frame, IMPBlock::BLOCK) != 0)
             {
-                LOG_ERROR("IMP_AI_GetFrame(" << audio->devId << ", " << audio->inChn << ") failed");
+                LOG_ERROR("IMP_AI_GetFrame(" << channel->devId << ", " << channel->inChn << ") failed");
             }
 
-            LOG_DEBUG(audio->devId << ", " << audio->inChn << " == " << frame.len);
+            if (channel->sink->data_available_callback != nullptr)
+            {
+
+                int64_t audio_ts = frame.timeStamp;
+                struct timeval encoder_time;
+                encoder_time.tv_sec = audio_ts / 1000000;
+                encoder_time.tv_usec = audio_ts % 1000000;
+
+                AudioFrame af;
+                af.time = encoder_time;
+
+                uint8_t *start = (uint8_t *)frame.virAddr;
+                uint8_t *end = start + frame.len;
+                LOG_DEBUG("insert");
+                af.data.insert(af.data.end(), start, end);
+                LOG_DEBUG("callback");
+                if (channel->sink->data_available_callback(af))
+                {
+                    LOG_ERROR("stream audio:" << channel->devId << ", size:" << frame.len << " clogged!");
+                }
+                LOG_DEBUG("release");
+                if(IMP_AI_ReleaseFrame(channel->devId, channel->inChn, &frame) < 0) {
+                    LOG_ERROR("IMP_AI_ReleaseFrame(" << channel->devId << ", " << channel->inChn << ", &frame) failed");
+                }
+
+                LOG_DEBUG(channel->devId << ", " << channel->inChn << " == " << frame.len);
+            }
         } else {
 
-            LOG_DEBUG(audio->devId << ", " << audio->inChn << " POLLING TIMEOUT");
+            LOG_DEBUG(channel->devId << ", " << channel->inChn << " POLLING TIMEOUT");
         }
 
         usleep(1000 * 1000);
@@ -610,10 +639,11 @@ void Worker::run()
             pthread_attr_setschedparam(&jpeg_thread_attr, &jpeg_thread_sheduler);
             pthread_attr_setschedparam(&stream_thread_attr, &stream_thread_sheduler);
 
+            /*
             audio0 = IMPAudio::createNew(cfg, 0, 0);
-            audio1 = IMPAudio::createNew(cfg, 0, 1);
-            pthread_create(&audio_threads[0], nullptr, audio_grabber, audio0);
-            pthread_create(&audio_threads[1], nullptr, audio_grabber, audio1);
+            audio_channel = new AudioChannel{0, 0, cfg->general.imp_polling_timeout, audio_sink, sink_lock2};
+            pthread_create(&audio_threads[0], nullptr, audio_grabber, audio_channel);
+            */
 
             if (cfg->rtsp_thread_signal == 0)
             {
