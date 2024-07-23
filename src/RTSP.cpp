@@ -59,6 +59,7 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
             // No VPS in H264, so no need to check for it
         }
     }
+    deviceSource->initializationComplete();
     // deviceSource->deinit();
     Worker::remove_sink(chnNr);
     LOG_DEBUG("Got necessary NAL Units.");

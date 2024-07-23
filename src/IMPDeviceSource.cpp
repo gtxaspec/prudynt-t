@@ -44,13 +44,8 @@ void IMPDeviceSource::deliverFrame0(void *clientData)
 
 H264NALUnit IMPDeviceSource::wait_read()
 {
-    usleep(1000 * 100);
-
-    while (nalQueue.empty())
-    {
-        usleep(1000 * 250);
-        LOG_DDEBUG("wait_read(), nalQueue.empty(), wait for data. " << encChn);
-    }
+    std::unique_lock<std::mutex> lock(queueMutex);
+    queueHasData.wait(lock, [this]{ return !nalQueue.empty(); });
 
     H264NALUnit nal = nalQueue.front();
     nalQueue.pop();
@@ -107,6 +102,10 @@ int IMPDeviceSource::on_data_available(const H264NALUnit &nal)
     }
 
     nalQueue.push(nal);
+    if (needNotify)
+    {
+        queueHasData.notify_all();
+    }
     lock.unlock();
 
     envir().taskScheduler().triggerEvent(eventTriggerId, this);
