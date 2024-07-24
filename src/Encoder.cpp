@@ -14,10 +14,6 @@
 	#define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
 
-std::mutex Encoder::sinks_lock;
-std::map<uint32_t,EncoderSink> Encoder::sinks;
-uint32_t Encoder::sink_id = 0;
-
 Encoder::Encoder() {}
 
 bool Encoder::init() {
@@ -486,42 +482,41 @@ void Encoder::run() {
             //if those are present.
             nalu.data.insert(nalu.data.end(), start+4, end);
 
-            std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-            for (std::map<uint32_t,EncoderSink>::iterator it=Encoder::sinks.begin();
-                 it != Encoder::sinks.end(); ++it) {
+            if (true)
+            {
 #if defined(PLATFORM_T31)
                 if (stream.pack[i].nalType.h264NalType == 7 ||
                     stream.pack[i].nalType.h264NalType == 8 ||
                     stream.pack[i].nalType.h264NalType == 5) {
-                    it->second.IDR = true;
+                    IDR = true;
                 } else if (stream.pack[i].nalType.h265NalType == 32) {
-                    it->second.IDR = true;
+                    IDR = true;
                 }
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
                 if (stream.pack[i].dataType.h264Type == 7 ||
                     stream.pack[i].dataType.h264Type == 8 ||
                     stream.pack[i].dataType.h264Type == 5) {
-                    it->second.IDR = true;
+                    IDR = true;
                 }
 #elif defined(PLATFORM_T30)
                 if (stream.pack[i].dataType.h264Type == 7 ||
                     stream.pack[i].dataType.h264Type == 8 ||
                     stream.pack[i].dataType.h264Type == 5) {
-                    it->second.IDR = true;
+                    IDR = true;
                 } else if (stream.pack[i].dataType.h265Type == 32) {
-                    it->second.IDR = true;
+                    IDR = true;
                 }
 #endif
-                if (it->second.IDR) {
-                    if (!it->second.chn->write(nalu)) {
+                if (IDR) {
+                    if (output_chn != nullptr && !output_chn->write(nalu)) {
                         //Discard old NALUs if our sinks aren't keeping up.
                         //This prevents the MsgChannels from clogging up with
                         //old data.
-                        LOG_ERROR("Sink " << it->second.name << " clogged! Discarding NAL.");
+                        LOG_ERROR("Sink clogged! Discarding NAL.");
                         //H264NALUnit old_nal;
                         //it->second.chn->read(&old_nal);
                     }
-                    it->second.onDataCallback();
+                    onDataCallback();
                 }
             }
         }

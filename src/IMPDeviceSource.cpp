@@ -14,18 +14,11 @@ IMPDeviceSource::IMPDeviceSource(UsageEnvironment& env)
         .createEventTrigger(reinterpret_cast<TaskFunc *>(+[] (void *dev) {
             reinterpret_cast<IMPDeviceSource *>(dev)->doGetNextFrame();
         }));
-
-    sink_id = Encoder::connect_sink(this, "IMPDeviceSource", [this]() {
-        if (eventTriggerId != 0) {
-            envir().taskScheduler().triggerEvent(eventTriggerId, this);
-        }
-    });
 }
 
 IMPDeviceSource::~IMPDeviceSource() {
     LOG_DEBUG("Device source destruct");
     envir().taskScheduler().deleteEventTrigger(eventTriggerId);
-    Encoder::remove_sink(sink_id);
 }
 
 void IMPDeviceSource::doGetNextFrame() {

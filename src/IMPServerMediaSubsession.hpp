@@ -28,7 +28,7 @@ protected:
     virtual FramedSource* createNewStreamSource(
         unsigned clientSessionId,
         unsigned& estBitrate
-    );
+    ) override;
     virtual RTPSink* createNewRTPSink(
         Groupsock* rtpGroupsock,
         unsigned char rtpPayloadTypeIfDynamic,

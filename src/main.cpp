@@ -10,8 +10,9 @@
 #include "Motion.hpp"
 
 #include "version.hpp"
+#include "globals.hpp"
 
-template <class T> void start_component(T c) {
+template <class T> void start_component(T &c) {
     c.run();
 }
 
@@ -19,6 +20,7 @@ Encoder enc;
 Encoder jpg;
 Motion motion;
 RTSP rtsp;
+std::shared_ptr<MsgChannel<H264NALUnit>> msgChannel;
 
 bool timesync_wait() {
     // I don't really have a better way to do this than
@@ -58,22 +60,24 @@ int main(int argc, const char *argv[]) {
     }
     if (Config::singleton()->motionEnable) {
         if (motion.init()) {
-        std::cout << "Motion initialization failed." << std::endl;
-        return 1;
+            std::cout << "Motion initialization failed." << std::endl;
+            return 1;
         }
     }
     if (enc.init()) {
         LOG_ERROR("Encoder initialization failed.");
         return 1;
     }
+    msgChannel = std::make_shared<MsgChannel<H264NALUnit>>(20);
+    enc.set_output_channel(msgChannel);
+    rtsp.set_input_channel(msgChannel);
 
-
-    enc_thread = std::thread(start_component<Encoder>, enc);
-    rtsp_thread = std::thread(start_component<RTSP>, rtsp);
+    enc_thread = std::thread(start_component<Encoder>, std::ref(enc));
+    rtsp_thread = std::thread(start_component<RTSP>, std::ref(rtsp));
 
     if (Config::singleton()->motionEnable) {
         LOG_DEBUG("Motion detection enabled");
-        motion_thread = std::thread(start_component<Motion>, motion);
+        motion_thread = std::thread(start_component<Motion>, std::ref(motion));
     }
 
     if (Config::singleton()->stream1jpegEnable) {

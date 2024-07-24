@@ -12,11 +12,11 @@ public:
     RTSP() {};
     void run();
 
-    void set_framesource(std::shared_ptr<MsgChannel<H264NALUnit>> chn) {
-        encoder = chn;
+    void set_input_channel(std::shared_ptr<MsgChannel<H264NALUnit>> chn) {
+        this->input_chn = chn;
     }
 private:
-    std::shared_ptr<MsgChannel<H264NALUnit>> encoder;
+    std::shared_ptr<MsgChannel<H264NALUnit>> input_chn;
 };
 
 #endif

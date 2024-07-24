@@ -51,12 +51,6 @@ struct H264NALUnit {
 };
 
 using CallbackFunction = std::function<void(void)>;
-struct EncoderSink {
-    std::shared_ptr<MsgChannel<H264NALUnit>> chn;
-    bool IDR;
-    std::string name;
-    CallbackFunction onDataCallback;
-};
 
 class Encoder {
 public:
@@ -70,20 +64,14 @@ public:
         IMP_Encoder_FlushStream(0);
     }
 
-    template <class T> static uint32_t connect_sink(T *c, std::string name = "Unnamed", CallbackFunction onDataCallback = [](){}) {
-        LOG_DEBUG("Create Sink: " << Encoder::sink_id);
-        std::shared_ptr<MsgChannel<H264NALUnit>> chn = std::make_shared<MsgChannel<H264NALUnit>>(20);
-        std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-        Encoder::sinks.insert(std::pair<uint32_t,EncoderSink>(Encoder::sink_id, {chn, false, name, onDataCallback}));
-        c->set_framesource(chn);
+    void set_output_channel(std::shared_ptr<MsgChannel<H264NALUnit>> chn) {
+        LOG_DEBUG("Encoder::set_output_channel " << chn.use_count());
+        this->output_chn = chn;
         Encoder::flush();
-        return Encoder::sink_id++;
     }
 
-    static void remove_sink(uint32_t sinkid) {
-        LOG_DEBUG("Destroy Sink: " << sinkid);
-        std::unique_lock<std::mutex> lck(Encoder::sinks_lock);
-        Encoder::sinks.erase(sinkid);
+    void set_data_callback(CallbackFunction cb) {
+        this->onDataCallback = cb;
     }
 
 private:
@@ -92,10 +80,11 @@ private:
     int system_init();
     int framesource_init();
     int encoder_init();
-    static std::mutex sinks_lock;
-    static uint32_t sink_id;
-    static std::map<uint32_t, EncoderSink> sinks;
     struct timeval imp_time_base;
+public:
+    std::shared_ptr<MsgChannel<H264NALUnit>> output_chn = nullptr;
+    bool IDR = false;
+    CallbackFunction onDataCallback = [](){};
 };
 
 #endif

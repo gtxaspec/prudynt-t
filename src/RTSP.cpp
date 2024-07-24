@@ -4,6 +4,7 @@
 #include "IMPServerMediaSubsession.hpp"
 #include "IMPDeviceSource.hpp"
 #include "Config.hpp"
+#include "globals.hpp"
 
 #define MODULE "RTSP"
 
@@ -29,13 +30,12 @@ void RTSP::run() {
     }
     OutPacketBuffer::maxSize = Config::singleton()->rtspOutBufferSize;
 
-    int sink_id = Encoder::connect_sink(this, "SPSPPS");
     H264NALUnit sps, pps; // Declare outside the loop!
     H264NALUnit* vps = nullptr; // Use a pointer for VPS
     bool have_pps = false, have_sps = false, have_vps = false;
     // Read from the stream until we capture the SPS and PPS. Only capture VPS if needed.
     while (!have_pps || !have_sps || (Config::singleton()->stream0format == "H265" && !have_vps)) {
-        H264NALUnit unit = encoder->wait_read();
+        H264NALUnit unit = input_chn->wait_read();
         if (Config::singleton()->stream0format == "H265") {
             uint8_t nalType = (unit.data[0] & 0x7E) >> 1; // H265 NAL unit type extraction
             if (nalType == 33) { // SPS for H265
@@ -65,7 +65,7 @@ void RTSP::run() {
             // No VPS in H264, so no need to check for it
         }
     }
-    Encoder::remove_sink(sink_id);
+    enc.set_output_channel(nullptr);
     LOG_DEBUG("Got necessary NAL Units.");
 
     ServerMediaSession *sms = ServerMediaSession::createNew(

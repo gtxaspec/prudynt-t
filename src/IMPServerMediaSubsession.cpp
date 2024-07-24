@@ -7,6 +7,7 @@
 #include "H265VideoStreamDiscreteFramer.hh"
 #include "GroupsockHelper.hh"
 #include "Config.hpp"
+#include "globals.hpp"
 
 // Modify method to accept pointers for the NAL units
 IMPServerMediaSubsession* IMPServerMediaSubsession::createNew(
@@ -25,7 +26,7 @@ IMPServerMediaSubsession::IMPServerMediaSubsession(
     H264NALUnit* vps,  // Change to pointer to make optional
     H264NALUnit sps,
     H264NALUnit pps)
-    : OnDemandServerMediaSubsession(env, false),
+    : OnDemandServerMediaSubsession(env, /* fReuseFirstSource= */ true),
       vps(vps ? new H264NALUnit(*vps) : nullptr),  // Copy if not nullptr
       sps(sps), pps(pps) {
 }
@@ -39,10 +40,21 @@ FramedSource* IMPServerMediaSubsession::createNewStreamSource(
     unsigned clientSessionId,
     unsigned& estBitrate
 ) {
-    LOG_DEBUG("Create Stream Source.");
+    LOG_DEBUG("Create Stream Source. " << clientSessionId << " " << estBitrate << " this= " << (int)(void*)this);
     estBitrate = Config::singleton()->rtspEstBitRate; // The expected bitrate?
 
     IMPDeviceSource* imp = IMPDeviceSource::createNew(envir());
+
+    // createNewStreamSource will be called twice even when fReuseFirstSource is true
+    // We ignore the first call when clientSessionId is 0
+    if (clientSessionId != 0) {
+        LOG_DEBUG("Connecting encoder to device source");
+        imp->set_input_channel(msgChannel);
+        enc.set_output_channel(msgChannel);
+        enc.set_data_callback([imp]() {
+            imp->on_data_callback();
+        });
+    }
     // Here we need to decide based on the format whether to use H264 or H265 framer
     if (Config::singleton()->stream0format == "H265") {
         return H265VideoStreamDiscreteFramer::createNew(envir(), imp, false, false);

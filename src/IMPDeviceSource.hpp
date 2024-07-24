@@ -9,8 +9,14 @@ class IMPDeviceSource: public FramedSource {
 public:
     static IMPDeviceSource* createNew(UsageEnvironment& env);
 
-    void set_framesource(std::shared_ptr<MsgChannel<H264NALUnit>> chn) {
+    void set_input_channel(std::shared_ptr<MsgChannel<H264NALUnit>> chn) {
         encoder = chn;
+    }
+
+    void on_data_callback() {
+        if (eventTriggerId != 0) {
+            envir().taskScheduler().triggerEvent(eventTriggerId, this);
+        }
     }
 
 private:
@@ -22,8 +28,7 @@ protected:
 
 private:
     virtual void doGetNextFrame();
-    std::shared_ptr<MsgChannel<H264NALUnit>> encoder;
-    uint32_t sink_id;
+    std::shared_ptr<MsgChannel<H264NALUnit>> encoder = nullptr;
 };
 
 #endif
