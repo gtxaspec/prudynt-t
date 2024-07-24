@@ -12,19 +12,9 @@
 #include <pthread.h>
 #include <sched.h>
 #include "imp/imp_encoder.h"
+#include "globals.hpp"
 
-struct AudioFrame
-{
-	std::vector<uint8_t> data;
-	struct timeval time;
-};
 
-struct H264NALUnit
-{
-	std::vector<uint8_t> data;
-	struct timeval time;
-	int64_t imp_ts;
-};
 
 struct AudioSink
 {

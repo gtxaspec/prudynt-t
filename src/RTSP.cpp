@@ -13,11 +13,11 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
     bool have_pps = false;
     bool have_sps = false;
     bool have_vps = false;
-    bool is_h265 = strcmp(stream.format, "H265")==0?true:false;
+    bool is_h265 = strcmp(stream.format, "H265") == 0 ? true : false;
     // Read from the stream until we capture the SPS and PPS. Only capture VPS if needed.
     while (!have_pps || !have_sps || (is_h265 && !have_vps))
     {
-        H264NALUnit unit = deviceSource->wait_read();
+        H264NALUnit unit = video[chnNr]->msgChannel->wait_read();
         if (is_h265)
         {
             uint8_t nalType = (unit.data[0] & 0x7E) >> 1; // H265 NAL unit type extraction
@@ -59,15 +59,14 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
             // No VPS in H264, so no need to check for it
         }
     }
-    deviceSource->initializationComplete();
-    // deviceSource->deinit();
-    Worker::remove_sink(chnNr);
+    //deviceSource->deinit();
+    delete deviceSource;
     LOG_DEBUG("Got necessary NAL Units.");
 
     ServerMediaSession *sms = ServerMediaSession::createNew(
         *env, stream.rtsp_endpoint, "Sub", cfg->rtsp.name);
     IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
-        *env, (is_h265?vps:nullptr), sps, pps, chnNr // Conditional VPS
+        *env, (is_h265 ? vps : nullptr), sps, pps, chnNr // Conditional VPS
     );
 
     sms->addSubsession(sub);
@@ -88,7 +87,6 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
 
 void RTSP::run()
 {
-
     IMPServerMediaSubsession::init(cfg);
 
     while ((cfg->rtsp_thread_signal & 256) != 256)

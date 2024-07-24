@@ -8,6 +8,7 @@
 #include "IMPAudioDeviceSource.hpp"
 #include "IMPEncoder.hpp"
 #include "Logger.hpp"
+#include "globals.hpp"
 
 class RTSP
 {

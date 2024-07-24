@@ -10,26 +10,24 @@ IMPDeviceSource *IMPDeviceSource::createNew(UsageEnvironment &env, int encChn)
 IMPDeviceSource::IMPDeviceSource(UsageEnvironment &env, int encChn)
     : FramedSource(env), encChn(encChn), eventTriggerId(0)
 {
-    Worker::connect_sink(this, "IMPDeviceSource", encChn);
+    video[encChn]->onDataCallback = [this]()
+    { this->on_data_available(); };
 
-    if (eventTriggerId == 0)
-    {
-        eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
-    }
+    eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
 
     LOG_DEBUG("IMPDeviceSource construct, encoder channel:" << encChn);
-}
-
-IMPDeviceSource::~IMPDeviceSource()
-{
-    deinit();
 }
 
 void IMPDeviceSource::deinit()
 {
     envir().taskScheduler().deleteEventTrigger(eventTriggerId);
+    video[encChn]->onDataCallback = nullptr;
+    LOG_DEBUG("IMPDeviceSource destruct, encoder channel:" << encChn);
+}
 
-    Worker::remove_sink(encChn);
+IMPDeviceSource::~IMPDeviceSource()
+{
+    deinit();
 }
 
 void IMPDeviceSource::doGetNextFrame()
@@ -42,30 +40,14 @@ void IMPDeviceSource::deliverFrame0(void *clientData)
     ((IMPDeviceSource *)clientData)->deliverFrame();
 }
 
-H264NALUnit IMPDeviceSource::wait_read()
-{
-    std::unique_lock<std::mutex> lock(queueMutex);
-    queueHasData.wait(lock, [this]{ return !nalQueue.empty(); });
-
-    H264NALUnit nal = nalQueue.front();
-    nalQueue.pop();
-    return nal;
-}
-
 void IMPDeviceSource::deliverFrame()
 {
     if (!isCurrentlyAwaitingData())
         return;
 
-    std::unique_lock<std::mutex> lock(queueMutex);
-
-    if (!nalQueue.empty())
+    H264NALUnit nal;
+    if (video[encChn]->msgChannel->read(&nal))
     {
-
-        H264NALUnit nal = nalQueue.front();
-        nalQueue.pop();
-        lock.unlock();
-
         if (nal.data.size() > fMaxSize)
         {
             fFrameSize = fMaxSize;
@@ -85,30 +67,6 @@ void IMPDeviceSource::deliverFrame()
     }
     else
     {
-        lock.unlock();
         fFrameSize = 0;
     }
-}
-
-int IMPDeviceSource::on_data_available(const H264NALUnit &nal)
-{
-    std::unique_lock<std::mutex> lock(queueMutex);
-
-    int dropCount = 0;
-    while (nalQueue.size() >= 30)
-    {
-        nalQueue.pop();
-        dropCount++;
-    }
-
-    nalQueue.push(nal);
-    if (needNotify)
-    {
-        queueHasData.notify_all();
-    }
-    lock.unlock();
-
-    envir().taskScheduler().triggerEvent(eventTriggerId, this);
-
-    return dropCount;
 }

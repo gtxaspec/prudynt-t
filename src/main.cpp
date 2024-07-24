@@ -7,8 +7,12 @@
 #include "WS.hpp"
 #include "version.hpp"
 #include "worker.hpp"
+#include "globals.hpp"
 
 using namespace std::chrono;
+
+std::shared_ptr<audio_stream> audio[NUM_AUDIO_CHANNELS] = { nullptr };
+std::shared_ptr<video_stream> video[NUM_VIDEO_CHANNELS] = { nullptr };
 
 auto main_thread_signal = std::make_shared<std::atomic<int>>(0);
 std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
@@ -136,6 +140,10 @@ int main(int argc, const char *argv[])
         LOG_ERROR("Time is not synchronized.");
         return 1;
     }
+
+    video[0] = std::make_shared<video_stream>(video_stream{0, &cfg->stream0, cfg->general.imp_polling_timeout, true});
+    video[1] = std::make_shared<video_stream>(video_stream{1, &cfg->stream1, cfg->general.imp_polling_timeout, true});
+    audio[0] = std::make_shared<audio_stream>(audio_stream{0, 0, cfg->general.imp_polling_timeout, true });
 
     ws_thread = std::thread(&WS::run, ws);
     rtsp_thread = std::thread(&RTSP::run, rtsp);

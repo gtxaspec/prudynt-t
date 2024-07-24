@@ -4,6 +4,7 @@
 #include "Config.hpp"
 #include "worker.hpp"
 #include "Logger.hpp"
+#include "globals.hpp"
 
 #define MODULE "WORKER"
 
@@ -376,7 +377,7 @@ void *Worker::stream_grabber(void *arg)
 
     while (channel->thread_signal.load() & 1)
     {
-        if (channel->sink->data_available_callback != nullptr)
+        if (video[channel->encChn]->onDataCallback != nullptr)
         {
             if (IMP_Encoder_PollingStream(channel->encChn, channel->polling_timeout) == 0)
             {
@@ -387,8 +388,6 @@ void *Worker::stream_grabber(void *arg)
                     error_count++;
                     continue;
                 }
-
-                LOG_DDEBUG("IMP_Encoder_GetStream(" << channel->encChn << ") OK");
 
                 int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
 
@@ -402,7 +401,7 @@ void *Worker::stream_grabber(void *arg)
                     bps += stream.pack[i].length;
 
                     pthread_mutex_lock(&channel->lock);
-                    if (channel->sink->data_available_callback != nullptr)
+                    if (video[channel->encChn]->onDataCallback != nullptr)
                     {
 #if defined(PLATFORM_T31)
                         uint8_t *start = (uint8_t *)stream.virAddr + stream.pack[i].offset;
@@ -455,11 +454,13 @@ void *Worker::stream_grabber(void *arg)
 
                         if (channel->sink->IDR == true)
                         {
-                            if (channel->sink->data_available_callback(nalu))
-                            {
+                            if (!video[channel->encChn]->msgChannel->write(nalu)) {
                                 LOG_ERROR("stream encChn:" << channel->encChn << ", size:" << nalu.data.size()
                                                            << ", pC:" << stream.packCount << ", pS:" << nalu.data.size() << ", pN:"
-                                                           << i << " clogged!");
+                                                           << i << " clogged!");                                
+                            } else {
+                                if(video[channel->encChn]->onDataCallback)
+                                    video[channel->encChn]->onDataCallback();
                             }
                         }
                     }
