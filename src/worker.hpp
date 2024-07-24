@@ -160,7 +160,7 @@ public:
 	AudioChannel *audio_channel = {nullptr};
 	Channel *channels[3] = {nullptr, nullptr, nullptr};
 	IMPEncoder *encoder[3] = {nullptr, nullptr, nullptr};
-	std::atomic<int> osd_thread_signal;
+	bool osd_thread_loop;
 private:
 
 	Motion motion;
@@ -182,6 +182,7 @@ private:
 	pthread_t audio_threads[1];
 	pthread_t worker_threads[3];
 
+	/*
 	struct sched_param osd_thread_sheduler;
 	struct sched_param jpeg_thread_sheduler;
 	struct sched_param stream_thread_sheduler;
@@ -190,6 +191,7 @@ private:
 	pthread_attr_t jpeg_thread_attr;
 	pthread_attr_t stream_thread_attr;
 	bool delay_osd;
+	*/
 };
 
 #endif

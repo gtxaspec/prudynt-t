@@ -11,6 +11,7 @@
 
 using namespace std::chrono;
 
+int polling_timeout;
 std::shared_ptr<audio_stream> audio[NUM_AUDIO_CHANNELS] = { nullptr };
 std::shared_ptr<video_stream> video[NUM_VIDEO_CHANNELS] = { nullptr };
 
@@ -141,9 +142,10 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    video[0] = std::make_shared<video_stream>(video_stream{0, &cfg->stream0, cfg->general.imp_polling_timeout, true});
-    video[1] = std::make_shared<video_stream>(video_stream{1, &cfg->stream1, cfg->general.imp_polling_timeout, true});
-    audio[0] = std::make_shared<audio_stream>(audio_stream{0, 0, cfg->general.imp_polling_timeout, true });
+    polling_timeout = cfg->general.imp_polling_timeout;
+    video[0] = std::make_shared<video_stream>(video_stream{0, &cfg->stream0, true});
+    video[1] = std::make_shared<video_stream>(video_stream{1, &cfg->stream1, true});
+    audio[0] = std::make_shared<audio_stream>(audio_stream{0, 0, true });
 
     ws_thread = std::thread(&WS::run, ws);
     rtsp_thread = std::thread(&RTSP::run, rtsp);
