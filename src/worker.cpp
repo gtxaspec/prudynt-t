@@ -361,7 +361,7 @@ void *Worker::stream_grabber(void *arg)
     struct timeval imp_time_base;
 
     video[encChn]->imp_framesource = IMPFramesource::createNew(video[encChn]->stream, &cfg->sensor, encChn);
-    video[encChn]->imp_encoder = IMPEncoder::createNew(video[encChn]->stream, encChn, encChn, video[0]->name);
+    video[encChn]->imp_encoder = IMPEncoder::createNew(video[encChn]->stream, encChn, encChn, video[encChn]->name);
     video[encChn]->imp_framesource->enable();   
 
     gettimeofday(&imp_time_base, NULL);

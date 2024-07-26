@@ -529,19 +529,14 @@ void OSD::init()
                                                                  << "x" << stream_height);
 
     ret = IMP_OSD_CreateGroup(osdGrp);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_CreateGroup(" << osdGrp << ")");
 
     int fontSize = autoFontSize(channelAttributes.encAttr.picWidth);
     int autoOffset = round((float)(channelAttributes.encAttr.picWidth * 0.004));
 
     if (osd.font_size == OSD_AUTO_VALUE)
     {
-        LOG_DEBUG("if (osd.font_size == OSD_AUTO_VALUE)");
         // use cfg->set to set noSave, so auto values will not written to config
         cfg->set<int>(getConfigPath("font_size"), fontSize, true);
-        LOG_DEBUG("cfg->set<int>(getConfigPath(""font_size""), " << fontSize << ", true);");
-        LOG_DEBUG("osd.font_size, " << osd.font_size << ", true);");
-        osd.font_size = 18;
     } 
 
     if (libschrift_init() != 0)
