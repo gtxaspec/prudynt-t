@@ -541,6 +541,7 @@ void OSD::init()
         cfg->set<int>(getConfigPath("font_size"), fontSize, true);
         LOG_DEBUG("cfg->set<int>(getConfigPath(""font_size""), " << fontSize << ", true);");
         LOG_DEBUG("osd->font_size, " << osd->font_size << ", true);");
+        osd->font_size = 18;
     } 
 
     if (libschrift_init() != 0)

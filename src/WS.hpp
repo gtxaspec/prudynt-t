@@ -18,7 +18,7 @@ class WS
 {
 public:
         void run();
-        WS(std::shared_ptr<CFG> _cfg, std::shared_ptr<std::atomic<int>> _mts) : cfg(std::move(_cfg)), main_thread_signal(std::move(_mts)) {}
+        WS(std::shared_ptr<CFG> _cfg, std::shared_ptr<std::atomic<int>> _mts) : cfg(_cfg), main_thread_signal(std::move(_mts)) {}
         void restartEncoder();
 
 private:

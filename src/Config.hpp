@@ -298,7 +298,7 @@ class CFG {
 
     template <typename T>
     bool set(const std::string &name, T value, bool noSave = false) {
-        //std::cout << name << "=" << value << std::endl;
+        std::cout << name << "=" << value << std::endl;
         std::vector<ConfigItem<T>> *items = nullptr;
         if constexpr (std::is_same_v<T, bool>) {
             items = &boolItems;
