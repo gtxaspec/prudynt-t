@@ -6,14 +6,11 @@
 #include "Config.hpp"
 #include <imp/imp_osd.h>
 #include <imp/imp_encoder.h>
-
 #include <ifaddrs.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/sysinfo.h>
-
 #include "schrift.h"
-
 
 #if defined(PLATFORM_T31)
 #define IMPEncoderCHNAttr IMPEncoderChnAttr
@@ -42,8 +39,8 @@ struct Glyph {
 class OSD
 {
 public:
-    static OSD *createNew(_osd *osd, std::shared_ptr<CFG> cfg, int osdGrp, int encChn, const char *parent);
-    OSD(_osd *osd, std::shared_ptr<CFG> cfg, int osdGrp, int encChn, const char *parent) : osd(osd), cfg(cfg), osdGrp(osdGrp), encChn(encChn), parent(parent)
+    static OSD *createNew(_osd *osd, int osdGrp, int encChn, const char *parent);
+    OSD(_osd *osd, int osdGrp, int encChn, const char *parent) : osd(osd), osdGrp(osdGrp), encChn(encChn), parent(parent)
     {
         init();
     }
@@ -74,7 +71,6 @@ private:
     uint8_t BGRA_TEXT[4];
 
     _osd *osd;
-    std::shared_ptr<CFG> cfg;
     int last_updated_second;
     const char *parent;
 

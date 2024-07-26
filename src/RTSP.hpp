@@ -8,20 +8,19 @@
 #include "IMPAudioDeviceSource.hpp"
 #include "IMPEncoder.hpp"
 #include "Logger.hpp"
-#include "globals.hpp"
 
 class RTSP
 {
 public:
-    RTSP(std::shared_ptr<CFG> _cfg) : cfg(std::move(_cfg)){};
+    RTSP(){};
     void addSubsession(int chnNr, _stream &stream);
-    void run();
-
+    void start();
+    static void *run(void* arg);
+    
 private:
     UsageEnvironment *env{};
     TaskScheduler *scheduler{};
     RTSPServer *rtspServer{};
-    std::shared_ptr<CFG> cfg;
 };
 
 #endif

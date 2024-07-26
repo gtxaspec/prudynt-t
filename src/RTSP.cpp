@@ -2,6 +2,8 @@
 
 #define MODULE "RTSP"
 
+extern std::shared_ptr<CFG> cfg;
+
 void RTSP::addSubsession(int chnNr, _stream &stream)
 {
 
@@ -85,69 +87,63 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
     LOG_INFO("stream " << chnNr << " available at: " << url);
 }
 
-void RTSP::run()
+void RTSP::start()
 {
-    IMPServerMediaSubsession::init(cfg);
+    scheduler = BasicTaskScheduler::createNew();
+    env = BasicUsageEnvironment::createNew(*scheduler);
 
-    while ((cfg->rtsp_thread_signal & 256) != 256)
+    if (cfg->rtsp.auth_required)
     {
-
-        if (cfg->rtsp_thread_signal == 0)
-        {
-
-            nice(-20);
-
-            scheduler = BasicTaskScheduler::createNew();
-            env = BasicUsageEnvironment::createNew(*scheduler);
-
-            if (cfg->rtsp.auth_required)
-            {
-                UserAuthenticationDatabase *auth = new UserAuthenticationDatabase;
-                auth->addUserRecord(
-                    cfg->rtsp.username,
-                    cfg->rtsp.password);
-                rtspServer = RTSPServer::createNew(*env, cfg->rtsp.port, auth, 10);
-            }
-            else
-            {
-                rtspServer = RTSPServer::createNew(*env, cfg->rtsp.port, nullptr, 10);
-            }
-            if (rtspServer == NULL)
-            {
-                LOG_ERROR("Failed to create RTSP server: " << env->getResultMsg() << "\n");
-                return;
-            }
-            OutPacketBuffer::maxSize = cfg->rtsp.out_buffer_size;
-
-            if (cfg->stream0.enabled)
-            {
-                addSubsession(0, cfg->stream0);
-            }
-
-            if (cfg->stream1.enabled)
-            {
-                addSubsession(1, cfg->stream1);
-            }
-
-            env->taskScheduler().doEventLoop(&cfg->rtsp_thread_signal);
-
-            // Clean up VPS if it was allocated
-            /*
-            if (vps) {
-                delete vps;
-                vps = nullptr;
-            }
-            */
-
-            LOG_DEBUG("Stop RTSP Server.");
-            cfg->rtsp_thread_signal = 2;
-
-            // Cleanup RTSP server and environment
-            Medium::close(rtspServer);
-            env->reclaim();
-            delete scheduler;
-        }
-
-        usleep(1000);
+        UserAuthenticationDatabase *auth = new UserAuthenticationDatabase;
+        auth->addUserRecord(
+            cfg->rtsp.username,
+            cfg->rtsp.password);
+        rtspServer = RTSPServer::createNew(*env, cfg->rtsp.port, auth, 10);
     }
+    else
+    {
+        rtspServer = RTSPServer::createNew(*env, cfg->rtsp.port, nullptr, 10);
+    }
+    if (rtspServer == NULL)
+    {
+        LOG_ERROR("Failed to create RTSP server: " << env->getResultMsg() << "\n");
+        return;
+    }
+    OutPacketBuffer::maxSize = cfg->rtsp.out_buffer_size;
+
+    if (cfg->stream0.enabled)
+    {
+        addSubsession(0, cfg->stream0);
+    }
+
+    if (cfg->stream1.enabled)
+    {
+        addSubsession(1, cfg->stream1);
+    }
+
+    //inform main that initialization is complete 
+    //global_cv_lock_main.notify_one();
+
+    global_rtsp_thread_signal = 0;
+    env->taskScheduler().doEventLoop(&global_rtsp_thread_signal);
+
+    // Clean up VPS if it was allocated
+    /*
+    if (vps) {
+        delete vps;
+        vps = nullptr;
+    }
+    */
+
+    LOG_DEBUG("Stop RTSP Server.");
+
+    // Cleanup RTSP server and environment
+    Medium::close(rtspServer);
+    env->reclaim();
+    delete scheduler;
+}
+
+void* RTSP::run(void* arg) {
+    ((RTSP*)arg)->start();
+    return nullptr;
 }

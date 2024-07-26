@@ -54,9 +54,9 @@ struct AudioChannel
 class Worker
 {
 public:
-	static Worker *createNew(std::shared_ptr<CFG> cfg);
+	static Worker *createNew();
 
-	Worker(std::shared_ptr<CFG> cfg) : cfg(cfg)
+	Worker()
 	{
 		// init();
 	}
@@ -161,11 +161,10 @@ public:
 	Channel *channels[3] = {nullptr, nullptr, nullptr};
 	IMPEncoder *encoder[3] = {nullptr, nullptr, nullptr};
 	bool osd_thread_loop;
-private:
+
 
 	Motion motion;
 
-	std::shared_ptr<CFG> cfg;
 	static void *jpeg_grabber(void *arg);
 	static void *audio_grabber(void *arg);
 	static void *stream_grabber(void *arg);
@@ -181,7 +180,7 @@ private:
 	pthread_t osd_thread;
 	pthread_t audio_threads[1];
 	pthread_t worker_threads[3];
-
+private:
 	/*
 	struct sched_param osd_thread_sheduler;
 	struct sched_param jpeg_thread_sheduler;

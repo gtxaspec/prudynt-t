@@ -10,10 +10,7 @@
 class IMPServerMediaSubsession : public OnDemandServerMediaSubsession
 {
 public:
-    static void init(const std::shared_ptr<CFG> &_cfg)
-    {
-        cfg = _cfg;
-    };
+    static void init(){};
 
     static IMPServerMediaSubsession *createNew(
         UsageEnvironment &env,
@@ -57,7 +54,6 @@ private:
     H264NALUnit *vps; // Change to pointer for optional VPS
     H264NALUnit sps;
     H264NALUnit pps;
-    static std::shared_ptr<CFG> cfg;
     int encChn;
 };
 

@@ -25,6 +25,9 @@ int IMPSystem::init()
     LOG_DEBUG("IMPSystem::init()");
     int ret = 0;
 
+    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
+    
     IMPVersion impVersion;
     ret = IMP_System_GetVersion(&impVersion);
     LOG_INFO("LIBIMP Version " << impVersion.aVersion);
@@ -160,129 +163,10 @@ int IMPSystem::init()
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << cfg->image.drc_strength << ")");
 #endif
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
+        ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
 #endif
 
-#if defined(AUDIO_SUPPORT_DUMMY)
-    /* Audio tuning */
-    /*     input    */
-    if (cfg->audio.input_enabled)
-    {
-        ret = IMP_AI_Enable(0);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Enable(0)");
-
-        ret = IMP_AI_EnableChn(0, 0);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableChn(0, 0)");
-
-        ret = IMP_AI_SetVol(0, 0, cfg->audio.input_vol);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetVol(0, 0, " << cfg->audio.input_vol << ")");
-
-        ret = IMP_AI_SetGain(0, 0, cfg->audio.input_gain);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetGain(0, 0, " << cfg->audio.input_gain << ")");
-
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-
-        ret = IMP_AI_SetAlcGain(0, 0, cfg->audio.input_alc_gain);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetAlcGain(0, 0, " << cfg->audio.input_alc_gain << ")");
-
-#endif
-        if (cfg->audio.input_echo_cancellation)
-        {
-            ret = IMP_AI_EnableAec(0, 0, 0, 0);
-            LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableAec(0)");
-        }
-        else
-        {
-            ret = IMP_AI_DisableAec(0, 0);
-            LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableAec(0)");
-        }
-
-        IMPAudioIOAttr ioattr;
-        ret = IMP_AI_GetPubAttr(0, &ioattr);
-        if (ret == 0)
-        {
-            if (cfg->audio.input_noise_suppression)
-            {
-                ret = IMP_AI_EnableNs(&ioattr, cfg->audio.input_noise_suppression);
-                LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableNs(" << cfg->audio.input_noise_suppression << ")");
-            }
-            else
-            {
-                ret = IMP_AI_DisableNs();
-                LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableNs(0)");
-            }
-            if (cfg->audio.output_high_pass_filter)
-            {
-                ret = IMP_AI_EnableHpf(&ioattr);
-                LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableHpf(0)");
-            }
-            else
-            {
-                ret = IMP_AI_DisableHpf();
-                LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableHpf(0)");
-            }
-        }
-        else
-        {
-            LOG_ERROR("IMP_AI_GetPubAttr failed.");
-        }
-    }
-    else
-    {
-
-        ret = IMP_AI_DisableChn(0, 0);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableChn(0)");
-
-        ret = IMP_AI_Disable(0);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Disable(0)");
-    }
-
-    /*    output    */
-    if (cfg->audio.output_enabled)
-    {
-        ret = IMP_AO_Enable(0);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_Enable(0)");
-
-        ret = IMP_AO_EnableChn(0, 0);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_EnableChn(0, 0)");
-
-        ret = IMP_AO_SetVol(0, 0, cfg->audio.output_vol);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_SetVol(0, 0, " << cfg->audio.output_vol << ")");
-
-        ret = IMP_AO_SetGain(0, 0, cfg->audio.output_gain);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_SetGain(0, 0, " << cfg->audio.output_gain << ")");
-
-        IMPAudioIOAttr ioattr;
-        ret = IMP_AO_GetPubAttr(0, &ioattr);
-        if (ret == 0)
-        {
-            if (cfg->audio.output_high_pass_filter)
-            {
-                ret = IMP_AO_EnableHpf(&ioattr);
-                LOG_DEBUG_OR_ERROR(ret, "IMP_AO_EnableHpf(0)");
-            }
-            else
-            {
-                ret = IMP_AO_DisableHpf();
-                LOG_DEBUG_OR_ERROR(ret, "IMP_AO_DisableHpf(0)");
-            }
-        }
-        else
-        {
-            LOG_ERROR("IMP_AO_GetPubAttr failed.");
-        }
-    }
-    else
-    {
-
-        ret = IMP_AO_DisableChn(0, 0);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_DisableChn(0, 0)");
-
-        ret = IMP_AO_Disable(0);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AO_Disable(0)");
-    }
-#endif // #if defined(AUDIO_SUPPORT)
 #endif // #if !defined(NO_TUNINGS)
 
     LOG_DEBUG("ISP Tuning Defaults set");

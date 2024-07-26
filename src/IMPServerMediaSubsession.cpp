@@ -9,7 +9,7 @@
 #include "GroupsockHelper.hh"
 #include "Config.hpp"
 
-std::shared_ptr<CFG> IMPServerMediaSubsession::cfg = nullptr;
+extern std::shared_ptr<CFG> cfg;
 
 // Modify method to accept pointers for the NAL units
 IMPServerMediaSubsession *IMPServerMediaSubsession::createNew(
@@ -46,7 +46,7 @@ FramedSource *IMPServerMediaSubsession::createNewStreamSource(
     unsigned clientSessionId,
     unsigned &estBitrate)
 {
-    LOG_DEBUG("Create Stream Source. " << cfg->rtsp.est_bitrate);
+    LOG_DEBUG("Create Stream Source. ");
     estBitrate = cfg->rtsp.est_bitrate; // The expected bitrate?
 
     IMPDeviceSource *imp = IMPDeviceSource::createNew(envir(), encChn);

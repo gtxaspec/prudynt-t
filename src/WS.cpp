@@ -11,6 +11,7 @@
 #include <imp/imp_audio.h>
 #include "OSD.hpp"
 #include "worker.hpp"
+#include "globals.hpp"
 
 #define MODULE "WEBSOCKET"
 
@@ -372,26 +373,18 @@ static const char *const info_keys[] = {
 /* ACTION */
 enum
 {
-    PNT_STOP_THREAD = 1,
-    PNT_START_THREAD,
-    PNT_RESTART_THREAD,
+    PNT_RESTART_THREAD = 1,
     PNT_SAVE_CONFIG,
     PNT_CAPTURE
-
 };
 
 enum
 {
     PNT_THREAD_RTSP = 1,
-    PNT_THREAD_ENCODER = 2,
-    PNT_THREAD_ACTION_STOP = 8,
-    PNT_THREAD_ACTION_START = 16,
-    PNT_THREAD_ACTION_RESTART = PNT_THREAD_ACTION_STOP | PNT_THREAD_ACTION_START,
+    PNT_THREAD_ENCODER
 };
 
 static const char *const action_keys[] = {
-    "stop_thread",
-    "start_thread",
     "restart_thread",
     "save_config",
     "capture"};
@@ -1730,29 +1723,16 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
 
         switch (ctx->path_match)
         {
-        case PNT_STOP_THREAD:
-            if (reason == LEJPCB_VAL_NUM_INT)
-            {
-                u_ctx->signal = atoi(ctx->buf);          // stop targets
-                u_ctx->signal |= PNT_THREAD_ACTION_STOP; // stop action
-            }
-            append_message(
-                "\"%s\"", "initiated");
-            break;
-        case PNT_START_THREAD:
-            if (reason == LEJPCB_VAL_NUM_INT)
-            {
-                u_ctx->signal = atoi(ctx->buf);           // start targets
-                u_ctx->signal |= PNT_THREAD_ACTION_START; // start action
-            }
-            append_message(
-                "\"%s\"", "initiated");
-            break;
         case PNT_RESTART_THREAD:
             if (reason == LEJPCB_VAL_NUM_INT)
             {
-                u_ctx->signal = atoi(ctx->buf);             // restart targets
-                u_ctx->signal |= PNT_THREAD_ACTION_RESTART; // restart action
+                u_ctx->signal = atoi(ctx->buf);
+                if(u_ctx->signal & 1) {
+                    global_restart_rtsp = true;
+                }
+                if(u_ctx->signal & 2) {
+                    global_restart_video = true;
+                }                
             }
             append_message(
                 "\"%s\"", "initiated");
@@ -1908,25 +1888,21 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
         std::strcat(ws_send_msg, "}"); // close response json
 
-        if ((u_ctx->signal & 1) || (u_ctx->signal & 2) || (u_ctx->signal & 32))
+        //send jpeg image via websocket
+        if ((u_ctx->signal & 32))
         {
-            if ((u_ctx->signal & 8) || (u_ctx->signal & 16))
-            {
-                if(u_ctx->ws->cfg->main_thread_signal.load() == 1) {
-                    u_ctx->ws->cfg->main_thread_signal.store(u_ctx->signal);
-                    u_ctx->ws->cfg->main_thread_signal.notify_one();
-                } else {
-                    LOG_DEBUG("main thread not ready to receive command.");
-                }
-            }
-            if ((u_ctx->signal & 32))
-            {
-                send_jpeg(wsi);
-                memset(ws_send_msg, 0, sizeof(ws_send_msg));
-            }
-            u_ctx->signal = 0;
+            send_jpeg(wsi);
+            memset(ws_send_msg, 0, sizeof(ws_send_msg));
         }
 
+        //inform main to restart threads
+        if (global_restart_rtsp || global_restart_video)
+        {
+            global_cv_lock_main.notify_one();
+        }
+
+        //always reset signal
+        u_ctx->signal = 0;
         lws_callback_on_writable(wsi);
         break;
 

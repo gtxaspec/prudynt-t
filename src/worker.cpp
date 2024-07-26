@@ -13,6 +13,8 @@
 #define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
 
+extern std::shared_ptr<CFG> cfg;
+
 unsigned long long tDiffInMs(struct timeval *startTime)
 {
     struct timeval currentTime;
@@ -33,10 +35,9 @@ EncoderSink *Worker::stream0_sink = new EncoderSink{"Stream0Sink", 0, false, nul
 EncoderSink *Worker::stream1_sink = new EncoderSink{"Stream1Sink", 1, false, nullptr};
 AudioSink *Worker::audio_sink = new AudioSink{"AudioSink", nullptr};
 
-Worker *Worker::createNew(
-    std::shared_ptr<CFG> cfg)
+Worker *Worker::createNew()
 {
-    return new Worker(cfg);
+    return new Worker();
 }
 
 int Worker::init()
@@ -44,23 +45,13 @@ int Worker::init()
     LOG_DEBUG("Worker::init()");
     int ret = 0;
 
-#if defined(PLATFORM_T23)
-    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
-#endif
-
-    if (!impsystem)
-    {
-        impsystem = IMPSystem::createNew(cfg);
-    }
-
     if (cfg->stream0.enabled)
     {
         if (!framesources[0])
         {
             framesources[0] = IMPFramesource::createNew(&cfg->stream0, &cfg->sensor, 0);
         }
-        encoder[0] = IMPEncoder::createNew(&cfg->stream0, cfg, 0, 0, "stream0");
+        encoder[0] = IMPEncoder::createNew(&cfg->stream0, 0, 0, "stream0");
         framesources[0]->enable();
     }
 
@@ -70,19 +61,14 @@ int Worker::init()
         {
             framesources[1] = IMPFramesource::createNew(&cfg->stream1, &cfg->sensor, 1);
         }
-        encoder[1] = IMPEncoder::createNew(&cfg->stream1, cfg, 1, 1, "stream1");
+        encoder[1] = IMPEncoder::createNew(&cfg->stream1, 1, 1, "stream1");
         framesources[1]->enable();
     }
 
     if (cfg->stream2.enabled)
     {
-        encoder[2] = IMPEncoder::createNew(&cfg->stream2, cfg, 2, cfg->stream2.jpeg_channel, "stream2");
+        encoder[2] = IMPEncoder::createNew(&cfg->stream2, 2, cfg->stream2.jpeg_channel, "stream2");
     }
-
-#if !defined(PLATFORM_T23)
-    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
-#endif
 
     if (cfg->motion.enabled)
     {
@@ -268,37 +254,38 @@ static int save_jpeg_stream(int fd, IMPEncoderStream *stream)
 
 void *Worker::jpeg_grabber(void *arg)
 {
-    Channel *channel = static_cast<Channel *>(arg);
-
-    LOG_DEBUG("Start jpeg_grabber thread for stream " << channel->encChn);
+    LOG_DEBUG("Start jpeg_grabber thread.");
 
     int ret;
     struct timeval ts;
     gettimeofday(&ts, NULL);
 
-    ret = IMP_Encoder_StartRecvPic(channel->encChn);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(" << channel->encChn << ")");
+    global_jpeg->imp_encoder = IMPEncoder::createNew(global_jpeg->stream, 2, global_jpeg->stream->jpeg_channel, "stream2");
+
+    //inform main that initialization is complete 
+    global_cv_lock_main.notify_one();
+
+    ret = IMP_Encoder_StartRecvPic(global_jpeg->encChn);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(" << global_jpeg->encChn << ")");
     if (ret != 0)
         return 0;
 
-    channel->thread_signal.fetch_or(1);
-
-    while (channel->thread_signal.load() & 1)
+    global_jpeg->running = true;    
+    while (global_jpeg->running)
     {
         if (tDiffInMs(&ts) > 1000)
         {
-            // LOG_DEBUG("IMP_Encoder_PollingStream 1 " << channel->encChn);
-            if (IMP_Encoder_PollingStream(channel->encChn, channel->polling_timeout) == 0)
+
+            if (IMP_Encoder_PollingStream(global_jpeg->encChn, cfg->general.imp_polling_timeout) == 0)
             {
-                // LOG_DEBUG("IMP_Encoder_PollingStream 2 " << channel->encChn);
 
                 IMPEncoderStream stream;
-                if (IMP_Encoder_GetStream(channel->encChn, &stream, GET_STREAM_BLOCKING) == 0)
+                if (IMP_Encoder_GetStream(global_jpeg->encChn, &stream, GET_STREAM_BLOCKING) == 0)
                 {
-                    // LOG_DEBUG("IMP_Encoder_GetStream" << channel->encChn);
+
                     //  Check for success
-                    const char *tempPath = "/tmp/snapshot.tmp";         // Temporary path
-                    const char *finalPath = channel->stream->jpeg_path; // Final path for the JPEG snapshot
+                    const char *tempPath = "/tmp/snapshot.tmp"; // Temporary path
+                    const char *finalPath = global_jpeg->stream->jpeg_path; // Final path for the JPEG snapshot
 
                     // Open and create temporary file with read and write permissions
                     int snap_fd = open(tempPath, O_RDWR | O_CREAT | O_TRUNC, 0777);
@@ -344,8 +331,15 @@ void *Worker::jpeg_grabber(void *arg)
         usleep(THREAD_SLEEP);
     }
 
-    // ret = IMP_Encoder_StopRecvPic(channel->encChn);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StopRecvPic(" << channel->encChn << ")");
+    if (global_jpeg->imp_encoder)
+    {
+        global_jpeg->imp_encoder->deinit();
+
+        delete global_jpeg->imp_encoder;
+        global_jpeg->imp_encoder = nullptr;         
+    }
+
+    LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StopRecvPic(" << global_jpeg->encChn << ")");
 
     return 0;
 }
@@ -366,19 +360,27 @@ void *Worker::stream_grabber(void *arg)
     unsigned long long ms;
     struct timeval imp_time_base;
 
+    video[encChn]->imp_framesource = IMPFramesource::createNew(video[encChn]->stream, &cfg->sensor, encChn);
+    video[encChn]->imp_encoder = IMPEncoder::createNew(video[encChn]->stream, encChn, encChn, video[0]->name);
+    video[encChn]->imp_framesource->enable();   
+
     gettimeofday(&imp_time_base, NULL);
     IMP_System_RebaseTimeStamp(imp_time_base.tv_sec * (uint64_t)1000000);
+
+    //inform main that initialization is complete 
+    global_cv_lock_main.notify_one();
 
     ret = IMP_Encoder_StartRecvPic(encChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(" << encChn << ")");
     if (ret != 0)
         return 0;
 
-    while (video[encChn]->thread_loop)
+    video[encChn]->running = true;   
+    while (video[encChn]->running)
     {
         if (video[encChn]->onDataCallback != nullptr)
         {
-            if (IMP_Encoder_PollingStream(encChn, polling_timeout) == 0)
+            if (IMP_Encoder_PollingStream(encChn, cfg->general.imp_polling_timeout) == 0)
             {
                 IMPEncoderStream stream;
                 if (IMP_Encoder_GetStream(encChn, &stream, GET_STREAM_BLOCKING) != 0)
@@ -399,7 +401,6 @@ void *Worker::stream_grabber(void *arg)
                     fps++;
                     bps += stream.pack[i].length;
 
-                    //pthread_mutex_lock(&channel->lock);
                     if (video[encChn]->onDataCallback != nullptr)
                     {
 #if defined(PLATFORM_T31)
@@ -417,32 +418,32 @@ void *Worker::stream_grabber(void *arg)
                         // We use start+4 because the encoder inserts 4-byte MPEG
                         //'startcodes' at the beginning of each NAL. Live555 complains
                         nalu.data.insert(nalu.data.end(), start + 4, end);
-                        if (video[encChn]->IDR == false)
+                        if (video[encChn]->idr == false)
                         {
 #if defined(PLATFORM_T31)
                             if (stream.pack[i].nalType.h264NalType == 7 ||
                                 stream.pack[i].nalType.h264NalType == 8 ||
                                 stream.pack[i].nalType.h264NalType == 5)
                             {
-                                video[encChn]->IDR = true;
+                                video[encChn]->idr = true;
                             }
                             else if (stream.pack[i].nalType.h265NalType == 32)
                             {
-                                video[encChn]->IDR = true;
+                                video[encChn]->idr = true;
                             }
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
                             if (stream.pack[i].dataType.h264Type == 7 ||
                                 stream.pack[i].dataType.h264Type == 8 ||
                                 stream.pack[i].dataType.h264Type == 5)
                             {
-                                video[encChn]->IDR = true;
+                                video[encChn]->idr = true;
                             }
 #elif defined(PLATFORM_T30)
                             if (stream.pack[i].dataType.h264Type == 7 ||
                                 stream.pack[i].dataType.h264Type == 8 ||
                                 stream.pack[i].dataType.h264Type == 5)
                             {
-                                video[encChn]->IDR = true;
+                                video[encChn]->idr = true;
                             }
                             else if (stream.pack[i].dataType.h265Type == 32)
                             {
@@ -451,7 +452,7 @@ void *Worker::stream_grabber(void *arg)
 #endif
                         }
 
-                        if (video[encChn]->IDR == true)
+                        if (video[encChn]->idr == true)
                         {
                             if (!video[encChn]->msgChannel->write(nalu)) {
                                 LOG_ERROR("stream encChn:" << encChn << ", size:" << nalu.data.size()
@@ -463,7 +464,6 @@ void *Worker::stream_grabber(void *arg)
                             }
                         }
                     }
-                    //pthread_mutex_unlock(&channel->lock);
                 }
 
                 IMP_Encoder_ReleaseStream(encChn, &stream);
@@ -493,7 +493,7 @@ void *Worker::stream_grabber(void *arg)
             else
             {
                 error_count++;
-                LOG_DDEBUG("IMP_Encoder_PollingStream(" << encChn << ", " << polling_timeout << ") timeout !");
+                LOG_DDEBUG("IMP_Encoder_PollingStream(" << encChn << ", " << cfg->general.imp_polling_timeout << ") timeout !");
                 usleep(THREAD_SLEEP);
             }
         }
@@ -507,6 +507,18 @@ void *Worker::stream_grabber(void *arg)
 
     ret = IMP_Encoder_StopRecvPic(encChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StopRecvPic(" << encChn << ")");
+
+    if (video[encChn]->imp_framesource)
+    {
+        video[encChn]->imp_framesource->disable();
+
+        if (video[encChn]->imp_encoder)
+        {
+            video[encChn]->imp_encoder->deinit();
+            delete video[encChn]->imp_encoder;
+            video[encChn]->imp_encoder = nullptr;            
+        }
+    }
 
     return 0;
 }
@@ -567,20 +579,16 @@ void *Worker::audio_grabber(void *arg)
 
 void *Worker::update_osd(void *arg) {
 
-    Worker *worker = static_cast<Worker *>(arg);
-
     LOG_DEBUG("start osd update thread.");
+    
+    global_osd_thread_signal = true;
 
-    while(worker->osd_thread_loop) {
+    while(global_osd_thread_signal) {
         for(auto v : video) {
             if(v != nullptr) {
-                if(v->thread_loop) {
-                    if((worker->encoder[v->encChn]->osd != nullptr)) {
-                        if((worker->encoder[v->encChn]->osd->flag & 16)) {
-                            worker->encoder[v->encChn]->osd->updateDisplayEverySecond();
-                        } else {
-                            worker->encoder[v->encChn]->osd->start();
-                        }
+                if(v->running) {
+                    if((v->imp_encoder->osd != nullptr)) {
+                        v->imp_encoder->osd->updateDisplayEverySecond();
                     }
                 }
             }
@@ -590,162 +598,4 @@ void *Worker::update_osd(void *arg) {
 
     LOG_DEBUG("exit osd update thread.");
     return 0;
-}
-
-void Worker::run()
-{
-    LOG_DEBUG("Worker::run()");
-
-    int ret;
-
-    // 256 = exit thread
-    while ((cfg->worker_thread_signal.load() & 256) != 256)
-    {
-        // 1 = init and start
-        if (cfg->worker_thread_signal.load() & 1)
-        {
-            ret = init();
-            LOG_DEBUG_OR_ERROR(ret, "init()");
-            if (ret != 0)
-                return;
-
-            /*
-            int policy = SCHED_RR;
-
-            pthread_attr_init(&osd_thread_attr);
-            pthread_attr_init(&jpeg_thread_attr);
-            pthread_attr_init(&stream_thread_attr);
-
-            pthread_attr_setschedpolicy(&osd_thread_attr, policy);
-            pthread_attr_setschedpolicy(&jpeg_thread_attr, policy);
-            pthread_attr_setschedpolicy(&stream_thread_attr, policy);
-
-            int max_priority = sched_get_priority_max(policy);
-            int min_priority = sched_get_priority_min(policy);
-
-            osd_thread_sheduler.sched_priority = min_priority;  //(int)max_priority * 0.1;
-            jpeg_thread_sheduler.sched_priority = min_priority; //(int)max_priority * 0.1;
-            stream_thread_sheduler.sched_priority = (int)max_priority * 0.8;
-
-            pthread_attr_setschedparam(&osd_thread_attr, &osd_thread_sheduler);
-            pthread_attr_setschedparam(&jpeg_thread_attr, &jpeg_thread_sheduler);
-            pthread_attr_setschedparam(&stream_thread_attr, &stream_thread_sheduler);
-            */
-
-            /*
-            audio0 = IMPAudio::createNew(cfg, 0, 0);
-            audio_channel = new AudioChannel{0, 0, cfg->general.imp_polling_timeout, audio_sink, sink_lock2};
-            pthread_create(&audio_threads[0], nullptr, audio_grabber, audio_channel);
-            */
-
-            /*
-            if (cfg->rtsp_thread_signal == 0)
-            {
-                delay_osd = false;
-            }
-            else
-            {
-                delay_osd = true;
-                cfg->rtsp_thread_signal = 0;
-            }
-            */
-           
-            cfg->rtsp_thread_signal = 0;
-
-            if (cfg->stream0.enabled)
-            {
-                //channels[0] = new Channel{0, &cfg->stream0, cfg->general.imp_polling_timeout, stream0_sink, sink_lock0};
-                start_stream(0);
-            }
-
-            if (cfg->stream1.enabled)
-            {
-                //channels[1] = new Channel{1, &cfg->stream1, cfg->general.imp_polling_timeout, stream1_sink, sink_lock1};
-                start_stream(1);
-            }
-
-            if (cfg->stream2.enabled)
-            {
-                //channels[2] = new Channel{2, &cfg->stream2, cfg->general.imp_polling_timeout};
-                //pthread_create(&worker_threads[2], &jpeg_thread_attr, jpeg_grabber, channels[2]);
-            }
-
-            osd_thread_loop = true;
-            pthread_create(&osd_thread, nullptr, update_osd, this);
-            
-            cfg->worker_thread_signal.fetch_or(2);
-        }
-
-        // 1 & 2 = the threads are running, we can go to sleep
-        //if (cfg->worker_thread_signal.load() == 3)
-        //{
-            LOG_DEBUG("The worker control thread goes into sleep mode");
-            cfg->worker_thread_signal.wait(3);
-            LOG_DEBUG("Worker control thread wakeup");
-        //}
-
-        // 4 = Stop threads
-        if (cfg->worker_thread_signal.load() & 4)
-        {
-            //stop osd thread
-            osd_thread_loop = false;
-            LOG_DEBUG("stop signal is sent to osd thread " << cfg->worker_thread_signal.load());
-            if (pthread_join(osd_thread, NULL) == 0)
-            {
-                LOG_DEBUG("wait for exit osd thread done.");
-            }
-
-            if (channels[0])
-            {
-                exit_stream(0);
-            }
-
-            if (channels[1])
-            {
-                exit_stream(1);
-            }
-
-            if (channels[2])
-            {
-                exit_stream(2);
-            }
-
-            /*
-            pthread_attr_destroy(&osd_thread_attr);
-            pthread_attr_destroy(&jpeg_thread_attr);
-            pthread_attr_destroy(&stream_thread_attr);
-            */
-
-            deinit();
-
-            // remove stop and set stopped, will be handled in main
-            cfg->worker_thread_signal.fetch_xor(4);
-            cfg->worker_thread_signal.fetch_or(8);
-        }
-    }
-    usleep(THREAD_SLEEP);
-}
-
-void Worker::start_stream(int encChn)
-{
-    int i = 0;
-    int* encChnPtr = new int(encChn);
-    //pthread_mutex_init(&channels[encChn]->lock, NULL);
-    gettimeofday(&video[encChn]->stream->osd.stats.ts, NULL);
-    pthread_create(&worker_threads[encChn], nullptr, stream_grabber, static_cast<void*>(encChnPtr));
-}
-
-void Worker::exit_stream(int encChn)
-{
-    LOG_DEBUG("stop signal is sent to stream_grabber for stream" << encChn);
-    channels[encChn]->thread_signal.fetch_xor(1);
-    video[encChn]->thread_loop = false;
-    if (pthread_join(worker_threads[encChn], NULL) == 0)
-    {
-        LOG_DEBUG("wait for stream_grabber exit stream" << encChn);
-    }
-    LOG_DEBUG("stream_grabber for stream" << encChn << " has been terminated");
-    pthread_mutex_destroy(&channels[encChn]->lock);
-    delete channels[encChn];
-    channels[encChn] = nullptr;
 }

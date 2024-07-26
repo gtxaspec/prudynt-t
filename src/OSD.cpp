@@ -23,6 +23,8 @@
 
 #include "schrift.h"
 
+extern std::shared_ptr<CFG> cfg;
+
 int OSD::renderGlyph(const char *characters)
 {
 
@@ -203,7 +205,7 @@ int OSD::calculateTextSize(const char *text, uint16_t &width, uint16_t &height, 
 
 int OSD::libschrift_init()
 {
-    LOG_DEBUG("OSD::initFont()");
+    LOG_DEBUG("OSD::libschrift_init()");
 
     std::ifstream fontFile(osd->font_path, std::ios::binary | std::ios::ate);
     if (!fontFile.is_open())
@@ -273,7 +275,7 @@ void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, i
         rotateBGRAImage(osdItem->data, item_width, item_height, angle, true);
     }
 
-    if (item_width != osdItem->width || item_height != osdItem->height || (osd->thread_signal.load() & 2))
+    if (item_width != osdItem->width || item_height != osdItem->height)
     {
         if (rgnAttr == nullptr)
         {
@@ -494,18 +496,20 @@ unsigned char *loadBGRAImage(const char *filepath, size_t &length)
 
 OSD *OSD::createNew(
     _osd *osd,
-    std::shared_ptr<CFG> cfg,
     int osdGrp,
     int encChn,
     const char *parent)
 {
-    return new OSD(osd, cfg, osdGrp, encChn, parent);
+    return new OSD(osd, osdGrp, encChn, parent);
 }
 
 void OSD::init()
 {
     int ret = 0;
     LOG_DEBUG("OSD init for begin");
+
+    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
 
     // cfg = _cfg;
     last_updated_second = -1;
@@ -532,8 +536,11 @@ void OSD::init()
 
     if (osd->font_size == OSD_AUTO_VALUE)
     {
+        LOG_DEBUG("if (osd->font_size == OSD_AUTO_VALUE)");
         // use cfg->set to set noSave, so auto values will not written to config
         cfg->set<int>(getConfigPath("font_size"), fontSize, true);
+        LOG_DEBUG("cfg->set<int>(getConfigPath(""font_size""), " << fontSize << ", true);");
+        LOG_DEBUG("osd->font_size, " << osd->font_size << ", true);");
     } 
 
     if (libschrift_init() != 0)
@@ -713,6 +720,8 @@ void OSD::init()
         grpRgnAttr.fgAlhpa = osd->logo_transparency;
         IMP_OSD_SetGrpRgnAttr(osdLogo.imp_rgn, osdGrp, &grpRgnAttr);
     }
+
+    start();
 }
 
 int OSD::start()
@@ -720,11 +729,12 @@ int OSD::start()
 
     int ret;
 
-    //set "startet" flag
-    flag |= 16;
     ret = IMP_OSD_Start(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_Start(" << osdGrp << ")");
     
+    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
+
     return ret;
 }
 

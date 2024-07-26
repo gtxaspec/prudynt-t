@@ -7,14 +7,15 @@
 #define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
 
+extern std::shared_ptr<CFG> cfg;
+
 IMPEncoder *IMPEncoder::createNew(
     _stream *stream,
-    std::shared_ptr<CFG> cfg,
     int encChn,
     int encGrp,
     const char *name)
 {
-    return new IMPEncoder(stream, cfg, encChn, encGrp, name);
+    return new IMPEncoder(stream, encChn, encGrp, name);
 }
 
 void IMPEncoder::flush(int encChn)
@@ -332,7 +333,7 @@ int IMPEncoder::init()
 
         if (stream->osd.enabled)
         {
-            osd = OSD::createNew(&stream->osd, cfg, encGrp, encChn, name);
+            osd = OSD::createNew(&stream->osd, encGrp, encChn, name);
 
             ret = IMP_System_Bind(&fs, &osd_cell);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&fs, &osd_cell)");

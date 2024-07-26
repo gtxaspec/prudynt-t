@@ -34,9 +34,9 @@ static const std::array<int, 64> jpeg_luma_quantizer = {{16, 11, 10, 16, 24, 40,
 class IMPEncoder
 {
 public:
-    static IMPEncoder *createNew(_stream *stream, std::shared_ptr<CFG> cfg, int encChn, int encGrp, const char *name);
+    static IMPEncoder *createNew(_stream *stream, int encChn, int encGrp, const char *name);
 
-    IMPEncoder(_stream *stream, std::shared_ptr<CFG> cfg, int encChn, int encGrp, const char *name) : stream(stream), cfg(cfg), encChn(encChn), encGrp(encGrp), name(name)
+    IMPEncoder(_stream *stream, int encChn, int encGrp, const char *name) : stream(stream), encChn(encChn), encGrp(encGrp), name(name)
     {
         init();
     }
@@ -54,7 +54,6 @@ public:
 
 private:
     
-    std::shared_ptr<CFG> cfg{};
     const char *name{};
 
     IMPEncoderCHNAttr chnAttr{};
