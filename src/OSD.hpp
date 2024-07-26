@@ -39,8 +39,8 @@ struct Glyph {
 class OSD
 {
 public:
-    static OSD *createNew(_osd *osd, int osdGrp, int encChn, const char *parent);
-    OSD(_osd *osd, int osdGrp, int encChn, const char *parent) : osd(osd), osdGrp(osdGrp), encChn(encChn), parent(parent)
+    static OSD *createNew(_osd &osd, int osdGrp, int encChn, const char *parent);
+    OSD(_osd &osd, int osdGrp, int encChn, const char *parent) : osd(osd), osdGrp(osdGrp), encChn(encChn), parent(parent)
     {
         init();
     }
@@ -70,7 +70,7 @@ private:
     uint8_t BGRA_STROKE[4];
     uint8_t BGRA_TEXT[4];
 
-    _osd *osd;
+    _osd &osd;
     int last_updated_second;
     const char *parent;
 

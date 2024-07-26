@@ -207,21 +207,21 @@ int OSD::libschrift_init()
 {
     LOG_DEBUG("OSD::libschrift_init()");
 
-    std::ifstream fontFile(osd->font_path, std::ios::binary | std::ios::ate);
+    std::ifstream fontFile(osd.font_path, std::ios::binary | std::ios::ate);
     if (!fontFile.is_open())
     {
         LOG_DEBUG("Unable to open font file.");
         return -1;
     }
 
-    BGRA_TEXT[2] = (osd->font_color >> 16) & 0xFF;
-    BGRA_TEXT[1] = (osd->font_color >> 8) & 0xFF;
-    BGRA_TEXT[0] = (osd->font_color >> 0) & 0xFF;
+    BGRA_TEXT[2] = (osd.font_color >> 16) & 0xFF;
+    BGRA_TEXT[1] = (osd.font_color >> 8) & 0xFF;
+    BGRA_TEXT[0] = (osd.font_color >> 0) & 0xFF;
     BGRA_TEXT[3] = 0;
 
-    BGRA_STROKE[2] = (osd->font_stroke_color >> 16) & 0xFF;
-    BGRA_STROKE[1] = (osd->font_stroke_color >> 8) & 0xFF;
-    BGRA_STROKE[0] = (osd->font_stroke_color >> 0) & 0xFF;
+    BGRA_STROKE[2] = (osd.font_stroke_color >> 16) & 0xFF;
+    BGRA_STROKE[1] = (osd.font_stroke_color >> 8) & 0xFF;
+    BGRA_STROKE[0] = (osd.font_stroke_color >> 0) & 0xFF;
     BGRA_STROKE[3] = 255;
 
     size_t fileSize = fontFile.tellg();
@@ -233,9 +233,9 @@ int OSD::libschrift_init()
 
     sft = new SFT();
     sft->flags = SFT_DOWNWARD_Y;
-    sft->xScale = osd->font_size * osd->font_xscale / 100;
-    sft->yScale = osd->font_size * osd->font_yscale / 100;
-    sft->yOffset = osd->font_yoffset;
+    sft->xScale = osd.font_size * osd.font_xscale / 100;
+    sft->yScale = osd.font_size * osd.font_yscale / 100;
+    sft->yOffset = osd.font_yoffset;
     sft->font = sft_loadmem(fontData.data(), fontData.size());
     if (!sft->font)
     {
@@ -253,7 +253,7 @@ void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, i
 {
 
     // size and stroke
-    uint8_t stroke_width = osd->font_stroke;
+    uint8_t stroke_width = osd.font_stroke;
     uint16_t item_width = 0;
     uint16_t item_height = 0;
 
@@ -495,7 +495,7 @@ unsigned char *loadBGRAImage(const char *filepath, size_t &length)
 }
 
 OSD *OSD::createNew(
-    _osd *osd,
+    _osd &osd,
     int osdGrp,
     int encChn,
     const char *parent)
@@ -534,14 +534,14 @@ void OSD::init()
     int fontSize = autoFontSize(channelAttributes.encAttr.picWidth);
     int autoOffset = round((float)(channelAttributes.encAttr.picWidth * 0.004));
 
-    if (osd->font_size == OSD_AUTO_VALUE)
+    if (osd.font_size == OSD_AUTO_VALUE)
     {
-        LOG_DEBUG("if (osd->font_size == OSD_AUTO_VALUE)");
+        LOG_DEBUG("if (osd.font_size == OSD_AUTO_VALUE)");
         // use cfg->set to set noSave, so auto values will not written to config
         cfg->set<int>(getConfigPath("font_size"), fontSize, true);
         LOG_DEBUG("cfg->set<int>(getConfigPath(""font_size""), " << fontSize << ", true);");
-        LOG_DEBUG("osd->font_size, " << osd->font_size << ", true);");
-        osd->font_size = 18;
+        LOG_DEBUG("osd.font_size, " << osd.font_size << ", true);");
+        osd.font_size = 18;
     } 
 
     if (libschrift_init() != 0)
@@ -549,14 +549,14 @@ void OSD::init()
         LOG_DEBUG("libschrift init failed.");
     }
 
-    if (osd->time_enabled)
+    if (osd.time_enabled)
     {
         /* OSD Time */
-        if (osd->pos_time_x == OSD_AUTO_VALUE)
+        if (osd.pos_time_x == OSD_AUTO_VALUE)
         {
             cfg->set<int>(getConfigPath("pos_time_x").c_str(), autoOffset, true);
         }
-        if (osd->pos_time_y == OSD_AUTO_VALUE)
+        if (osd.pos_time_y == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
             cfg->set<int>(getConfigPath("pos_time_y").c_str(), autoOffset, true);
@@ -565,14 +565,14 @@ void OSD::init()
         osdTime.data = nullptr;
         osdTime.imp_rgn = IMP_OSD_CreateRgn(nullptr);
         IMP_OSD_RegisterRgn(osdTime.imp_rgn, osdGrp, nullptr);
-        osd->regions.time = osdTime.imp_rgn;
+        osd.regions.time = osdTime.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;
-        set_text(&osdTime, &rgnAttr, osd->time_format,
-                 osd->pos_time_x, osd->pos_time_y, osd->time_rotation);
+        set_text(&osdTime, &rgnAttr, osd.time_format,
+                 osd.pos_time_x, osd.pos_time_y, osd.time_rotation);
         IMP_OSD_SetRgnAttr(osdTime.imp_rgn, &rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
@@ -580,22 +580,22 @@ void OSD::init()
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 1;
         grpRgnAttr.gAlphaEn = 0;
-        grpRgnAttr.fgAlhpa = osd->time_transparency;
+        grpRgnAttr.fgAlhpa = osd.time_transparency;
         IMP_OSD_SetGrpRgnAttr(osdTime.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
-    if (osd->user_text_enabled)
+    if (osd.user_text_enabled)
     {
         getIp(ip);
         gethostname(hostname, 64);
 
         /* OSD Usertext */
-        if (osd->pos_user_text_x == OSD_AUTO_VALUE)
+        if (osd.pos_user_text_x == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
             cfg->set<int>(getConfigPath("pos_user_text_x").c_str(), 0, true);
         }
-        if (osd->pos_user_text_y == OSD_AUTO_VALUE)
+        if (osd.pos_user_text_y == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
             cfg->set<int>(getConfigPath("pos_user_text_y").c_str(), autoOffset, true);
@@ -604,14 +604,14 @@ void OSD::init()
         osdUser.data = nullptr;
         osdUser.imp_rgn = IMP_OSD_CreateRgn(nullptr);
         IMP_OSD_RegisterRgn(osdUser.imp_rgn, osdGrp, nullptr);
-        osd->regions.user = osdUser.imp_rgn;
+        osd.regions.user = osdUser.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;
-        set_text(&osdUser, &rgnAttr, osd->user_text_format,
-                 osd->pos_user_text_x, osd->pos_user_text_y, osd->user_text_rotation);
+        set_text(&osdUser, &rgnAttr, osd.user_text_format,
+                 osd.pos_user_text_x, osd.pos_user_text_y, osd.user_text_rotation);
         IMP_OSD_SetRgnAttr(osdUser.imp_rgn, &rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
@@ -619,19 +619,19 @@ void OSD::init()
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 2;
         grpRgnAttr.gAlphaEn = 1;
-        grpRgnAttr.fgAlhpa = osd->user_text_transparency;
+        grpRgnAttr.fgAlhpa = osd.user_text_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUser.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
-    if (osd->uptime_enabled)
+    if (osd.uptime_enabled)
     {
         /* OSD Uptime */
-        if (osd->pos_uptime_x == OSD_AUTO_VALUE)
+        if (osd.pos_uptime_x == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
             cfg->set<int>(getConfigPath("pos_uptime_x").c_str(), -autoOffset, true);
         }
-        if (osd->pos_uptime_y == OSD_AUTO_VALUE)
+        if (osd.pos_uptime_y == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
             cfg->set<int>(getConfigPath("pos_uptime_y").c_str(), autoOffset, true);
@@ -640,14 +640,14 @@ void OSD::init()
         osdUptm.data = nullptr;
         osdUptm.imp_rgn = IMP_OSD_CreateRgn(nullptr);
         IMP_OSD_RegisterRgn(osdUptm.imp_rgn, osdGrp, nullptr);
-        osd->regions.uptime = osdUptm.imp_rgn;
+        osd.regions.uptime = osdUptm.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         rgnAttr.type = OSD_REG_PIC;
         rgnAttr.fmt = PIX_FMT_BGRA;
-        set_text(&osdUptm, &rgnAttr, osd->uptime_format,
-                 osd->pos_uptime_x, osd->pos_uptime_y, osd->uptime_rotation);
+        set_text(&osdUptm, &rgnAttr, osd.uptime_format,
+                 osd.pos_uptime_x, osd.pos_uptime_y, osd.uptime_rotation);
         IMP_OSD_SetRgnAttr(osdUptm.imp_rgn, &rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
@@ -655,61 +655,61 @@ void OSD::init()
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 3;
         grpRgnAttr.gAlphaEn = 1;
-        grpRgnAttr.fgAlhpa = osd->uptime_transparency;
+        grpRgnAttr.fgAlhpa = osd.uptime_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
-    if (osd->logo_enabled)
+    if (osd.logo_enabled)
     {
         /* OSD Logo */
-        if (osd->pos_logo_x == OSD_AUTO_VALUE)
+        if (osd.pos_logo_x == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
             cfg->set<int>(getConfigPath("pos_logo_x").c_str(), -autoOffset, true);
         }
-        if (osd->pos_logo_y == OSD_AUTO_VALUE)
+        if (osd.pos_logo_y == OSD_AUTO_VALUE)
         {
             // use cfg->set to set noSave, so auto values will not written to config
             cfg->set<int>(getConfigPath("pos_logo_y").c_str(), -autoOffset, true);
         }
 
         size_t imageSize;
-        auto imageData = loadBGRAImage(osd->logo_path, imageSize);
+        auto imageData = loadBGRAImage(osd.logo_path, imageSize);
 
         osdLogo.data = nullptr;
         osdLogo.imp_rgn = IMP_OSD_CreateRgn(nullptr);
         IMP_OSD_RegisterRgn(osdLogo.imp_rgn, osdGrp, nullptr);
-        osd->regions.logo = osdLogo.imp_rgn;
+        osd.regions.logo = osdLogo.imp_rgn;
 
         IMPOSDRgnAttr rgnAttr;
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
 
         // Verify OSD logo size vs dimensions
-        if ((osd->logo_width * osd->logo_height * 4) == imageSize)
+        if ((osd.logo_width * osd.logo_height * 4) == imageSize)
         {
             rgnAttr.type = OSD_REG_PIC;
             rgnAttr.fmt = PIX_FMT_BGRA;
             rgnAttr.data.picData.pData = imageData;
 
             // Logo rotation
-            uint16_t logo_width = osd->logo_width;
-            uint16_t logo_height = osd->logo_height;
-            if (osd->logo_rotation)
+            uint16_t logo_width = osd.logo_width;
+            uint16_t logo_height = osd.logo_height;
+            if (osd.logo_rotation)
             {
                 uint8_t *imageData = static_cast<uint8_t *>(rgnAttr.data.picData.pData);
                 rotateBGRAImage(imageData, logo_width,
-                                logo_height, osd->logo_rotation, false);
+                                logo_height, osd.logo_rotation, false);
                 rgnAttr.data.picData.pData = imageData;
             }
 
-            set_pos(&rgnAttr, osd->pos_logo_x,
-                    osd->pos_logo_y, logo_width, logo_height, stream_width, stream_height);
+            set_pos(&rgnAttr, osd.pos_logo_x,
+                    osd.pos_logo_y, logo_width, logo_height, stream_width, stream_height);
         }
         else
         {
 
-            LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << osd->logo_width
-                                                                << "*" << osd->logo_height << "*4=" << (osd->logo_width * osd->logo_height * 4));
+            LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << osd.logo_width
+                                                                << "*" << osd.logo_height << "*4=" << (osd.logo_width * osd.logo_height * 4));
         }
         IMP_OSD_SetRgnAttr(osdLogo.imp_rgn, &rgnAttr);
 
@@ -718,7 +718,7 @@ void OSD::init()
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 4;
         grpRgnAttr.gAlphaEn = 1;
-        grpRgnAttr.fgAlhpa = osd->logo_transparency;
+        grpRgnAttr.fgAlhpa = osd.logo_transparency;
         IMP_OSD_SetGrpRgnAttr(osdLogo.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
@@ -811,48 +811,48 @@ void OSD::updateDisplayEverySecond()
         {
             
             // Format and update system time
-            if ((flag & 1) && osd->time_enabled)
+            if ((flag & 1) && osd.time_enabled)
             {
-                strftime(timeFormatted, sizeof(timeFormatted), osd->time_format, ltime);
+                strftime(timeFormatted, sizeof(timeFormatted), osd.time_format, ltime);
 
                 set_text(&osdTime, nullptr, timeFormatted,
-                         osd->pos_time_x, osd->pos_time_y, osd->time_rotation);
+                         osd.pos_time_x, osd.pos_time_y, osd.time_rotation);
 
                 flag ^= 1;
                 return;
             }
 
             // Format and update user text
-            if ((flag & 2) && osd->user_text_enabled)
+            if ((flag & 2) && osd.user_text_enabled)
             {
-                std::string user_text = osd->user_text_format;
+                std::string user_text = osd.user_text_format;
 
-                if (strstr(osd->user_text_format, "%hostname") != nullptr)
+                if (strstr(osd.user_text_format, "%hostname") != nullptr)
                 {
                     replace(user_text, "%hostname", hostname);
                 }
 
-                if (strstr(osd->user_text_format, "%ipaddress") != nullptr)
+                if (strstr(osd.user_text_format, "%ipaddress") != nullptr)
                 {
                     replace(user_text, "%ipaddress", ip);
                 }
 
-                if (strstr(osd->user_text_format, "%fps") != nullptr)
+                if (strstr(osd.user_text_format, "%fps") != nullptr)
                 {
                     char fps[4];
-                    snprintf(fps, 4, "%3d", osd->stats.fps);
+                    snprintf(fps, 4, "%3d", osd.stats.fps);
                     replace(user_text, "%fps", fps);
                 }
 
-                if (strstr(osd->user_text_format, "%bps") != nullptr)
+                if (strstr(osd.user_text_format, "%bps") != nullptr)
                 {
                     char bps[8];
-                    snprintf(bps, 8, "%5d", osd->stats.bps);
+                    snprintf(bps, 8, "%5d", osd.stats.bps);
                     replace(user_text, "%bps", bps);
                 }
 
                 set_text(&osdUser, nullptr, user_text.c_str(),
-                         osd->pos_user_text_x, osd->pos_user_text_y, osd->user_text_rotation);
+                         osd.pos_user_text_x, osd.pos_user_text_y, osd.user_text_rotation);
 
                 user_text.clear();
 
@@ -861,17 +861,17 @@ void OSD::updateDisplayEverySecond()
             }
 
             // Format and update uptime
-            if ((flag & 4) && osd->uptime_enabled)
+            if ((flag & 4) && osd.uptime_enabled)
             {
                 unsigned long currentUptime = getSystemUptime();
                 unsigned long hours = currentUptime / 3600;
                 unsigned long minutes = (currentUptime % 3600) / 60;
                 unsigned long seconds = currentUptime % 60;
 
-                snprintf(uptimeFormatted, sizeof(uptimeFormatted), osd->uptime_format, hours, minutes, seconds);
+                snprintf(uptimeFormatted, sizeof(uptimeFormatted), osd.uptime_format, hours, minutes, seconds);
 
                 set_text(&osdUptm, nullptr, uptimeFormatted,
-                         osd->pos_uptime_x, osd->pos_uptime_y, osd->uptime_rotation);
+                         osd.pos_uptime_x, osd.pos_uptime_y, osd.uptime_rotation);
 
                 flag ^= 4;
                 return;

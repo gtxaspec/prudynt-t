@@ -333,7 +333,7 @@ int IMPEncoder::init()
 
         if (stream->osd.enabled)
         {
-            osd = OSD::createNew(&stream->osd, encGrp, encChn, name);
+            osd = OSD::createNew(stream->osd, encGrp, encChn, name);
 
             ret = IMP_System_Bind(&fs, &osd_cell);
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&fs, &osd_cell)");
