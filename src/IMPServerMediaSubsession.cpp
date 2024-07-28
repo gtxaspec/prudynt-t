@@ -90,5 +90,7 @@ RTPSink *IMPServerMediaSubsession::createNewRTPSink(
             &pps.data[0], pps.data.size());
     }
 
-    delete[] fSDPLines; fSDPLines = NULL;
+    //enabling this allows stream resolution changes
+    //not only the first sdp is used
+    //delete[] fSDPLines; fSDPLines = NULL;
 }

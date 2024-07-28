@@ -86,7 +86,7 @@ int main(int argc, const char *argv[])
 
     video[0] = std::make_shared<video_stream>(video_stream{0, &cfg->stream0, "stream0"});
     video[1] = std::make_shared<video_stream>(video_stream{1, &cfg->stream1, "stream1"});
-    global_audio[0] = std::make_shared<audio_stream>(audio_stream{0, 0});
+    global_audio[0] = std::make_shared<audio_stream>(audio_stream{1, 0});
     global_jpeg = std::make_shared<jpeg_stream>(jpeg_stream{2, &cfg->stream2});
 
     pthread_create(&ws_thread, nullptr, WS::run, &ws);

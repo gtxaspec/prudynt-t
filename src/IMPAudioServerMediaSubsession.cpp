@@ -36,6 +36,5 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
     FramedSource* inputSource)
 {
     return SimpleRTPSink::createNew(
-        envir(), rtpGroupsock, rtpPayloadTypeIfDynamic,
-        44100, "audio", "L16", 1, True);
+        envir(), rtpGroupsock, rtpPayloadTypeIfDynamic, 16100, "audio", "L16", 1);
 }

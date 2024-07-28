@@ -480,6 +480,7 @@ void *Worker::audio_grabber(void *arg)
                 LOG_DEBUG(global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << " POLLING TIMEOUT");
                 usleep(THREAD_SLEEP);
             }
+            usleep(1000);
         }
         else
         {
