@@ -354,7 +354,7 @@ void *Worker::stream_grabber(void *arg)
                                 if (video[encChn]->onDataCallback)
                                     video[encChn]->onDataCallback();
                             }
-                            LOG_DEBUG("video:" <<  video[encChn]->encChn << " " << nalu.time.tv_sec << "." << nalu.time.tv_usec << " " << nalu.data.size());
+                            //LOG_DEBUG("video:" <<  video[encChn]->encChn << " " << nalu.time.tv_sec << "." << nalu.time.tv_usec << " " << nalu.data.size());
                         }
                     }
                 }
@@ -438,7 +438,7 @@ void *Worker::audio_grabber(void *arg)
             if (IMP_AI_PollingFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, cfg->general.imp_polling_timeout) == 0)
             {
                 IMPAudioFrame frame;
-                if (IMP_AI_GetFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, &frame, IMPBlock::NOBLOCK) != 0)
+                if (IMP_AI_GetFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, &frame, IMPBlock::BLOCK) != 0)
                 {
                     LOG_ERROR("IMP_AI_GetFrame(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << ") failed");
                 }
@@ -466,7 +466,7 @@ void *Worker::audio_grabber(void *arg)
                         if (global_audio[encChn]->onDataCallback)
                             global_audio[encChn]->onDataCallback();
                     }
-                    LOG_DEBUG("audio:" <<  global_audio[encChn]->aiChn << " " << af.time.tv_sec << "." << af.time.tv_usec << " " << af.data.size());
+                    //LOG_DEBUG("audio:" <<  global_audio[encChn]->aiChn << " " << af.time.tv_sec << "." << af.time.tv_usec << " " << af.data.size());
                 }
 
                 if (IMP_AI_ReleaseFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, &frame) < 0)

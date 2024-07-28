@@ -165,9 +165,9 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
 {
     return {
 #if defined(AUDIO_SUPPORT)
-        {"audio.input_vol", audio.input_vol, 0, [](const int &v) { return v >= -30 && v <= 120; }},
+        {"audio.input_vol", audio.input_vol, 80, [](const int &v) { return v >= -30 && v <= 120; }},
         {"audio.input_gain", audio.input_gain, 0, [](const int &v) { return v >= 0 && v <= 31; }},
-        {"audio.input_alc_gain", audio.input_alc_gain, 0, [](const int &v) { return v >= 0 && v <= 7; }},
+        {"audio.input_alc_gain", audio.input_alc_gain, 5, [](const int &v) { return v >= 0 && v <= 7; }},
         {"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }},
 #endif           
         {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 1024; }},

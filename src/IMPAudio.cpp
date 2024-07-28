@@ -21,7 +21,7 @@ int IMPAudio::init()
     attr.bitwidth = AUDIO_BIT_WIDTH_16;
     attr.soundmode = AUDIO_SOUND_MODE_MONO;
     attr.frmNum = 40;
-    attr.numPerFrm = attr.samplerate * 0.040;
+    attr.numPerFrm = (int)attr.samplerate * 0.040;
     attr.chnCnt = 1;
 
     ret = IMP_AI_SetPubAttr(devId, &attr);
