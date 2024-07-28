@@ -14,7 +14,7 @@
 using namespace std::chrono;
 
 std::mutex mutex_main;
-std::condition_variable global_cv_lock_main;
+std::condition_variable global_cv_worker_restart;
 
 bool global_restart_rtsp = false;
 bool global_restart_video = false;
@@ -24,98 +24,14 @@ bool global_main_thread_signal = false;
 char volatile global_rtsp_thread_signal{1};
 
 std::shared_ptr<jpeg_stream> global_jpeg = {nullptr};
-std::shared_ptr<audio_stream> audio[NUM_AUDIO_CHANNELS] = {nullptr};
+std::shared_ptr<audio_stream> global_audio[NUM_AUDIO_CHANNELS] = {nullptr};
 std::shared_ptr<video_stream> video[NUM_VIDEO_CHANNELS] = {nullptr};
 
-auto main_thread_signal = std::make_shared<std::atomic<int>>(0);
 std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
 
-WS ws(cfg, main_thread_signal);
+WS ws;
 RTSP rtsp;
-//Worker worker(cfg);
-IMPSystem *impsystem = nullptr;
-
-void stop_encoder()
-{
-
-    LOG_DEBUG("Stop worker." << cfg->worker_thread_signal);
-
-    milliseconds duration;
-    auto t0 = high_resolution_clock::now();
-
-    cfg->worker_thread_signal.fetch_xor(3);
-    cfg->worker_thread_signal.fetch_or(4);
-    cfg->worker_thread_signal.notify_all();
-
-    while ((cfg->worker_thread_signal.load() & 8) != 8)
-    {
-        usleep(100);
-        duration = duration_cast<milliseconds>(high_resolution_clock::now() - t0);
-        if (duration.count() > 1000 * 1000 * 10)
-        {
-            LOG_ERROR("Unable to stop encoder, no response.");
-            return;
-        }
-    }
-    LOG_DEBUG("Worker stopped in " << duration.count() << "ms");
-}
-
-void start_encoder()
-{
-
-    LOG_DEBUG("Start worker.");
-
-    milliseconds duration;
-    auto t0 = high_resolution_clock::now();
-
-    cfg->worker_thread_signal.fetch_xor(8);
-    cfg->worker_thread_signal.fetch_or(1);
-
-    while ((cfg->worker_thread_signal.load() & 2) != 2)
-    {
-
-        usleep(100);
-        duration = duration_cast<milliseconds>(high_resolution_clock::now() - t0);
-        if (duration.count() > 1000 * 1000 * 10)
-        {
-            LOG_ERROR("Unable to start worker, no response.");
-            return;
-        }
-    }
-    LOG_DEBUG("Worker started in " << duration.count() << "ms");
-}
-
-void stop_rtsp()
-{
-
-    LOG_DEBUG("Stop RTSP Server.");
-
-    milliseconds duration;
-    auto t0 = high_resolution_clock::now();
-
-    cfg->rtsp_thread_signal = 1;
-
-    while (cfg->rtsp_thread_signal != 2)
-    {
-
-        usleep(100);
-        duration = duration_cast<milliseconds>(high_resolution_clock::now() - t0);
-        if (duration.count() > 1000 * 1000 * 10)
-        {
-            LOG_ERROR("Unable to stop RTSP Server, no response.");
-            return;
-        }
-    }
-    LOG_DEBUG("RTSP Server stopped in " << duration.count() << "ms");
-}
-
-void start_rtsp()
-{
-
-    LOG_DEBUG("Start RTSP Server.");
-
-    cfg->rtsp_thread_signal = 0;
-}
+IMPSystem *imp_system = nullptr;
 
 bool timesync_wait()
 {
@@ -135,12 +51,11 @@ bool timesync_wait()
 
 void start_video(int encChn)
 {
-    int *encChnPtr = &encChn;
-    pthread_create(&video[encChn]->thread, nullptr, Worker::stream_grabber, static_cast<void *>(encChnPtr));
+    StartHelper sh {encChn};
+    pthread_create(&video[encChn]->thread, nullptr, Worker::stream_grabber, static_cast<void *>(&sh));
 
     // wait for initialization done
-    std::unique_lock lck(mutex_main);
-    global_cv_lock_main.wait(lck);
+    sh.has_started.acquire();
 }
 
 int main(int argc, const char *argv[])
@@ -149,10 +64,7 @@ int main(int argc, const char *argv[])
 
     pthread_t osd_thread;
     pthread_t rtsp_thread;
-
-    std::thread ws_thread;
-    //std::thread rtsp_thread;
-    //std::thread worker_thread;
+    pthread_t ws_thread;
 
     if (Logger::init(cfg->general.loglevel))
     {
@@ -167,20 +79,27 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    if (!impsystem)
+    if (!imp_system)
     {
-        impsystem = IMPSystem::createNew(cfg);
+        imp_system = IMPSystem::createNew();
     }
 
     video[0] = std::make_shared<video_stream>(video_stream{0, &cfg->stream0, "stream0"});
     video[1] = std::make_shared<video_stream>(video_stream{1, &cfg->stream1, "stream1"});
-    audio[0] = std::make_shared<audio_stream>(audio_stream{0, 0});
+    global_audio[0] = std::make_shared<audio_stream>(audio_stream{0, 0});
     global_jpeg = std::make_shared<jpeg_stream>(jpeg_stream{2, &cfg->stream2});
 
-    ws_thread = std::thread(&WS::run, ws);
-    // rtsp_thread = std::thread(&RTSP::start, rtsp);
-    // worker_thread = std::thread(&Worker::run, &worker);
+    pthread_create(&ws_thread, nullptr, WS::run, &ws);
 
+/*
+    if (cfg->motion.enabled)
+    {
+        LOG_DEBUG("Motion enabled");
+        ret = motion.init(cfg);
+        LOG_DEBUG_OR_ERROR(ret, "motion.init(cfg)");
+    }
+    */
+   
     while (true)
     {
         if (cfg->stream0.enabled)
@@ -195,17 +114,26 @@ int main(int argc, const char *argv[])
 
         if (cfg->stream2.enabled)
         {
-            int *encChnPtr = new int(2);
-            pthread_create(&global_jpeg->thread, nullptr, Worker::jpeg_grabber, static_cast<void *>(encChnPtr));
+            StartHelper sh {2};
+            pthread_create(&global_jpeg->thread, nullptr, Worker::jpeg_grabber, static_cast<void *>(&sh));
 
             // wait for initialization done
-            std::unique_lock lck(mutex_main);
-            global_cv_lock_main.wait(lck);
+            sh.has_started.acquire();
         }
 
         if (cfg->stream0.osd.enabled || cfg->stream1.osd.enabled)
         {
             pthread_create(&osd_thread, nullptr, Worker::update_osd, NULL);
+        }
+
+        if (true)
+        {
+            LOG_DEBUG("START AUDIO THREAD");
+            StartHelper sh {0};
+            pthread_create(&global_audio[0]->thread, nullptr, Worker::audio_grabber, static_cast<void *>(&sh));
+
+            // wait for initialization done
+            sh.has_started.acquire();
         }
 
         //start rtsp server
@@ -214,12 +142,13 @@ int main(int argc, const char *argv[])
 
             //wait for initialization done
             //std::unique_lock lck(mutex_main);
-            //global_cv_lock_main.wait(lck);       
+            //global_cv_worker_restart.wait(lck);       
         }
         
         LOG_DEBUG("main thread is going to sleep");
         std::unique_lock lck(mutex_main);
-        global_cv_lock_main.wait(lck);
+        while (!global_restart_rtsp && !global_restart_video)
+            global_cv_worker_restart.wait(lck);
         LOG_DEBUG("wakup main thread");
 
         if (global_restart_rtsp)
@@ -274,45 +203,6 @@ int main(int argc, const char *argv[])
             }
         }
     }
-    /*
-    while (true)
-    {
-
-        LOG_DEBUG("main thread is going to sleep.");
-
-        cfg->main_thread_signal.wait(1);
-
-        LOG_DEBUG("main thread wakeup");
-
-        if (cfg->main_thread_signal & 8)
-        { // 8 = stop action
-            cfg->main_thread_signal.fetch_xor(8);
-            if (cfg->main_thread_signal & 1)
-            { // 1 = rtsp thread
-                stop_rtsp();
-            }
-            if (cfg->main_thread_signal & 2)
-            { // 2 = encoder thread
-                stop_encoder();
-            }
-        }
-
-        if (cfg->main_thread_signal & 16)
-        { // 16 = start action
-            cfg->main_thread_signal.fetch_xor(16);
-            if (cfg->main_thread_signal & 1)
-            { // 1 = rtsp thread
-                start_rtsp();
-            }
-            if (cfg->main_thread_signal & 2)
-            { // 2 = encoder thread
-                start_encoder();
-            }
-        }
-
-        cfg->main_thread_signal.store(1);
-    }
-    */
 
     return 0;
 }

@@ -13,9 +13,9 @@
 class IMPSystem
 {
 public:
-    static IMPSystem *createNew(std::shared_ptr<CFG> _cfg);
+    static IMPSystem *createNew();
 
-    IMPSystem(std::shared_ptr<CFG> _cfg) : cfg(_cfg)
+    IMPSystem()
     {
         init();
     }
@@ -31,7 +31,6 @@ public:
 private:
     IMPSensorInfo sinfo{};
     IMPSensorInfo create_sensor_info(const char *sensor_name);
-    std::shared_ptr<CFG> cfg;
 };
 
 #endif

@@ -2,38 +2,35 @@
 #define IMPAudioDeviceSource_hpp
 
 #include "FramedSource.hh"
+#include "worker.hpp"
 #include <mutex>
 #include <condition_variable>
 #include <queue>
-#include <vector>
-#include <cstdint>
-#include "worker.hpp"
+#include "globals.hpp"
 
-class IMPAudioDeviceSource : public FramedSource {
+class IMPAudioDeviceSource : public FramedSource
+{
 public:
-    static IMPAudioDeviceSource* createNew(UsageEnvironment& env, int audioChn);
+    static IMPAudioDeviceSource *createNew(UsageEnvironment &env, int aiChn);
 
-    AudioFrame wait_read();
-    int on_data_available(const AudioFrame& frame);
+    void on_data_available()
+    {
+        if (eventTriggerId != 0)
+        {
+            envir().taskScheduler().triggerEvent(eventTriggerId, this);
+        }
+    }
     void deinit();
-    int audioChn;
-
+    int aiChn;
     EventTriggerId eventTriggerId;
-    void initializationComplete() { needNotify = false; }
 
-protected:
-    IMPAudioDeviceSource(UsageEnvironment& env, int audioChn);
+    IMPAudioDeviceSource(UsageEnvironment &env, int aiChn);
     virtual ~IMPAudioDeviceSource();
 
 private:
     virtual void doGetNextFrame();
-    static void deliverFrame0(void* clientData);
+    static void deliverFrame0(void *clientData);
     void deliverFrame();
-
-    std::queue<AudioFrame> frameQueue;
-    std::mutex queueMutex;
-    std::condition_variable queueHasData;
-    bool needNotify = true;
 };
 
 #endif

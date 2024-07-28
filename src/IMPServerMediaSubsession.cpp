@@ -89,4 +89,6 @@ RTPSink *IMPServerMediaSubsession::createNewRTPSink(
             &sps.data[0], sps.data.size(),
             &pps.data[0], pps.data.size());
     }
+
+    delete[] fSDPLines; fSDPLines = NULL;
 }

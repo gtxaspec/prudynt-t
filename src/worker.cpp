@@ -1,17 +1,6 @@
-#include <atomic>
-#include <thread>
-#include <sys/file.h>
-#include "Config.hpp"
 #include "worker.hpp"
-#include "Logger.hpp"
-#include "globals.hpp"
 
 #define MODULE "WORKER"
-
-#if defined(PLATFORM_T31)
-#define IMPEncoderCHNAttr IMPEncoderChnAttr
-#define IMPEncoderCHNStat IMPEncoderChnStat
-#endif
 
 extern std::shared_ptr<CFG> cfg;
 
@@ -26,108 +15,6 @@ unsigned long long tDiffInMs(struct timeval *startTime)
     unsigned long long milliseconds = (seconds * 1000) + (microseconds / 1000);
 
     return milliseconds;
-}
-
-pthread_mutex_t Worker::sink_lock0;
-pthread_mutex_t Worker::sink_lock1;
-pthread_mutex_t Worker::sink_lock2;
-EncoderSink *Worker::stream0_sink = new EncoderSink{"Stream0Sink", 0, false, nullptr};
-EncoderSink *Worker::stream1_sink = new EncoderSink{"Stream1Sink", 1, false, nullptr};
-AudioSink *Worker::audio_sink = new AudioSink{"AudioSink", nullptr};
-
-Worker *Worker::createNew()
-{
-    return new Worker();
-}
-
-int Worker::init()
-{
-    LOG_DEBUG("Worker::init()");
-    int ret = 0;
-
-    if (cfg->stream0.enabled)
-    {
-        if (!framesources[0])
-        {
-            framesources[0] = IMPFramesource::createNew(&cfg->stream0, &cfg->sensor, 0);
-        }
-        encoder[0] = IMPEncoder::createNew(&cfg->stream0, 0, 0, "stream0");
-        framesources[0]->enable();
-    }
-
-    if (cfg->stream1.enabled)
-    {
-        if (!framesources[1])
-        {
-            framesources[1] = IMPFramesource::createNew(&cfg->stream1, &cfg->sensor, 1);
-        }
-        encoder[1] = IMPEncoder::createNew(&cfg->stream1, 1, 1, "stream1");
-        framesources[1]->enable();
-    }
-
-    if (cfg->stream2.enabled)
-    {
-        encoder[2] = IMPEncoder::createNew(&cfg->stream2, 2, cfg->stream2.jpeg_channel, "stream2");
-    }
-
-    if (cfg->motion.enabled)
-    {
-        LOG_DEBUG("Motion enabled");
-        ret = motion.init(cfg);
-        LOG_DEBUG_OR_ERROR(ret, "motion.init(cfg)");
-    }
-
-    return ret;
-}
-
-int Worker::deinit()
-{
-    int ret;
-
-    if (framesources[1])
-    {
-        framesources[1]->disable();
-
-        if (encoder[1])
-        {
-            encoder[1]->deinit();
-        }
-
-        // delete framesources[1];
-        // framesources[1] = nullptr;
-
-        delete encoder[1];
-        encoder[1] = nullptr;
-    }
-
-    if (framesources[0])
-    {
-        framesources[0]->disable();
-
-        if (encoder[2])
-        {
-            encoder[2]->deinit();
-        }
-
-        if (encoder[0])
-        {
-            encoder[0]->deinit();
-        }
-
-        // delete framesources[0];
-        // framesources[0] = nullptr;
-
-        delete encoder[2];
-        encoder[2] = nullptr;
-
-        delete encoder[0];
-        encoder[0] = nullptr;
-    }
-
-    // delete impsystem;
-    // impsystem = nullptr;
-
-    return 0;
 }
 
 std::vector<uint8_t> Worker::capture_jpeg_image(int encChn)
@@ -256,21 +143,23 @@ void *Worker::jpeg_grabber(void *arg)
 {
     LOG_DEBUG("Start jpeg_grabber thread.");
 
+    StartHelper *sh = static_cast<StartHelper *>(arg);
+    int encChn = sh->encChn;
     int ret;
     struct timeval ts;
     gettimeofday(&ts, NULL);
 
-    global_jpeg->imp_encoder = IMPEncoder::createNew(global_jpeg->stream, 2, global_jpeg->stream->jpeg_channel, "stream2");
+    global_jpeg->imp_encoder = IMPEncoder::createNew(global_jpeg->stream, encChn, global_jpeg->stream->jpeg_channel, "stream2");
 
-    //inform main that initialization is complete 
-    global_cv_lock_main.notify_one();
+    // inform main that initialization is complete
+    sh->has_started.release();
 
     ret = IMP_Encoder_StartRecvPic(global_jpeg->encChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(" << global_jpeg->encChn << ")");
     if (ret != 0)
         return 0;
 
-    global_jpeg->running = true;    
+    global_jpeg->running = true;
     while (global_jpeg->running)
     {
         if (tDiffInMs(&ts) > 1000)
@@ -284,7 +173,7 @@ void *Worker::jpeg_grabber(void *arg)
                 {
 
                     //  Check for success
-                    const char *tempPath = "/tmp/snapshot.tmp"; // Temporary path
+                    const char *tempPath = "/tmp/snapshot.tmp";             // Temporary path
                     const char *finalPath = global_jpeg->stream->jpeg_path; // Final path for the JPEG snapshot
 
                     // Open and create temporary file with read and write permissions
@@ -336,7 +225,7 @@ void *Worker::jpeg_grabber(void *arg)
         global_jpeg->imp_encoder->deinit();
 
         delete global_jpeg->imp_encoder;
-        global_jpeg->imp_encoder = nullptr;         
+        global_jpeg->imp_encoder = nullptr;
     }
 
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StopRecvPic(" << global_jpeg->encChn << ")");
@@ -346,8 +235,8 @@ void *Worker::jpeg_grabber(void *arg)
 
 void *Worker::stream_grabber(void *arg)
 {
-    //Channel *channel = static_cast<Channel *>(arg);
-    int encChn = *static_cast<int *>(arg);
+    StartHelper *sh = static_cast<StartHelper *>(arg);
+    int encChn = sh->encChn;
 
     LOG_DEBUG("Start stream_grabber thread for stream " << encChn);
 
@@ -362,20 +251,20 @@ void *Worker::stream_grabber(void *arg)
 
     video[encChn]->imp_framesource = IMPFramesource::createNew(video[encChn]->stream, &cfg->sensor, encChn);
     video[encChn]->imp_encoder = IMPEncoder::createNew(video[encChn]->stream, encChn, encChn, video[encChn]->name);
-    video[encChn]->imp_framesource->enable();   
+    video[encChn]->imp_framesource->enable();
 
     gettimeofday(&imp_time_base, NULL);
     IMP_System_RebaseTimeStamp(imp_time_base.tv_sec * (uint64_t)1000000);
 
-    //inform main that initialization is complete 
-    global_cv_lock_main.notify_one();
+    // inform main that initialization is complete
+    sh->has_started.release();
 
     ret = IMP_Encoder_StartRecvPic(encChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StartRecvPic(" << encChn << ")");
     if (ret != 0)
         return 0;
 
-    video[encChn]->running = true;   
+    video[encChn]->running = true;
     while (video[encChn]->running)
     {
         if (video[encChn]->onDataCallback != nullptr)
@@ -454,12 +343,15 @@ void *Worker::stream_grabber(void *arg)
 
                         if (video[encChn]->idr == true)
                         {
-                            if (!video[encChn]->msgChannel->write(nalu)) {
+                            if (!video[encChn]->msgChannel->write(nalu))
+                            {
                                 LOG_ERROR("stream encChn:" << encChn << ", size:" << nalu.data.size()
                                                            << ", pC:" << stream.packCount << ", pS:" << nalu.data.size() << ", pN:"
-                                                           << i << " clogged!");                                
-                            } else {
-                                if(video[encChn]->onDataCallback)
+                                                           << i << " clogged!");
+                            }
+                            else
+                            {
+                                if (video[encChn]->onDataCallback)
                                     video[encChn]->onDataCallback();
                             }
                         }
@@ -498,7 +390,7 @@ void *Worker::stream_grabber(void *arg)
             }
         }
         else
-        {          
+        {
             video[encChn]->stream->osd.stats.bps = 0;
             video[encChn]->stream->osd.stats.fps = 1;
             usleep(THREAD_SLEEP);
@@ -516,7 +408,7 @@ void *Worker::stream_grabber(void *arg)
         {
             video[encChn]->imp_encoder->deinit();
             delete video[encChn]->imp_encoder;
-            video[encChn]->imp_encoder = nullptr;            
+            video[encChn]->imp_encoder = nullptr;
         }
     }
 
@@ -525,22 +417,30 @@ void *Worker::stream_grabber(void *arg)
 
 void *Worker::audio_grabber(void *arg)
 {
-    AudioChannel *channel = static_cast<AudioChannel *>(arg);
+    StartHelper *sh = static_cast<StartHelper *>(arg);
+    int encChn = sh->encChn;
 
-    LOG_DEBUG("Start audio_grabber thread for device " << channel->devId << " and channel " << channel->inChn);
+    LOG_DEBUG("Start audio_grabber thread for device " << global_audio[encChn]->devId << " and channel " << global_audio[encChn]->aiChn);
 
-    while(true) {
-            
-        if (IMP_AI_PollingFrame(channel->devId, channel->inChn, 1000) == 0)
+    global_audio[encChn]->imp_audio = IMPAudio::createNew(global_audio[encChn]->devId, global_audio[encChn]->aiChn);
+
+    // inform main that initialization is complete
+    sh->has_started.release();
+
+    global_audio[encChn]->running = true;
+    while (global_audio[encChn]->running)
+    {
+
+        if (global_audio[encChn]->onDataCallback != nullptr)
         {
-            IMPAudioFrame frame;
-            if (IMP_AI_GetFrame(channel->devId, channel->inChn, &frame, IMPBlock::BLOCK) != 0)
-            {
-                LOG_ERROR("IMP_AI_GetFrame(" << channel->devId << ", " << channel->inChn << ") failed");
-            }
 
-            if (channel->sink->data_available_callback != nullptr)
+            if (IMP_AI_PollingFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, 1000) == 0)
             {
+                IMPAudioFrame frame;
+                if (IMP_AI_GetFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, &frame, IMPBlock::BLOCK) != 0)
+                {
+                    LOG_ERROR("IMP_AI_GetFrame(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << ") failed");
+                }
 
                 int64_t audio_ts = frame.timeStamp;
                 struct timeval encoder_time;
@@ -552,48 +452,68 @@ void *Worker::audio_grabber(void *arg)
 
                 uint8_t *start = (uint8_t *)frame.virAddr;
                 uint8_t *end = start + frame.len;
-                LOG_DEBUG("insert");
+
                 af.data.insert(af.data.end(), start, end);
-                LOG_DEBUG("callback");
-                if (channel->sink->data_available_callback(af))
+                if (global_audio[encChn]->onDataCallback)
                 {
-                    LOG_ERROR("stream audio:" << channel->devId << ", size:" << frame.len << " clogged!");
-                }
-                LOG_DEBUG("release");
-                if(IMP_AI_ReleaseFrame(channel->devId, channel->inChn, &frame) < 0) {
-                    LOG_ERROR("IMP_AI_ReleaseFrame(" << channel->devId << ", " << channel->inChn << ", &frame) failed");
+                    if (!global_audio[encChn]->msgChannel->write(af))
+                    {
+                        LOG_ERROR("stream encChn:" << encChn << ", size:" << af.data.size() << " clogged!");
+                    }
+                    else
+                    {
+                        if (global_audio[encChn]->onDataCallback)
+                            global_audio[encChn]->onDataCallback();
+                    }
                 }
 
-                LOG_DEBUG(channel->devId << ", " << channel->inChn << " == " << frame.len);
+                if (IMP_AI_ReleaseFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, &frame) < 0)
+                {
+                    LOG_ERROR("IMP_AI_ReleaseFrame(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << ", &frame) failed");
+                }
+
+                LOG_DEBUG(global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << " == " << frame.len);
             }
-        } else {
+            else
+            {
 
-            LOG_DEBUG(channel->devId << ", " << channel->inChn << " POLLING TIMEOUT");
+                LOG_DEBUG(global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << " POLLING TIMEOUT");
+                usleep(THREAD_SLEEP);
+            }
+        }
+        else
+        {
+
+            usleep(THREAD_SLEEP);
         }
 
-        usleep(1000 * 1000);
+        return 0;
     }
-
-    return 0;
 }
 
-void *Worker::update_osd(void *arg) {
+void *Worker::update_osd(void *arg)
+{
 
     LOG_DEBUG("start osd update thread.");
-    
+
     global_osd_thread_signal = true;
 
-    while(global_osd_thread_signal) {
-        for(auto v : video) {
-            if(v != nullptr) {
-                if(v->running) {
-                    if((v->imp_encoder->osd != nullptr)) {
+    while (global_osd_thread_signal)
+    {
+        for (auto v : video)
+        {
+            if (v != nullptr)
+            {
+                if (v->running)
+                {
+                    if ((v->imp_encoder->osd != nullptr))
+                    {
                         v->imp_encoder->osd->updateDisplayEverySecond();
                     }
                 }
             }
         }
-        usleep(THREAD_SLEEP*2);
+        usleep(THREAD_SLEEP * 2);
     }
 
     LOG_DEBUG("exit osd update thread.");

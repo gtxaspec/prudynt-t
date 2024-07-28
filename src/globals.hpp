@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 #include "MsgChannel.hpp"
+#include "IMPAudio.hpp"
 #include "IMPEncoder.hpp"
 #include "IMPFramesource.hpp"
 
@@ -36,13 +37,15 @@ struct jpeg_stream {
 
 struct audio_stream {
     int devId;
-    int encChn;
+    int aiChn;
     bool running;
+    pthread_t thread;
+    IMPAudio *imp_audio;
     std::shared_ptr<MsgChannel<AudioFrame>> msgChannel;
     std::function<void(void)> onDataCallback;
 
-    audio_stream(int devId, int encChn)
-        : devId(devId), encChn(encChn), running(false), 
+    audio_stream(int devId, int aiChn)
+        : devId(devId), aiChn(aiChn), running(false), 
           msgChannel(std::make_shared<MsgChannel<AudioFrame>>(MSG_CHANNEL_SIZE)), onDataCallback(nullptr) {}
 };
 
@@ -64,7 +67,7 @@ struct video_stream {
 };
 
 //extern CFG *cfg;
-extern std::condition_variable global_cv_lock_main;
+extern std::condition_variable global_cv_worker_restart;
 
 extern bool global_restart_rtsp;
 extern bool global_restart_video;
@@ -74,7 +77,7 @@ extern bool global_main_thread_signal;
 extern char volatile global_rtsp_thread_signal; 
 
 extern std::shared_ptr<jpeg_stream> global_jpeg;
-extern std::shared_ptr<audio_stream> audio[NUM_AUDIO_CHANNELS];
+extern std::shared_ptr<audio_stream> global_audio[NUM_AUDIO_CHANNELS];
 extern std::shared_ptr<video_stream> video[NUM_VIDEO_CHANNELS];
 
 extern std::mutex video_mutex[1];

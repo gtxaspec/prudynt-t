@@ -48,7 +48,6 @@ protected:
 
         IMPEncoder::flush(encChn);
     }
-
 private:
     StreamReplicator *replicator;
     H264NALUnit *vps; // Change to pointer for optional VPS

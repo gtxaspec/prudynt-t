@@ -2,6 +2,8 @@
 
 #define MODULE "IMP_SYSTEM"
 
+extern std::shared_ptr<CFG> cfg;
+
 IMPSensorInfo IMPSystem::create_sensor_info(const char *sensor_name)
 {
     IMPSensorInfo out;
@@ -14,10 +16,9 @@ IMPSensorInfo IMPSystem::create_sensor_info(const char *sensor_name)
     return out;
 }
 
-IMPSystem *IMPSystem::createNew(
-    std::shared_ptr<CFG> cfg)
+IMPSystem *IMPSystem::createNew()
 {
-    return new IMPSystem(cfg);
+    return new IMPSystem();
 }
 
 int IMPSystem::init()

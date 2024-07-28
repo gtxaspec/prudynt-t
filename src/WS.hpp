@@ -10,21 +10,16 @@
 #include <imp/imp_system.h>
 #include <imp/imp_common.h>
 
-#define WEBSOCKET_PORT 8089
 #define WEBSOCKET_TOKEN_LENGTH 32
 
 // WebSocket
 class WS
 {
 public:
-        void run();
-        WS(std::shared_ptr<CFG> _cfg, std::shared_ptr<std::atomic<int>> _mts) : cfg(_cfg), main_thread_signal(std::move(_mts)) {}
-        void restartEncoder();
+        void start();
+        static void *run(void* arg);
 
 private:
-        std::shared_ptr<CFG> cfg;
-        std::shared_ptr<std::atomic<int>> main_thread_signal;
-
         lws_protocols protocols{};
         struct lws_context_creation_info info;
         struct lws_context *context{};

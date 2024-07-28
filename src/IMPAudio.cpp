@@ -2,12 +2,13 @@
 
 #define MODULE "IMPAUDIO"
 
+extern std::shared_ptr<CFG> cfg;
+
 IMPAudio *IMPAudio::createNew(
-    std::shared_ptr<CFG> cfg,
     int devId,
     int inChn)
 {
-    return new IMPAudio(cfg, devId, inChn);
+    return new IMPAudio(devId, inChn);
 }
 
 int IMPAudio::init()
@@ -97,6 +98,5 @@ int IMPAudio::deinit()
 
 int IMPAudio::destroy()
 {
-
     return 0;
 }
