@@ -4,6 +4,7 @@
 #include "liveMedia.hh"
 #include "BasicUsageEnvironment.hh"
 #include "IMPServerMediaSubsession.hpp"
+#include "IMPAudioServerMediaSubsession.hpp"
 #include "IMPDeviceSource.hpp"
 #include "IMPAudioDeviceSource.hpp"
 #include "IMPEncoder.hpp"

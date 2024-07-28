@@ -73,13 +73,11 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
 
     sms->addSubsession(sub);
 
-    /*
     if (stream.audio_enabled) {
-        IMPAudioServerMediaSubsession *audioSub = IMPAudioServerMediaSubsession::createNew(*env, chnNr);
+        IMPAudioServerMediaSubsession *audioSub = IMPAudioServerMediaSubsession::createNew(*env, 0);
         sms->addSubsession(audioSub);
         LOG_INFO("Audio stream " << chnNr << " added to session");
     }
-    */
 
     rtspServer->addServerMediaSession(sms);
 
@@ -120,9 +118,6 @@ void RTSP::start()
     {
         addSubsession(1, cfg->stream1);
     }
-
-    //inform main that initialization is complete 
-    //global_cv_lock_main.notify_one();
 
     global_rtsp_thread_signal = 0;
     env->taskScheduler().doEventLoop(&global_rtsp_thread_signal);

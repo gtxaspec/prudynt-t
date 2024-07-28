@@ -126,9 +126,8 @@ int main(int argc, const char *argv[])
             pthread_create(&osd_thread, nullptr, Worker::update_osd, NULL);
         }
 
-        if (true)
+        if (cfg->audio.input_enabled)
         {
-            LOG_DEBUG("START AUDIO THREAD");
             StartHelper sh {0};
             pthread_create(&global_audio[0]->thread, nullptr, Worker::audio_grabber, static_cast<void *>(&sh));
 
