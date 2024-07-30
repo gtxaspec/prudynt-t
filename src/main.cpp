@@ -24,8 +24,10 @@ bool global_main_thread_signal = false;
 char volatile global_rtsp_thread_signal{1};
 
 std::shared_ptr<jpeg_stream> global_jpeg = {nullptr};
-std::shared_ptr<audio_stream> global_audio[NUM_AUDIO_CHANNELS] = {nullptr};
 std::shared_ptr<video_stream> video[NUM_VIDEO_CHANNELS] = {nullptr};
+#if defined(AUDIO_SUPPORT)
+std::shared_ptr<audio_stream> global_audio[NUM_AUDIO_CHANNELS] = {nullptr};
+#endif
 
 std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
 
@@ -86,12 +88,14 @@ int main(int argc, const char *argv[])
 
     video[0] = std::make_shared<video_stream>(video_stream{0, &cfg->stream0, "stream0"});
     video[1] = std::make_shared<video_stream>(video_stream{1, &cfg->stream1, "stream1"});
-    global_audio[0] = std::make_shared<audio_stream>(audio_stream{1, 0});
     global_jpeg = std::make_shared<jpeg_stream>(jpeg_stream{2, &cfg->stream2});
+#if defined(AUDIO_SUPPORT)
+    global_audio[0] = std::make_shared<audio_stream>(audio_stream{0, 0});
+#endif
 
     pthread_create(&ws_thread, nullptr, WS::run, &ws);
 
-/*
+    /*
     if (cfg->motion.enabled)
     {
         LOG_DEBUG("Motion enabled");
@@ -126,6 +130,7 @@ int main(int argc, const char *argv[])
             pthread_create(&osd_thread, nullptr, Worker::update_osd, NULL);
         }
 
+#if defined(AUDIO_SUPPORT)
         if (cfg->audio.input_enabled)
         {
             StartHelper sh {0};
@@ -134,14 +139,11 @@ int main(int argc, const char *argv[])
             // wait for initialization done
             sh.has_started.acquire();
         }
+#endif
 
         //start rtsp server
         if(global_rtsp_thread_signal != 0) {
-            pthread_create(&rtsp_thread, nullptr, RTSP::run, &rtsp);
-
-            //wait for initialization done
-            //std::unique_lock lck(mutex_main);
-            //global_cv_worker_restart.wait(lck);       
+            pthread_create(&rtsp_thread, nullptr, RTSP::run, &rtsp);     
         }
         
         LOG_DEBUG("main thread is going to sleep");
@@ -183,6 +185,14 @@ int main(int argc, const char *argv[])
                 global_jpeg->running = false;
                 ret = pthread_join(global_jpeg->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join jpeg thread");
+            }
+
+            // stop audio
+            if (global_audio[0]->imp_audio)
+            {
+                global_audio[0]->running = false;
+                ret = pthread_join(global_audio[0]->thread, NULL);
+                LOG_DEBUG_OR_ERROR(ret, "join audio thread");
             }
 
             // stop stream1

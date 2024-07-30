@@ -10,11 +10,12 @@ IMPDeviceSource *IMPDeviceSource::createNew(UsageEnvironment &env, int encChn)
 IMPDeviceSource::IMPDeviceSource(UsageEnvironment &env, int encChn)
     : FramedSource(env), encChn(encChn), eventTriggerId(0)
 {
-    video[encChn]->onDataCallback = [this]()
-    { this->on_data_available(); };
+    if(!video[encChn]->onDataCallback) {
+        video[encChn]->onDataCallback = [this]()
+        { this->on_data_available(); };
 
-    eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
-
+        eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
+    }
     LOG_DEBUG("IMPDeviceSource construct, encoder channel:" << encChn);
 }
 
@@ -57,7 +58,10 @@ void IMPDeviceSource::deliverFrame()
         {
             fFrameSize = nal.data.size();
         }
+
+        //gettimeofday(&fPresentationTime, NULL);
         fPresentationTime = nal.time;
+        
         memcpy(fTo, &nal.data[0], fFrameSize);
 
         if (fFrameSize > 0)

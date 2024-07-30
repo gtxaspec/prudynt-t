@@ -2,6 +2,8 @@
 #include "SimpleRTPSink.hh"
 #include "GroupsockHelper.hh"
 
+extern std::shared_ptr<CFG> cfg;
+
 IMPAudioServerMediaSubsession* IMPAudioServerMediaSubsession::createNew(
     UsageEnvironment& env,
     int audioChn)
@@ -25,7 +27,7 @@ FramedSource* IMPAudioServerMediaSubsession::createNewStreamSource(
     unsigned clientSessionId,
     unsigned& estBitrate)
 {
-    estBitrate = 16; 
+    estBitrate = cfg->audio.input_bitrate; 
     IMPAudioDeviceSource* audioSource = IMPAudioDeviceSource::createNew(envir(), audioChn);
     return audioSource;
 }
@@ -36,5 +38,10 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
     FramedSource* inputSource)
 {
     return SimpleRTPSink::createNew(
-        envir(), rtpGroupsock, rtpPayloadTypeIfDynamic, 16100, "audio", "L16", 1);
+        envir(), rtpGroupsock,
+        /* rtpPayloadFormat */ rtpPayloadTypeIfDynamic,
+        /* rtpTimestampFrequency */ 16000,
+        /* sdpMediaTypeString*/ "audio",
+        /* rtpPayloadFormatName */ "L16",
+        /* numChannels */ 1);    
 }

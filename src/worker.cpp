@@ -345,7 +345,7 @@ void *Worker::stream_grabber(void *arg)
                         {
                             if (!video[encChn]->msgChannel->write(nalu))
                             {
-                                LOG_ERROR("stream encChn:" << encChn << ", size:" << nalu.data.size()
+                                LOG_ERROR("video encChn:" << encChn << ", size:" << nalu.data.size()
                                                            << ", pC:" << stream.packCount << ", pS:" << nalu.data.size() << ", pN:"
                                                            << i << " clogged!");
                             }
@@ -381,6 +381,10 @@ void *Worker::stream_grabber(void *arg)
                                 ", curPacks:" << encChnStats.curPacks <<
                                 ", work_done:" << encChnStats.work_done);
                     */
+                    if(video[encChn]->idr_fix) {
+                        IMP_Encoder_RequestIDR(encChn);
+                        video[encChn]->idr_fix--;
+                    }
                 }
             }
             else
@@ -415,7 +419,7 @@ void *Worker::stream_grabber(void *arg)
 
     return 0;
 }
-
+#if defined(AUDIO_SUPPORT)
 void *Worker::audio_grabber(void *arg)
 {
     StartHelper *sh = static_cast<StartHelper *>(arg);
@@ -459,7 +463,7 @@ void *Worker::audio_grabber(void *arg)
                 {
                     if (!global_audio[encChn]->msgChannel->write(af))
                     {
-                        LOG_ERROR("stream encChn:" << encChn << ", size:" << af.data.size() << " clogged!");
+                        LOG_ERROR("audio encChn:" << encChn << ", size:" << af.data.size() << " clogged!");
                     }
                     else
                     {
@@ -491,7 +495,7 @@ void *Worker::audio_grabber(void *arg)
 
     return 0;
 }
-
+#endif
 void *Worker::update_osd(void *arg)
 {
 

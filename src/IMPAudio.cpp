@@ -16,22 +16,22 @@ int IMPAudio::init()
     LOG_DEBUG("IMPAudio::init()");
     int ret;
 
-    IMPAudioIOAttr attr;
-    attr.samplerate = AUDIO_SAMPLE_RATE_16000;
-    attr.bitwidth = AUDIO_BIT_WIDTH_16;
-    attr.soundmode = AUDIO_SOUND_MODE_MONO;
-    attr.frmNum = 40;
-    attr.numPerFrm = (int)attr.samplerate * 0.040;
-    attr.chnCnt = 1;
+    IMPAudioIOAttr ioattr;
+    ioattr.samplerate = AUDIO_SAMPLE_RATE_16000;
+    ioattr.bitwidth = AUDIO_BIT_WIDTH_16;
+    ioattr.soundmode = AUDIO_SOUND_MODE_MONO;
+    ioattr.frmNum = 40;
+    ioattr.numPerFrm = (int)ioattr.samplerate * 0.040;
+    ioattr.chnCnt = 1;
     
-    ret = IMP_AI_SetPubAttr(devId, &attr);
+    ret = IMP_AI_SetPubAttr(devId, &ioattr);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetPubAttr(" << devId << ")");
 
     ret = IMP_AI_Enable(devId);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Enable(" << devId << ")");
 
     IMPAudioIChnParam chnParam {};
-    chnParam.usrFrmDepth = 40;
+    chnParam.usrFrmDepth = 30;
 
     ret = IMP_AI_SetChnParam(devId, inChn, &chnParam);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetChnParam(" << devId << ", " << inChn << ")");
@@ -45,41 +45,54 @@ int IMPAudio::init()
     ret = IMP_AI_SetGain(devId, inChn, cfg->audio.input_gain);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetGain(" << devId << ", " << inChn << ", " << cfg->audio.input_gain << ")");
 
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    ret = IMP_AI_SetAlcGain(devId, inChn, cfg->audio.input_alc_gain);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetAlcGain(" << devId << ", " << inChn << ", " << cfg->audio.input_alc_gain << ")");
-#endif
-
-    IMPAudioIOAttr ioattr;
-    ret = IMP_AI_GetPubAttr(devId, &ioattr);
-    if (ret == 0)
+#if defined(LIB_AUDIO_PROCESSING)
+    if (cfg->audio.input_noise_suppression)
     {
-        if (cfg->audio.input_noise_suppression)
-        {
-            ret = IMP_AI_EnableNs(&ioattr, cfg->audio.input_noise_suppression);
-            LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableNs(" << cfg->audio.input_noise_suppression << ")");
-        }
-        else
-        {
-            ret = IMP_AI_DisableNs();
-            LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableNs(0)");
-        }
-        if (cfg->audio.input_high_pass_filter)
-        {
-            ret = IMP_AI_EnableHpf(&ioattr);
-            LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableHpf(0)");
-        }
-        else
-        {
-            ret = IMP_AI_DisableHpf();
-            LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableHpf(0)");
-        }
+        LOG_DEBUG("1");
+        ret = IMP_AI_EnableNs(&ioattr, cfg->audio.input_noise_suppression);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableNs(&ioattr, " << cfg->audio.input_noise_suppression << ")");
     }
     else
     {
-        LOG_ERROR("IMP_AI_GetPubAttr failed.");
+        LOG_DEBUG("2");
+        //ret = IMP_AI_DisableNs();
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableNs()");
     }
 
+    if (cfg->audio.input_high_pass_filter)
+    {
+        LOG_DEBUG("3");
+        ret = IMP_AI_EnableHpf(&ioattr);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableHpf(&ioattr)");
+    }
+    else
+    {
+        LOG_DEBUG("4");
+        //ret = IMP_AI_DisableHpf();
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableHpf()");
+    }
+
+#if defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30) || defined(PLATFORM_T31)
+    LOG_DEBUG("5");
+    if(cfg->audio.input_agc_enabled) {
+        IMPAudioAgcConfig agcConfig = {
+            /**< Gain level, with a range of [0, 31]. This represents the target
+            volume level, measured in dB (decibels), and is a negative value. The
+            smaller the value, the higher the volume. */
+            .TargetLevelDbfs = cfg->audio.input_agc_target_level_dbfs,
+            /**< Sets the maximum gain value, with a range of [0, 90]. 0 means no
+            gain, and the larger the value, the higher the gain. */
+            .CompressionGaindB = cfg->audio.input_agc_compression_gain_db,
+        };
+        /* Enable automatic gain control on platforms that advertise it. */
+        ret = IMP_AI_EnableAgc(&ioattr, agcConfig);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableAgc({" << agcConfig.TargetLevelDbfs << ", " << agcConfig.CompressionGaindB << "})");
+    }
+#else 
+    ret = IMP_AI_SetAlcGain(devId, inChn, cfg->audio.input_alc_gain);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetAlcGain(" << devId << ", " << inChn << ", " << cfg->audio.input_alc_gain << ")");
+#endif        
+#endif //LIB_AUDIO_PROCESSING
     return 0;
 }
 

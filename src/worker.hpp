@@ -20,8 +20,8 @@ class Worker
 public:
 	static void flush(int encChn)
 	{
-		IMP_Encoder_RequestIDR(encChn);
 		IMP_Encoder_FlushStream(encChn);
+		IMP_Encoder_RequestIDR(encChn);
 	};
 
 	void run();

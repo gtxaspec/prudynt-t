@@ -73,11 +73,13 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
 
     sms->addSubsession(sub);
 
-    if (stream.audio_enabled) {
+#if defined(AUDIO_SUPPORT)
+    if (cfg->audio.input_enabled && stream.audio_enabled) {
         IMPAudioServerMediaSubsession *audioSub = IMPAudioServerMediaSubsession::createNew(*env, 0);
         sms->addSubsession(audioSub);
         LOG_INFO("Audio stream " << chnNr << " added to session");
     }
+#endif
 
     rtspServer->addServerMediaSession(sms);
 

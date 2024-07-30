@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 #include "MsgChannel.hpp"
+//#include "MsgChannelMostRecent.hpp"
 #include "IMPAudio.hpp"
 #include "IMPEncoder.hpp"
 #include "IMPFramesource.hpp"
@@ -46,7 +47,7 @@ struct audio_stream {
 
     audio_stream(int devId, int aiChn)
         : devId(devId), aiChn(aiChn), running(false), 
-          msgChannel(std::make_shared<MsgChannel<AudioFrame>>(MSG_CHANNEL_SIZE)), onDataCallback(nullptr) {}
+          msgChannel(std::make_shared<MsgChannel<AudioFrame>>(30)), onDataCallback(nullptr) {}
 };
 
 struct video_stream {
@@ -56,6 +57,7 @@ struct video_stream {
     bool running;
     pthread_t thread;
     bool idr;
+    int idr_fix;
     IMPEncoder *imp_encoder;
     IMPFramesource *imp_framesource;
     std::shared_ptr<MsgChannel<H264NALUnit>> msgChannel;

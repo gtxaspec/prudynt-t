@@ -15,8 +15,10 @@
 //Some more debug output not usefull for users (Developer Debug)
 #define DDEBUG
 
-//~10k
+//enable audio support
 #define AUDIO_SUPPORT
+//enable audio processing library
+#define LIB_AUDIO_PROCESSING
 
 //disable tunings (debugging)
 //#define NO_TUNINGS
@@ -135,10 +137,16 @@ struct _image {
 struct _audio {
     bool input_enabled;
     int input_vol;
+    int input_bitrate;
     int input_gain;
-    int input_alc_gain;
+#if defined(LIB_AUDIO_PROCESSING)
+    int input_alc_gain;  
     int input_noise_suppression;            
     bool input_high_pass_filter;
+    bool input_agc_enabled;
+    int input_agc_target_level_dbfs;
+    int input_agc_compression_gain_db;    
+#endif
 };
 #endif      
 struct _osd {            

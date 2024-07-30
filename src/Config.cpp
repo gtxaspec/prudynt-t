@@ -85,9 +85,12 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
 {
     return {
 #if defined(AUDIO_SUPPORT)
-        {"audio.input_enabled", audio.input_enabled, true, validateBool},
-        {"audio.output_high_pass_filter", audio.input_high_pass_filter, true, validateBool},
-#endif                
+        {"audio.input_enabled", audio.input_enabled, false, validateBool},
+#if defined(LIB_AUDIO_PROCESSING)
+        {"audio.input_high_pass_filter", audio.input_high_pass_filter, false, validateBool},
+        {"audio.input_agc_enabled", audio.input_agc_enabled, true, validateBool},
+#endif
+#endif
         {"image.vflip", image.vflip, false, validateBool},
         {"image.hflip", image.hflip, false, validateBool},
         {"motion.enabled", motion.enabled, false, validateBool},
@@ -165,11 +168,16 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
 {
     return {
 #if defined(AUDIO_SUPPORT)
-        {"audio.input_vol", audio.input_vol, 55, [](const int &v) { return v >= -30 && v <= 120; }},
-        {"audio.input_gain", audio.input_gain, 20, [](const int &v) { return v >= 0 && v <= 31; }},
-        {"audio.input_alc_gain", audio.input_alc_gain, 3, [](const int &v) { return v >= 0 && v <= 7; }},
-        {"audio.input_noise_suppression", audio.input_noise_suppression, 1, [](const int &v) { return v >= 0 && v <= 3; }},
-#endif           
+        {"audio.input_vol", audio.input_vol, 50, [](const int &v) { return v >= -30 && v <= 120; }},
+        {"audio.input_gain", audio.input_gain, 18, [](const int &v) { return v >= 0 && v <= 31; }},
+        {"audio.input_bitrate", audio.input_bitrate, 32, [](const int &v) { return v >= 16 && v <= 256; }},
+#if defined(LIB_AUDIO_PROCESSING)
+        {"audio.input_alc_gain", audio.input_alc_gain, 0, [](const int &v) { return v >= 0 && v <= 7; }},
+        {"audio.input_agc_target_level_dbfs", audio.input_agc_target_level_dbfs, 10, [](const int &v) { return v >= 0 && v <= 31; }},
+        {"audio.input_agc_compression_gain_db", audio.input_agc_compression_gain_db, 0, [](const int &v) { return v >= 0 && v <= 90; }},
+        {"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }},
+#endif
+#endif
         {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 1024; }},
         {"general.imp_polling_timeout", general.imp_polling_timeout, 100, [](const int &v) { return v >= 1 && v <= 5000; }},
         {"image.ae_compensation", image.ae_compensation, 128, validateInt255},

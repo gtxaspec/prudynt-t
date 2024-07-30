@@ -293,7 +293,6 @@ void IMPEncoder::initProfile()
         rcAttr->attrRcMode.attrH265Smart.flucLvl = 2;
 #endif
     }
-
     rcAttr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
     rcAttr->attrHSkip.hSkipAttr.m = rcAttr->maxGop - 1;
     rcAttr->attrHSkip.hSkipAttr.n = 1;
