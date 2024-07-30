@@ -291,7 +291,7 @@ void IMPEncoder::initProfile()
         rcAttr->attrRcMode.attrH265Smart.frmQPStep = 3;
         rcAttr->attrRcMode.attrH265Smart.gopQPStep = 15;
         rcAttr->attrRcMode.attrH265Smart.flucLvl = 2;
-#endif
+#endif //defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
     }
     rcAttr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
     rcAttr->attrHSkip.hSkipAttr.m = rcAttr->maxGop - 1;
