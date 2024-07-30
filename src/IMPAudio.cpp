@@ -48,32 +48,27 @@ int IMPAudio::init()
 #if defined(LIB_AUDIO_PROCESSING)
     if (cfg->audio.input_noise_suppression)
     {
-        LOG_DEBUG("1");
         ret = IMP_AI_EnableNs(&ioattr, cfg->audio.input_noise_suppression);
         LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableNs(&ioattr, " << cfg->audio.input_noise_suppression << ")");
     }
     else
     {
-        LOG_DEBUG("2");
         //ret = IMP_AI_DisableNs();
         LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableNs()");
     }
 
     if (cfg->audio.input_high_pass_filter)
     {
-        LOG_DEBUG("3");
         ret = IMP_AI_EnableHpf(&ioattr);
         LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableHpf(&ioattr)");
     }
     else
     {
-        LOG_DEBUG("4");
         //ret = IMP_AI_DisableHpf();
         LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableHpf()");
     }
 
 #if defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30) || defined(PLATFORM_T31)
-    LOG_DEBUG("5");
     if(cfg->audio.input_agc_enabled) {
         IMPAudioAgcConfig agcConfig = {
             /**< Gain level, with a range of [0, 31]. This represents the target
@@ -88,7 +83,8 @@ int IMPAudio::init()
         ret = IMP_AI_EnableAgc(&ioattr, agcConfig);
         LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableAgc({" << agcConfig.TargetLevelDbfs << ", " << agcConfig.CompressionGaindB << "})");
     }
-#else 
+#endif
+#if defined(PLATFORM_T21) || (defined(PLATFORM_T31))
     ret = IMP_AI_SetAlcGain(devId, inChn, cfg->audio.input_alc_gain);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetAlcGain(" << devId << ", " << inChn << ", " << cfg->audio.input_alc_gain << ")");
 #endif        
