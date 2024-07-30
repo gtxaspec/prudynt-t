@@ -19,7 +19,7 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
     // Read from the stream until we capture the SPS and PPS. Only capture VPS if needed.
     while (!have_pps || !have_sps || (is_h265 && !have_vps))
     {
-        H264NALUnit unit = video[chnNr]->msgChannel->wait_read();
+        H264NALUnit unit = global_video[chnNr]->msgChannel->wait_read();
         if (is_h265)
         {
             uint8_t nalType = (unit.data[0] & 0x7E) >> 1; // H265 NAL unit type extraction

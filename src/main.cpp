@@ -24,7 +24,7 @@ bool global_main_thread_signal = false;
 char volatile global_rtsp_thread_signal{1};
 
 std::shared_ptr<jpeg_stream> global_jpeg = {nullptr};
-std::shared_ptr<video_stream> video[NUM_VIDEO_CHANNELS] = {nullptr};
+std::shared_ptr<video_stream> global_video[NUM_VIDEO_CHANNELS] = {nullptr};
 #if defined(AUDIO_SUPPORT)
 std::shared_ptr<audio_stream> global_audio[NUM_AUDIO_CHANNELS] = {nullptr};
 #endif
@@ -54,7 +54,7 @@ bool timesync_wait()
 void start_video(int encChn)
 {
     StartHelper sh {encChn};
-    pthread_create(&video[encChn]->thread, nullptr, Worker::stream_grabber, static_cast<void *>(&sh));
+    pthread_create(&global_video[encChn]->thread, nullptr, Worker::stream_grabber, static_cast<void *>(&sh));
 
     // wait for initialization done
     sh.has_started.acquire();
@@ -86,8 +86,8 @@ int main(int argc, const char *argv[])
         imp_system = IMPSystem::createNew();
     }
 
-    video[0] = std::make_shared<video_stream>(video_stream{0, &cfg->stream0, "stream0"});
-    video[1] = std::make_shared<video_stream>(video_stream{1, &cfg->stream1, "stream1"});
+    global_video[0] = std::make_shared<video_stream>(video_stream{0, &cfg->stream0, "stream0"});
+    global_video[1] = std::make_shared<video_stream>(video_stream{1, &cfg->stream1, "stream1"});
     global_jpeg = std::make_shared<jpeg_stream>(jpeg_stream{2, &cfg->stream2});
 #if defined(AUDIO_SUPPORT)
     global_audio[0] = std::make_shared<audio_stream>(audio_stream{0, 0});
@@ -196,18 +196,18 @@ int main(int argc, const char *argv[])
             }
 
             // stop stream1
-            if (video[1]->imp_encoder)
+            if (global_video[1]->imp_encoder)
             {
-                video[1]->running = false;
-                ret = pthread_join(video[1]->thread, NULL);
+                global_video[1]->running = false;
+                ret = pthread_join(global_video[1]->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join stream1 thread");
             }
 
             // stop stream0
-            if (video[0]->imp_encoder)
+            if (global_video[0]->imp_encoder)
             {
-                video[0]->running = false;
-                ret = pthread_join(video[0]->thread, NULL);
+                global_video[0]->running = false;
+                ret = pthread_join(global_video[0]->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join stream0 thread");
             }
         }

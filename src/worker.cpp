@@ -249,9 +249,9 @@ void *Worker::stream_grabber(void *arg)
     unsigned long long ms;
     struct timeval imp_time_base;
 
-    video[encChn]->imp_framesource = IMPFramesource::createNew(video[encChn]->stream, &cfg->sensor, encChn);
-    video[encChn]->imp_encoder = IMPEncoder::createNew(video[encChn]->stream, encChn, encChn, video[encChn]->name);
-    video[encChn]->imp_framesource->enable();
+    global_video[encChn]->imp_framesource = IMPFramesource::createNew(global_video[encChn]->stream, &cfg->sensor, encChn);
+    global_video[encChn]->imp_encoder = IMPEncoder::createNew(global_video[encChn]->stream, encChn, encChn, global_video[encChn]->name);
+    global_video[encChn]->imp_framesource->enable();
 
     gettimeofday(&imp_time_base, NULL);
     IMP_System_RebaseTimeStamp(imp_time_base.tv_sec * (uint64_t)1000000);
@@ -264,10 +264,10 @@ void *Worker::stream_grabber(void *arg)
     if (ret != 0)
         return 0;
 
-    video[encChn]->running = true;
-    while (video[encChn]->running)
+    global_video[encChn]->running = true;
+    while (global_video[encChn]->running)
     {
-        if (video[encChn]->onDataCallback != nullptr)
+        if (global_video[encChn]->onDataCallback != nullptr)
         {
             if (IMP_Encoder_PollingStream(encChn, cfg->general.imp_polling_timeout) == 0)
             {
@@ -279,18 +279,19 @@ void *Worker::stream_grabber(void *arg)
                     continue;
                 }
 
+                /*
                 int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
-
                 struct timeval encoder_time;
                 encoder_time.tv_sec = nal_ts / 1000000;
                 encoder_time.tv_usec = nal_ts % 1000000;
+                */
 
                 for (uint32_t i = 0; i < stream.packCount; ++i)
                 {
                     fps++;
                     bps += stream.pack[i].length;
 
-                    if (video[encChn]->onDataCallback != nullptr)
+                    if (global_video[encChn]->onDataCallback != nullptr)
                     {
 #if defined(PLATFORM_T31)
                         uint8_t *start = (uint8_t *)stream.virAddr + stream.pack[i].offset;
@@ -301,49 +302,49 @@ void *Worker::stream_grabber(void *arg)
 #endif
                         H264NALUnit nalu;
 
-                        nalu.imp_ts = stream.pack[i].timestamp;
-                        nalu.time = encoder_time;
+                        //nalu.imp_ts = stream.pack[i].timestamp;
+                        //nalu.time = encoder_time;
 
                         // We use start+4 because the encoder inserts 4-byte MPEG
                         //'startcodes' at the beginning of each NAL. Live555 complains
                         nalu.data.insert(nalu.data.end(), start + 4, end);
-                        if (video[encChn]->idr == false)
+                        if (global_video[encChn]->idr == false)
                         {
 #if defined(PLATFORM_T31)
                             if (stream.pack[i].nalType.h264NalType == 7 ||
                                 stream.pack[i].nalType.h264NalType == 8 ||
                                 stream.pack[i].nalType.h264NalType == 5)
                             {
-                                video[encChn]->idr = true;
+                                global_video[encChn]->idr = true;
                             }
                             else if (stream.pack[i].nalType.h265NalType == 32)
                             {
-                                video[encChn]->idr = true;
+                                global_video[encChn]->idr = true;
                             }
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23)
                             if (stream.pack[i].dataType.h264Type == 7 ||
                                 stream.pack[i].dataType.h264Type == 8 ||
                                 stream.pack[i].dataType.h264Type == 5)
                             {
-                                video[encChn]->idr = true;
+                                global_video[encChn]->idr = true;
                             }
 #elif defined(PLATFORM_T30)
                             if (stream.pack[i].dataType.h264Type == 7 ||
                                 stream.pack[i].dataType.h264Type == 8 ||
                                 stream.pack[i].dataType.h264Type == 5)
                             {
-                                video[encChn]->idr = true;
+                                global_video[encChn]->idr = true;
                             }
                             else if (stream.pack[i].dataType.h265Type == 32)
                             {
-                                video[encChn]->IDR = true;
+                                global_video[encChn]->IDR = true;
                             }
 #endif
                         }
 
-                        if (video[encChn]->idr == true)
+                        if (global_video[encChn]->idr == true)
                         {
-                            if (!video[encChn]->msgChannel->write(nalu))
+                            if (!global_video[encChn]->msgChannel->write(nalu))
                             {
                                 LOG_ERROR("video encChn:" << encChn << ", size:" << nalu.data.size()
                                                            << ", pC:" << stream.packCount << ", pS:" << nalu.data.size() << ", pN:"
@@ -351,24 +352,24 @@ void *Worker::stream_grabber(void *arg)
                             }
                             else
                             {
-                                if (video[encChn]->onDataCallback)
-                                    video[encChn]->onDataCallback();
+                                if (global_video[encChn]->onDataCallback)
+                                    global_video[encChn]->onDataCallback();
                             }
-                            //LOG_DEBUG("video:" <<  video[encChn]->encChn << " " << nalu.time.tv_sec << "." << nalu.time.tv_usec << " " << nalu.data.size());
+                            //LOG_DEBUG("video:" <<  global_video[encChn]->encChn << " " << nalu.time.tv_sec << "." << nalu.time.tv_usec << " " << nalu.data.size());
                         }
                     }
                 }
 
                 IMP_Encoder_ReleaseStream(encChn, &stream);
 
-                ms = tDiffInMs(&video[encChn]->stream->osd.stats.ts);
+                ms = tDiffInMs(&global_video[encChn]->stream->osd.stats.ts);
                 if (ms > 1000)
                 {
-                    video[encChn]->stream->osd.stats.bps = ((bps * 8) * 1000 / ms) / 1000;
+                    global_video[encChn]->stream->osd.stats.bps = ((bps * 8) * 1000 / ms) / 1000;
                     bps = 0;
-                    video[encChn]->stream->osd.stats.fps = fps * 1000 / ms;
+                    global_video[encChn]->stream->osd.stats.fps = fps * 1000 / ms;
                     fps = 0;
-                    gettimeofday(&video[encChn]->stream->osd.stats.ts, NULL);
+                    gettimeofday(&global_video[encChn]->stream->osd.stats.ts, NULL);
 
                     /*
                     IMPEncoderCHNStat encChnStats;
@@ -381,9 +382,9 @@ void *Worker::stream_grabber(void *arg)
                                 ", curPacks:" << encChnStats.curPacks <<
                                 ", work_done:" << encChnStats.work_done);
                     */
-                    if(video[encChn]->idr_fix) {
+                    if(global_video[encChn]->idr_fix) {
                         IMP_Encoder_RequestIDR(encChn);
-                        video[encChn]->idr_fix--;
+                        global_video[encChn]->idr_fix--;
                     }
                 }
             }
@@ -396,8 +397,8 @@ void *Worker::stream_grabber(void *arg)
         }
         else
         {
-            video[encChn]->stream->osd.stats.bps = 0;
-            video[encChn]->stream->osd.stats.fps = 1;
+            global_video[encChn]->stream->osd.stats.bps = 0;
+            global_video[encChn]->stream->osd.stats.fps = 1;
             usleep(THREAD_SLEEP);
         }
     }
@@ -405,15 +406,15 @@ void *Worker::stream_grabber(void *arg)
     ret = IMP_Encoder_StopRecvPic(encChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_Encoder_StopRecvPic(" << encChn << ")");
 
-    if (video[encChn]->imp_framesource)
+    if (global_video[encChn]->imp_framesource)
     {
-        video[encChn]->imp_framesource->disable();
+        global_video[encChn]->imp_framesource->disable();
 
-        if (video[encChn]->imp_encoder)
+        if (global_video[encChn]->imp_encoder)
         {
-            video[encChn]->imp_encoder->deinit();
-            delete video[encChn]->imp_encoder;
-            video[encChn]->imp_encoder = nullptr;
+            global_video[encChn]->imp_encoder->deinit();
+            delete global_video[encChn]->imp_encoder;
+            global_video[encChn]->imp_encoder = nullptr;
         }
     }
 
@@ -447,13 +448,15 @@ void *Worker::audio_grabber(void *arg)
                     LOG_ERROR("IMP_AI_GetFrame(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << ") failed");
                 }
 
+                /*
                 int64_t audio_ts = frame.timeStamp;
                 struct timeval encoder_time;
                 encoder_time.tv_sec = audio_ts / 1000000;
                 encoder_time.tv_usec = audio_ts % 1000000;
+                */
 
                 AudioFrame af;
-                af.time = encoder_time;
+                //af.time = encoder_time;
 
                 uint8_t *start = (uint8_t *)frame.virAddr;
                 uint8_t *end = start + frame.len;
@@ -467,6 +470,7 @@ void *Worker::audio_grabber(void *arg)
                     }
                     else
                     {
+                        //std::lock_guard<std::mutex> lock(global_audio[encChn]->mtx);
                         if (global_audio[encChn]->onDataCallback)
                             global_audio[encChn]->onDataCallback();
                     }
@@ -505,7 +509,7 @@ void *Worker::update_osd(void *arg)
 
     while (global_osd_thread_signal)
     {
-        for (auto v : video)
+        for (auto v : global_video)
         {
             if (v != nullptr)
             {

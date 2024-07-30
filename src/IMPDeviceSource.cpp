@@ -10,19 +10,17 @@ IMPDeviceSource *IMPDeviceSource::createNew(UsageEnvironment &env, int encChn)
 IMPDeviceSource::IMPDeviceSource(UsageEnvironment &env, int encChn)
     : FramedSource(env), encChn(encChn), eventTriggerId(0)
 {
-    if(!video[encChn]->onDataCallback) {
-        video[encChn]->onDataCallback = [this]()
-        { this->on_data_available(); };
+    global_video[encChn]->onDataCallback = [this]()
+    { this->on_data_available(); };
 
-        eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
-    }
+    eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
     LOG_DEBUG("IMPDeviceSource construct, encoder channel:" << encChn);
 }
 
 void IMPDeviceSource::deinit()
 {
     envir().taskScheduler().deleteEventTrigger(eventTriggerId);
-    video[encChn]->onDataCallback = nullptr;
+    global_video[encChn]->onDataCallback = nullptr;
     LOG_DEBUG("IMPDeviceSource destruct, encoder channel:" << encChn);
 }
 
@@ -47,7 +45,7 @@ void IMPDeviceSource::deliverFrame()
         return;
 
     H264NALUnit nal;
-    if (video[encChn]->msgChannel->read(&nal))
+    if (global_video[encChn]->msgChannel->read(&nal))
     {
         if (nal.data.size() > fMaxSize)
         {

@@ -46,8 +46,8 @@ protected:
                                                    rtpSeqNum, rtpTimestamp, serverRequestAlternativeByteHandler,
                                                    serverRequestAlternativeByteHandlerClientData);
         
-        //request idr frame every second for the next 5 seconds
-        video[encChn]->idr_fix = 5; 
+        //request idr frame every second for the next x seconds
+        global_video[encChn]->idr_fix = 2; 
         IMPEncoder::flush(encChn);
     }
 private:
