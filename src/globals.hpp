@@ -50,10 +50,22 @@ struct audio_stream {
     std::shared_ptr<MsgChannel<AudioFrame>> msgChannel;
     //std::shared_ptr<MsgChannel<std::vector<uint8_t>>> msgChannel;
     std::function<void(void)> onDataCallback;
+    std::mutex lock;    // protects mutable fields: imp_framesource, onDataCallback, etc.
+    std::condition_variable should_grab_frames;
 
     audio_stream(int devId, int aiChn)
         : devId(devId), aiChn(aiChn), running(false), 
           msgChannel(std::make_shared<MsgChannel<AudioFrame>>(30)), onDataCallback(nullptr) {}
+
+    /* Check whether onDataCallback is not null in a data race free manner.
+     * Returns a momentary value that may be stale by the time it is returned.
+     * Use only for optimizations, i.e., to skip work if no data callback
+     * is registered right now.
+     */
+    bool hasDataCallback() {
+        std::unique_lock<std::mutex> lock_stream {lock};
+        return onDataCallback != nullptr;
+    }
 };
 
 struct video_stream {
@@ -69,15 +81,22 @@ struct video_stream {
     std::shared_ptr<MsgChannel<H264NALUnit>> msgChannel;
     //std::shared_ptr<MsgChannel<std::vector<uint8_t>>> msgChannel;
     std::function<void(void)> onDataCallback;
+    std::mutex lock;    // protects mutable fields: imp_framesource, onDataCallback, etc.
+    std::condition_variable should_grab_frames;
 
     video_stream(int encChn, _stream* stream, const char *name)
         : encChn(encChn), stream(stream), running(false), name(name), idr(false), imp_encoder(nullptr), imp_framesource(nullptr),
           msgChannel(std::make_shared<MsgChannel<H264NALUnit>>(MSG_CHANNEL_SIZE)), onDataCallback(nullptr), idr_fix(0) {}
+    bool hasDataCallback() {
+        std::unique_lock<std::mutex> lock_stream {lock};
+        return onDataCallback != nullptr;
+    }
 };
 
 //extern CFG *cfg;
 extern std::condition_variable global_cv_worker_restart;
 
+extern std::mutex mutex_main;   // protects global_restart_rtsp and global_restart_video
 extern bool global_restart_rtsp;
 extern bool global_restart_video;
 extern bool global_restart_audio;

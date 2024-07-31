@@ -10,15 +10,18 @@ IMPDeviceSource *IMPDeviceSource::createNew(UsageEnvironment &env, int encChn)
 IMPDeviceSource::IMPDeviceSource(UsageEnvironment &env, int encChn)
     : FramedSource(env), encChn(encChn), eventTriggerId(0)
 {
+    std::lock_guard lock_stream {global_video[encChn]->lock};
     global_video[encChn]->onDataCallback = [this]()
     { this->on_data_available(); };
 
     eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
+    global_video[encChn]->should_grab_frames.notify_one();
     LOG_DEBUG("IMPDeviceSource construct, encoder channel:" << encChn);
 }
 
 void IMPDeviceSource::deinit()
 {
+    std::lock_guard lock_stream {global_video[encChn]->lock};
     envir().taskScheduler().deleteEventTrigger(eventTriggerId);
     global_video[encChn]->onDataCallback = nullptr;
     LOG_DEBUG("IMPDeviceSource destruct, encoder channel:" << encChn);
