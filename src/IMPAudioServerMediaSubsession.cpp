@@ -40,7 +40,7 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
     return SimpleRTPSink::createNew(
         envir(), rtpGroupsock,
         /* rtpPayloadFormat */ rtpPayloadTypeIfDynamic,
-        /* rtpTimestampFrequency */ 44100,
+        /* rtpTimestampFrequency */ 32000,
         /* sdpMediaTypeString*/ "audio",
         /* rtpPayloadFormatName */ "L16",
         /* numChannels */ 1);    

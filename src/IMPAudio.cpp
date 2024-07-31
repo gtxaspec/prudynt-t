@@ -17,7 +17,7 @@ int IMPAudio::init()
     int ret;
 
     IMPAudioIOAttr ioattr;
-    ioattr.samplerate = AUDIO_SAMPLE_RATE_44100;
+    ioattr.samplerate = AUDIO_SAMPLE_RATE_32000;
     ioattr.bitwidth = AUDIO_BIT_WIDTH_16;
     ioattr.soundmode = AUDIO_SOUND_MODE_MONO;
     ioattr.frmNum = 40;
