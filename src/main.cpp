@@ -16,8 +16,9 @@ using namespace std::chrono;
 std::mutex mutex_main;
 std::condition_variable global_cv_worker_restart;
 
-bool global_restart_rtsp = false;
-bool global_restart_video = false;
+bool global_restart_rtsp = true;
+bool global_restart_video = true;
+bool global_restart_audio = true;
 
 bool global_osd_thread_signal = false;
 bool global_main_thread_signal = false;
@@ -53,8 +54,9 @@ bool timesync_wait()
 
 void start_video(int encChn)
 {
-    StartHelper sh {encChn};
-    pthread_create(&global_video[encChn]->thread, nullptr, Worker::stream_grabber, static_cast<void *>(&sh));
+    StartHelper sh{encChn};
+    int ret = pthread_create(&global_video[encChn]->thread, nullptr, Worker::stream_grabber, static_cast<void *>(&sh));
+    LOG_DEBUG_OR_ERROR(ret, "create video["<< encChn << "] thread");
 
     // wait for initialization done
     sh.has_started.acquire();
@@ -90,7 +92,7 @@ int main(int argc, const char *argv[])
     global_video[1] = std::make_shared<video_stream>(video_stream{1, &cfg->stream1, "stream1"});
     global_jpeg = std::make_shared<jpeg_stream>(jpeg_stream{2, &cfg->stream2});
 #if defined(AUDIO_SUPPORT)
-    global_audio[0] = std::make_shared<audio_stream>(audio_stream{0, 0});
+    global_audio[0] = std::make_shared<audio_stream>(audio_stream{1, 0});
 #endif
 
     pthread_create(&ws_thread, nullptr, WS::run, &ws);
@@ -106,76 +108,81 @@ int main(int argc, const char *argv[])
    
     while (true)
     {
-        if (cfg->stream0.enabled)
+        if (global_restart_video)
         {
-            start_video(0);
-        }
-        
-        if (cfg->stream1.enabled)
-        {
-            start_video(1);
-        }
+            global_restart_video = false;
 
-        if (cfg->stream2.enabled)
-        {
-            StartHelper sh {2};
-            pthread_create(&global_jpeg->thread, nullptr, Worker::jpeg_grabber, static_cast<void *>(&sh));
+            if (cfg->stream0.enabled)
+            {
+                start_video(0);
+            }
 
-            // wait for initialization done
-            sh.has_started.acquire();
-        }
+            if (cfg->stream1.enabled)
+            {
+                start_video(1);
+            }
 
-        if (cfg->stream0.osd.enabled || cfg->stream1.osd.enabled)
-        {
-            pthread_create(&osd_thread, nullptr, Worker::update_osd, NULL);
+            if (cfg->stream2.enabled)
+            {
+                StartHelper sh{2};
+                int ret = pthread_create(&global_jpeg->thread, nullptr, Worker::jpeg_grabber, static_cast<void *>(&sh));
+                LOG_DEBUG_OR_ERROR(ret, "create jpeg thread");
+                // wait for initialization done
+                sh.has_started.acquire();
+            }
+
+            if (cfg->stream0.osd.enabled || cfg->stream1.osd.enabled)
+            {
+                int ret = pthread_create(&osd_thread, nullptr, Worker::update_osd, NULL);
+                LOG_DEBUG_OR_ERROR(ret, "create osd thread");
+            }
         }
 
 #if defined(AUDIO_SUPPORT)
-        if (cfg->audio.input_enabled)
+        if (cfg->audio.input_enabled && global_restart_audio)
         {
-            StartHelper sh {0};
-            pthread_create(&global_audio[0]->thread, nullptr, Worker::audio_grabber, static_cast<void *>(&sh));
+            global_restart_audio = false;
 
+            StartHelper sh{0};
+            int ret = pthread_create(&global_audio[0]->thread, nullptr, Worker::audio_grabber, static_cast<void *>(&sh));
+            LOG_DEBUG_OR_ERROR(ret, "create audio thread");
             // wait for initialization done
             sh.has_started.acquire();
         }
 #endif
 
-        //start rtsp server
-        if(global_rtsp_thread_signal != 0) {
-            pthread_create(&rtsp_thread, nullptr, RTSP::run, &rtsp);     
+        // start rtsp server
+        if (global_rtsp_thread_signal != 0 && global_restart_rtsp)
+        {
+            global_restart_rtsp = false;
+            int ret = pthread_create(&rtsp_thread, nullptr, RTSP::run, &rtsp);
+            LOG_DEBUG_OR_ERROR(ret, "create rtsp thread");
         }
-        
+
         LOG_DEBUG("main thread is going to sleep");
         std::unique_lock lck(mutex_main);
-        while (!global_restart_rtsp && !global_restart_video)
+        while (!global_restart_rtsp && !global_restart_video && !global_restart_audio)
             global_cv_worker_restart.wait(lck);
         LOG_DEBUG("wakup main thread");
 
         if (global_restart_rtsp)
         {
-            int ret;
-            global_restart_rtsp = false;
-            
             // stop rtsp thread
             if (global_rtsp_thread_signal == 0)
             {
                 global_rtsp_thread_signal = 1;
-                ret = pthread_join(rtsp_thread, NULL);
+                int ret = pthread_join(rtsp_thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join rtsp thread");
-            }           
+            }
         }
 
         if (global_restart_video)
         {
-            int ret;
-            global_restart_video = false;
-
             // stop osd thread
             if (global_osd_thread_signal)
             {
                 global_osd_thread_signal = false;
-                ret = pthread_join(osd_thread, NULL);
+                int ret = pthread_join(osd_thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join osd thread");
             }
 
@@ -183,33 +190,33 @@ int main(int argc, const char *argv[])
             if (global_jpeg->imp_encoder)
             {
                 global_jpeg->running = false;
-                ret = pthread_join(global_jpeg->thread, NULL);
+                int ret = pthread_join(global_jpeg->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join jpeg thread");
             }
-
-            // stop audio
-            if (global_audio[0]->imp_audio)
-            {
-                global_audio[0]->running = false;
-                ret = pthread_join(global_audio[0]->thread, NULL);
-                LOG_DEBUG_OR_ERROR(ret, "join audio thread");
-            }
-
+            LOG_DDEBUG("STREAM1");
             // stop stream1
             if (global_video[1]->imp_encoder)
             {
                 global_video[1]->running = false;
-                ret = pthread_join(global_video[1]->thread, NULL);
+                int ret = pthread_join(global_video[1]->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join stream1 thread");
             }
-
+            LOG_DDEBUG("STREAM2");
             // stop stream0
             if (global_video[0]->imp_encoder)
             {
                 global_video[0]->running = false;
-                ret = pthread_join(global_video[0]->thread, NULL);
+                int ret = ret = pthread_join(global_video[0]->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join stream0 thread");
             }
+        }
+
+        // stop audio
+        if (global_audio[0]->imp_audio && global_restart_audio)
+        {
+            global_audio[0]->running = false;
+            int ret = pthread_join(global_audio[0]->thread, NULL);
+            LOG_DEBUG_OR_ERROR(ret, "join audio thread");
         }
     }
 

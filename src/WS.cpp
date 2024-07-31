@@ -382,7 +382,8 @@ enum
 enum
 {
     PNT_THREAD_RTSP = 1,
-    PNT_THREAD_ENCODER
+    PNT_THREAD_VIDEO = 2,
+    PNT_THREAD_AUDIO = 4
 };
 
 static const char *const action_keys[] = {
@@ -1700,14 +1701,18 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
             if (reason == LEJPCB_VAL_NUM_INT)
             {
                 u_ctx->signal = atoi(ctx->buf);
-                if (u_ctx->signal & 1)
+                if (u_ctx->signal & PNT_THREAD_RTSP)
                 {
                     global_restart_rtsp = true;
                 }
-                if (u_ctx->signal & 2)
+                if (u_ctx->signal & PNT_THREAD_VIDEO)
                 {
                     global_restart_video = true;
                 }
+                if (u_ctx->signal & PNT_THREAD_AUDIO)
+                {
+                    global_restart_audio = true;
+                }                
             }
             append_message(
                 "\"%s\"", "initiated");
@@ -1872,7 +1877,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         }
 
         // inform main to restart threads
-        if (global_restart_rtsp || global_restart_video)
+        if (global_restart_rtsp || global_restart_video || global_restart_audio)
         {
             global_cv_worker_restart.notify_one();
         }

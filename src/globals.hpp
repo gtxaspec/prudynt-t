@@ -80,6 +80,7 @@ extern std::condition_variable global_cv_worker_restart;
 
 extern bool global_restart_rtsp;
 extern bool global_restart_video;
+extern bool global_restart_audio;
 
 extern bool global_osd_thread_signal; 
 extern bool global_main_thread_signal; 
