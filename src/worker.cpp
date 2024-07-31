@@ -437,7 +437,7 @@ void *Worker::audio_grabber(void *arg)
     while (global_audio[encChn]->running)
     {
 
-        if (global_audio[encChn]->onDataCallback != nullptr)
+        if (global_audio[encChn]->onDataCallback != nullptr && cfg->audio.input_enabled)
         {
 
             if (IMP_AI_PollingFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, cfg->general.imp_polling_timeout) == 0)
@@ -493,6 +493,10 @@ void *Worker::audio_grabber(void *arg)
             usleep(THREAD_SLEEP);
         }
     } //while (global_audio[encChn]->running)
+
+    if(global_audio[encChn]->imp_audio) {
+        delete global_audio[encChn]->imp_audio;
+    }
 
     return 0;
 }

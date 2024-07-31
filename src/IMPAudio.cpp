@@ -105,8 +105,3 @@ int IMPAudio::deinit()
 
     return 0;
 }
-
-int IMPAudio::destroy()
-{
-    return 0;
-}

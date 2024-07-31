@@ -16,12 +16,11 @@ public:
     };
 
     ~IMPAudio(){
-        destroy();
+        deinit();
     };
 
     int init();
     int deinit();
-    int destroy();
 
     int inChn{};
     int devId{};
