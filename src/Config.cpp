@@ -87,7 +87,7 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
 #if defined(AUDIO_SUPPORT)
         {"audio.input_enabled", audio.input_enabled, false, validateBool},
 #if defined(LIB_AUDIO_PROCESSING)
-        {"audio.input_high_pass_filter", audio.input_high_pass_filter, false, validateBool},
+        {"audio.input_high_pass_filter", audio.input_high_pass_filter, true, validateBool},
         {"audio.input_agc_enabled", audio.input_agc_enabled, true, validateBool},
 #endif
 #endif
@@ -170,12 +170,12 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
 #if defined(AUDIO_SUPPORT)
         {"audio.input_vol", audio.input_vol, 30, [](const int &v) { return v >= -30 && v <= 120; }},
         {"audio.input_gain", audio.input_gain, 18, [](const int &v) { return v >= 0 && v <= 31; }},
-        {"audio.input_bitrate", audio.input_bitrate, 128, [](const int &v) { return v >= 16 && v <= 256; }},
+        {"audio.input_bitrate", audio.input_bitrate, 64, [](const int &v) { return v >= 16 && v <= 256; }},
 #if defined(LIB_AUDIO_PROCESSING)
         {"audio.input_alc_gain", audio.input_alc_gain, 1, [](const int &v) { return v >= 0 && v <= 7; }},
         {"audio.input_agc_target_level_dbfs", audio.input_agc_target_level_dbfs, 10, [](const int &v) { return v >= 0 && v <= 31; }},
         {"audio.input_agc_compression_gain_db", audio.input_agc_compression_gain_db, 0, [](const int &v) { return v >= 0 && v <= 90; }},
-        {"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }},
+        {"audio.input_noise_suppression", audio.input_noise_suppression, 1, [](const int &v) { return v >= 0 && v <= 3; }},
 #endif
 #endif
         {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 1024; }},
