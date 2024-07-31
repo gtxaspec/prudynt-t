@@ -4,7 +4,6 @@
 #include <memory>
 #include <functional>
 #include "MsgChannel.hpp"
-//#include "MsgChannelMostRecent.hpp"
 #include "IMPAudio.hpp"
 #include "IMPEncoder.hpp"
 #include "IMPFramesource.hpp"
@@ -93,7 +92,6 @@ struct video_stream {
     }
 };
 
-//extern CFG *cfg;
 extern std::condition_variable global_cv_worker_restart;
 
 extern std::mutex mutex_main;   // protects global_restart_rtsp and global_restart_video

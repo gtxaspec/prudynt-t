@@ -2,8 +2,6 @@
 
 #define MODULE "RTSP"
 
-extern std::shared_ptr<CFG> cfg;
-
 void RTSP::addSubsession(int chnNr, _stream &stream)
 {
 

@@ -2,8 +2,6 @@
 
 #define MODULE "WORKER"
 
-extern std::shared_ptr<CFG> cfg;
-
 unsigned long long tDiffInMs(struct timeval *startTime)
 {
     struct timeval currentTime;

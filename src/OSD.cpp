@@ -23,8 +23,6 @@
 
 #include "schrift.h"
 
-extern std::shared_ptr<CFG> cfg;
-
 int OSD::renderGlyph(const char *characters)
 {
 

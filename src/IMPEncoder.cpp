@@ -1,4 +1,5 @@
 #include "IMPEncoder.hpp"
+#include "Config.hpp"
 
 #define MODULE "IMPENCODER"
 
@@ -6,8 +7,6 @@
 #define IMPEncoderCHNAttr IMPEncoderChnAttr
 #define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
-
-extern std::shared_ptr<CFG> cfg;
 
 IMPEncoder *IMPEncoder::createNew(
     _stream *stream,

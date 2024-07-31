@@ -1,8 +1,7 @@
 #include "IMPAudio.hpp"
+#include "Config.hpp"
 
 #define MODULE "IMPAUDIO"
-
-extern std::shared_ptr<CFG> cfg;
 
 IMPAudio *IMPAudio::createNew(
     int devId,
