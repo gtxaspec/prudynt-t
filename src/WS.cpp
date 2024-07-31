@@ -977,27 +977,11 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
         }
         else if (ctx->path_match == PNT_AUDIO_INPUT_NOISE_SUPPRESSION)
         {
-            IMPAudioIOAttr ioattr;
-            int ret = IMP_AI_GetPubAttr(u_ctx->flag, &ioattr);
-            if (ret == 0)
+            if (reason == LEJPCB_VAL_NUM_INT)
             {
-                if (reason == LEJPCB_VAL_NUM_INT)
+                if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
                 {
-                    int ns = atoi(ctx->buf);
-                    if (ns)
-                    {
-                        if (cfg->set<int>(u_ctx->path, ns))
-                        {
-                            ret = IMP_AI_EnableNs(&ioattr, cfg->get<int>(u_ctx->path));
-                        }
-                    }
-                    else
-                    {
-                        if (cfg->set<int>(u_ctx->path, ns))
-                        {
-                            ret = IMP_AI_DisableNs();
-                        }
-                    }
+                    global_restart_audio = true;
                 }
             }
             append_message(
@@ -1014,18 +998,14 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                 {
                     if (cfg->set<bool>(u_ctx->path, true))
                     {
-                        IMPAudioAgcConfig agcConfig = {
-                            .TargetLevelDbfs = cfg->audio.input_agc_target_level_dbfs,
-                            .CompressionGaindB = cfg->audio.input_agc_compression_gain_db,
-                        };
-                        IMP_AI_EnableAgc(&ioattr, agcConfig);
+                        global_restart_audio = true;
                     }
                 }
                 else if (reason == LEJPCB_VAL_FALSE)
                 {
                     if (cfg->set<bool>(u_ctx->path, false))
                     {
-                        IMP_AI_Disable(u_ctx->flag);
+                        global_restart_audio = true;
                     }
                 }
             }
@@ -1038,16 +1018,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
             {
                 if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
                 {
-                    IMPAudioIOAttr ioattr;
-                    int ret = IMP_AI_GetPubAttr(u_ctx->flag, &ioattr);
-                    if (ret == 0)
-                    {                    
-                        IMPAudioAgcConfig agcConfig = {
-                            .TargetLevelDbfs = cfg->audio.input_agc_target_level_dbfs,
-                            .CompressionGaindB = cfg->audio.input_agc_compression_gain_db,
-                        };
-                        IMP_AI_EnableAgc(&ioattr, agcConfig);
-                    }
+                    global_restart_audio = true;
                 }
             }
             append_message(
