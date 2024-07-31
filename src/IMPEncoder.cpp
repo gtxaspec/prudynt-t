@@ -295,7 +295,7 @@ void IMPEncoder::initProfile()
     rcAttr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
     rcAttr->attrHSkip.hSkipAttr.m = rcAttr->maxGop - 1;
     rcAttr->attrHSkip.hSkipAttr.n = 1;
-    rcAttr->attrHSkip.hSkipAttr.maxSameSceneCnt = 6;
+    rcAttr->attrHSkip.hSkipAttr.maxSameSceneCnt = 0;
     rcAttr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
     rcAttr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
     rcAttr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X;
