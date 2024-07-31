@@ -482,20 +482,17 @@ void *Worker::audio_grabber(void *arg)
                     LOG_ERROR("IMP_AI_ReleaseFrame(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << ", &frame) failed");
                 }
             }
-            else
+            else //if (global_audio[encChn]->onDataCallback != nullptr)
             {
-
                 LOG_DEBUG(global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << " POLLING TIMEOUT");
-                usleep(THREAD_SLEEP);
             }
-            usleep(1000);
         }
         else
         {
 
             usleep(THREAD_SLEEP);
         }
-    }
+    } //while (global_audio[encChn]->running)
 
     return 0;
 }
