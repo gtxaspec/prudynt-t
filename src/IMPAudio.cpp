@@ -17,13 +17,13 @@ int IMPAudio::init()
     int ret;
 
     IMPAudioIOAttr ioattr;
-    ioattr.samplerate = AUDIO_SAMPLE_RATE_32000;
+    ioattr.samplerate = AUDIO_SAMPLE_RATE_16000;
     ioattr.bitwidth = AUDIO_BIT_WIDTH_16;
     ioattr.soundmode = AUDIO_SOUND_MODE_MONO;
     ioattr.frmNum = 40;
     ioattr.numPerFrm = (int)ioattr.samplerate * 0.040;
     ioattr.chnCnt = 1;
-    
+
     ret = IMP_AI_SetPubAttr(devId, &ioattr);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetPubAttr(" << devId << ")");
 
