@@ -61,8 +61,7 @@ void IMPAudioDeviceSource::deliverFrame()
             fFrameSize = af.data.size();
         }
 
-        gettimeofday(&fPresentationTime, NULL);
-        //fPresentationTime = af.time;
+        fPresentationTime = af.time;
         
         memcpy(fTo, &af.data[0], fFrameSize);
 

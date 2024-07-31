@@ -1,8 +1,7 @@
 #include "IMPSystem.hpp"
+#include "Config.hpp"
 
 #define MODULE "IMP_SYSTEM"
-
-extern std::shared_ptr<CFG> cfg;
 
 IMPSensorInfo IMPSystem::create_sensor_info(const char *sensor_name)
 {

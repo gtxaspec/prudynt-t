@@ -345,3 +345,7 @@ class CFG {
         std::vector<ConfigItem<int>> getIntItems();
         std::vector<ConfigItem<unsigned int>> getUintItems();
 };
+
+// The configuration is kept in a global singleton that's accessed via this
+// shared_ptr.
+extern std::shared_ptr<CFG> cfg;

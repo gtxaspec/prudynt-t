@@ -2,8 +2,6 @@
 
 #define MODULE "WORKER"
 
-extern std::shared_ptr<CFG> cfg;
-
 unsigned long long tDiffInMs(struct timeval *startTime)
 {
     struct timeval currentTime;
@@ -279,12 +277,10 @@ void *Worker::stream_grabber(void *arg)
                     continue;
                 }
 
-                /*
                 int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
                 struct timeval encoder_time;
                 encoder_time.tv_sec = nal_ts / 1000000;
                 encoder_time.tv_usec = nal_ts % 1000000;
-                */
 
                 for (uint32_t i = 0; i < stream.packCount; ++i)
                 {
@@ -302,8 +298,8 @@ void *Worker::stream_grabber(void *arg)
 #endif
                         H264NALUnit nalu;
 
-                        //nalu.imp_ts = stream.pack[i].timestamp;
-                        //nalu.time = encoder_time;
+                        nalu.imp_ts = stream.pack[i].timestamp;
+                        nalu.time = encoder_time;
 
                         // We use start+4 because the encoder inserts 4-byte MPEG
                         //'startcodes' at the beginning of each NAL. Live555 complains
@@ -450,15 +446,13 @@ void *Worker::audio_grabber(void *arg)
                     LOG_ERROR("IMP_AI_GetFrame(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << ") failed");
                 }
 
-                /*
                 int64_t audio_ts = frame.timeStamp;
                 struct timeval encoder_time;
                 encoder_time.tv_sec = audio_ts / 1000000;
                 encoder_time.tv_usec = audio_ts % 1000000;
-                */
 
                 AudioFrame af;
-                //af.time = encoder_time;
+                af.time = encoder_time;
 
                 uint8_t *start = (uint8_t *)frame.virAddr;
                 uint8_t *end = start + frame.len;

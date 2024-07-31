@@ -9,8 +9,6 @@
 #include "GroupsockHelper.hh"
 #include "Config.hpp"
 
-extern std::shared_ptr<CFG> cfg;
-
 // Modify method to accept pointers for the NAL units
 IMPServerMediaSubsession *IMPServerMediaSubsession::createNew(
     UsageEnvironment &env,

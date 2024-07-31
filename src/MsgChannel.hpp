@@ -2,37 +2,35 @@
 #define MsgChannel_hpp
 
 #include <iostream>
-#include <vector>
+#include <deque>
 #include <thread>
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
 
+/* Implementation of the MsgChannel API, except that it keeps 
+ * the most recent bsize elements in the queue.
+ */
 template <class T> class MsgChannel {
 public:
-    MsgChannel(unsigned int bsize) : write_ptr(0), read_ptr(0) {
-        msg_buffer.resize(bsize);
-        buffer_size = bsize;
-    }
+    MsgChannel(unsigned int bsize) : buffer_size{bsize} { }
 
     bool write(T msg) {
-        if (can_write()) {
-            std::unique_lock<std::mutex> lck(cv_mtx);
-            msg_buffer[write_ptr] = msg;
-            increment_write();
-            write_cv.notify_all();
-            return true;
-        }
-        else {
+        std::unique_lock<std::mutex> lck(cv_mtx);
+        msg_buffer.push_front(msg);
+        if (msg_buffer.size() > buffer_size) {
+            msg_buffer.pop_back();
             return false;
         }
+        write_cv.notify_all();
+        return true;
     }
 
     bool read(T *out) {
+        std::unique_lock<std::mutex> lck(cv_mtx);
         if (can_read()) {
-            *out = msg_buffer[read_ptr];
-            msg_buffer[read_ptr] = T();
-            increment_read();
+            *out = msg_buffer.back();
+            msg_buffer.pop_back();
             return true;
         }
         return false;
@@ -43,47 +41,17 @@ public:
         while (!can_read()) {
             write_cv.wait(lck);
         };
-        T val = msg_buffer[read_ptr];
-        msg_buffer[read_ptr] = T();
-        increment_read();
+        T val = msg_buffer.back();
+        msg_buffer.pop_back();
         return val;
     }
 
 private:
     bool can_read() {
-        //write pointer is never less than read pointer,
-        //unless it has overflown and the read pointer hasn't.
-        //read pointer cannot overflow before write pointer
-        if (write_ptr < read_ptr) {
-            //Write pointer overflow. We can read.
-            return true;
-        }
-        else if (write_ptr > read_ptr) {
-            return true;
-        }
-        else {
-            return false;
-        }
+        return !msg_buffer.empty();
     }
 
-    bool can_write() {
-        if (((write_ptr + 1) % buffer_size) == read_ptr) {
-            return false;
-        }
-        return true;
-    }
-
-    void increment_read() {
-        read_ptr = (read_ptr + 1) % buffer_size;
-    }
-
-    void increment_write() {
-        write_ptr = (write_ptr + 1) % buffer_size;
-    }
-
-    std::vector<T> msg_buffer;
-    std::atomic<unsigned int> write_ptr;
-    std::atomic<unsigned int> read_ptr;
+    std::deque<T> msg_buffer;
     std::mutex cv_mtx;
     std::condition_variable write_cv;
     unsigned int buffer_size;

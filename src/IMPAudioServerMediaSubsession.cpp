@@ -2,8 +2,6 @@
 #include "SimpleRTPSink.hh"
 #include "GroupsockHelper.hh"
 
-extern std::shared_ptr<CFG> cfg;
-
 IMPAudioServerMediaSubsession* IMPAudioServerMediaSubsession::createNew(
     UsageEnvironment& env,
     int audioChn)

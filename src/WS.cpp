@@ -16,7 +16,6 @@
 #define MODULE "WEBSOCKET"
 
 #pragma region keys_and_enums
-extern std::shared_ptr<CFG> cfg;
 
 /*
     ToDo's
