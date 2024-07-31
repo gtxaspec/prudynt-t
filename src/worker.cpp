@@ -267,7 +267,7 @@ void *Worker::stream_grabber(void *arg)
     global_video[encChn]->running = true;
     while (global_video[encChn]->running)
     {
-        if (global_video[encChn]->onDataCallback != nullptr)
+        if (global_video[encChn]->hasDataCallback())
         {
             if (IMP_Encoder_PollingStream(encChn, cfg->general.imp_polling_timeout) == 0)
             {
@@ -291,7 +291,7 @@ void *Worker::stream_grabber(void *arg)
                     fps++;
                     bps += stream.pack[i].length;
 
-                    if (global_video[encChn]->onDataCallback != nullptr)
+                    if (global_video[encChn]->hasDataCallback())
                     {
 #if defined(PLATFORM_T31)
                         uint8_t *start = (uint8_t *)stream.virAddr + stream.pack[i].offset;
@@ -352,6 +352,7 @@ void *Worker::stream_grabber(void *arg)
                             }
                             else
                             {
+                                std::unique_lock<std::mutex> lock_stream {global_video[encChn]->lock};
                                 if (global_video[encChn]->onDataCallback)
                                     global_video[encChn]->onDataCallback();
                             }
@@ -392,14 +393,15 @@ void *Worker::stream_grabber(void *arg)
             {
                 error_count++;
                 LOG_DDEBUG("IMP_Encoder_PollingStream(" << encChn << ", " << cfg->general.imp_polling_timeout << ") timeout !");
-                usleep(THREAD_SLEEP);
             }
         }
         else
         {
             global_video[encChn]->stream->osd.stats.bps = 0;
             global_video[encChn]->stream->osd.stats.fps = 1;
-            usleep(THREAD_SLEEP);
+            std::unique_lock<std::mutex> lock_stream {global_video[encChn]->lock};
+            while (global_video[encChn]->onDataCallback == nullptr)
+                global_video[encChn]->should_grab_frames.wait(lock_stream);
         }
     }
 
@@ -437,7 +439,7 @@ void *Worker::audio_grabber(void *arg)
     while (global_audio[encChn]->running)
     {
 
-        if (global_audio[encChn]->onDataCallback != nullptr && cfg->audio.input_enabled)
+        if (global_audio[encChn]->hasDataCallback() && cfg->audio.input_enabled)
         {
 
             if (IMP_AI_PollingFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, cfg->general.imp_polling_timeout) == 0)
@@ -462,7 +464,7 @@ void *Worker::audio_grabber(void *arg)
                 uint8_t *end = start + frame.len;
 
                 af.data.insert(af.data.end(), start, end);
-                if (global_audio[encChn]->onDataCallback)
+                if (global_audio[encChn]->hasDataCallback())
                 {
                     if (!global_audio[encChn]->msgChannel->write(af))
                     {
@@ -470,7 +472,7 @@ void *Worker::audio_grabber(void *arg)
                     }
                     else
                     {
-                        //std::lock_guard<std::mutex> lock(global_audio[encChn]->mtx);
+                        std::unique_lock<std::mutex> lock_stream {global_audio[encChn]->lock};
                         if (global_audio[encChn]->onDataCallback)
                             global_audio[encChn]->onDataCallback();
                     }
@@ -482,15 +484,16 @@ void *Worker::audio_grabber(void *arg)
                     LOG_ERROR("IMP_AI_ReleaseFrame(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << ", &frame) failed");
                 }
             }
-            else //if (global_audio[encChn]->onDataCallback != nullptr)
+            else
             {
                 LOG_DEBUG(global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << " POLLING TIMEOUT");
             }
         }
         else
         {
-
-            usleep(THREAD_SLEEP);
+            std::unique_lock<std::mutex> lock_stream {global_audio[encChn]->lock};
+            while (global_audio[encChn]->onDataCallback == nullptr && !cfg->audio.input_enabled)
+                global_audio[encChn]->should_grab_frames.wait(lock_stream);
         }
     } //while (global_audio[encChn]->running)
 

@@ -10,16 +10,19 @@ IMPAudioDeviceSource *IMPAudioDeviceSource::createNew(UsageEnvironment &env, int
 IMPAudioDeviceSource::IMPAudioDeviceSource(UsageEnvironment &env, int aiChn)
     : FramedSource(env), aiChn(aiChn), eventTriggerId(0)
 {
+    std::lock_guard lock_stream {global_audio[aiChn]->lock};
     global_audio[aiChn]->onDataCallback = [this]()
     { this->on_data_available(); };
 
     eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
+    global_audio[aiChn]->should_grab_frames.notify_one();
 
     LOG_DEBUG("IMPAudioDeviceSource construct, encoder channel:" << aiChn);
 }
 
 void IMPAudioDeviceSource::deinit()
 {
+    std::lock_guard lock_stream {global_audio[aiChn]->lock};
     envir().taskScheduler().deleteEventTrigger(eventTriggerId);
     global_audio[aiChn]->onDataCallback = nullptr;
     LOG_DEBUG("IMPAudioDeviceSource destruct, encoder channel:" << aiChn);
