@@ -942,8 +942,6 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
 #if defined(AUDIO_SUPPORT)
 signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
 {
-    LOG_DEBUG(ctx->path_match << " " << reason);
-    
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
