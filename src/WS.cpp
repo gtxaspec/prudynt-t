@@ -24,7 +24,9 @@ extern std::shared_ptr<CFG> cfg;
     add new font stroke
     add osd pool size
     add polling timeout
+    add audio enabled per stream
 */
+const char *unsupported = "not supported on this plattform";
 
 /* ROOT */
 enum
@@ -164,30 +166,28 @@ static const char *const image_keys[] = {
 enum
 {
     PNT_AUDIO_INPUT_ENABLED = 1,
+    PNT_AUDIO_INPUT_AGC_ENABLED,
+    PNT_AUDIO_INPUT_HIGH_PASS_FILTER,
     PNT_AUDIO_INPUT_VOL,
     PNT_AUDIO_INPUT_GAIN,
     PNT_AUDIO_INPUT_ALC_GAIN,
-    PNT_AUDIO_OUTPUT_ENABLED,
-    PNT_AUDIO_OUTPUT_VOL,
-    PNT_AUDIO_OUTPUT_GAIN,
-    PNT_AUDIO_INPUT_ECHO_CANCELLATION,
     PNT_AUDIO_INPUT_NOISE_SUPPRESSION,
-    PNT_AUDIO_INPUT_HIGH_PASS_FILTER,
-    PNT_AUDIO_OUTPUT_HIGH_PASS_FILTER
+    PNT_AUDIO_INPUT_AGC_TARGET_LEVEL_DBFS,
+    PNT_AUDIO_INPUT_AGC_COMPRESSION_GAIN_DB,
+    PNT_AUDIO_INPUT_BITRATE,
 };
 
 static const char *const audio_keys[] = {
     "input_enabled",
+    "input_agc_enabled",
+    "input_high_pass_filter",
     "input_vol",
     "input_gain",
     "input_alc_gain",
-    "output_enabled",
-    "output_vol",
-    "output_gain",
-    "input_echo_cancellation",
     "input_noise_suppression",
-    "input_high_pass_filter",
-    "output_high_pass_filter"};
+    "input_agc_target_level_dbfs",
+    "input_agc_compression_gain_db",
+    "INPUT_bitrate"};
 #endif
 
 /* STREAM */
@@ -428,7 +428,8 @@ std::string generateToken(int length)
     return randomString;
 }
 
-void send_jpeg(struct lws *wsi) {
+void send_jpeg(struct lws *wsi)
+{
 
     std::vector<uint8_t> jpeg_data = Worker::capture_jpeg_image(2);
     size_t jpeg_size = jpeg_data.size();
@@ -941,43 +942,20 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
 #if defined(AUDIO_SUPPORT)
 signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
 {
+    LOG_DEBUG(ctx->path_match << " " << reason);
+    
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
         append_message(
             "%s\"%s\":", u_ctx->s ? "," : "", audio_keys[ctx->path_match - 1]);
 
-        if (ctx->path_match == PNT_AUDIO_OUTPUT_HIGH_PASS_FILTER)
+        if (ctx->path_match == PNT_AUDIO_INPUT_HIGH_PASS_FILTER)
         {
             IMPAudioIOAttr ioattr;
-            int ret = IMP_AO_GetPubAttr(0, &ioattr);
-            if (ret == 0)
-            {
-                if (reason == LEJPCB_VAL_TRUE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, true))
-                    {
-                        ret = IMP_AO_EnableHpf(&ioattr);
-                    }
-                }
-                else if (reason == LEJPCB_VAL_FALSE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, false))
-                    {
-                        ret = IMP_AO_DisableHpf();
-                    }
-                }
-            }
-            append_message(
-                "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
-        }
-        else if (ctx->path_match == PNT_AUDIO_INPUT_HIGH_PASS_FILTER)
-        {
-            IMPAudioIOAttr ioattr;
-            int ret = IMP_AI_GetPubAttr(0, &ioattr);
+            int ret = IMP_AI_GetPubAttr(u_ctx->flag, &ioattr);
             if (ret == 0)
             {
                 if (reason == LEJPCB_VAL_TRUE)
@@ -1001,7 +979,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
         else if (ctx->path_match == PNT_AUDIO_INPUT_NOISE_SUPPRESSION)
         {
             IMPAudioIOAttr ioattr;
-            int ret = IMP_AI_GetPubAttr(0, &ioattr);
+            int ret = IMP_AI_GetPubAttr(u_ctx->flag, &ioattr);
             if (ret == 0)
             {
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -1026,9 +1004,63 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
             append_message(
                 "%d", cfg->get<int>(u_ctx->path));
         }
+#if defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30) || defined(PLATFORM_T31)
+        else if (ctx->path_match == PNT_AUDIO_INPUT_AGC_ENABLED)
+        {
+            IMPAudioIOAttr ioattr;
+            int ret = IMP_AI_GetPubAttr(u_ctx->flag, &ioattr);
+            if (ret == 0)
+            {            
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    if (cfg->set<bool>(u_ctx->path, true))
+                    {
+                        IMPAudioAgcConfig agcConfig = {
+                            .TargetLevelDbfs = cfg->audio.input_agc_target_level_dbfs,
+                            .CompressionGaindB = cfg->audio.input_agc_compression_gain_db,
+                        };
+                        IMP_AI_EnableAgc(&ioattr, agcConfig);
+                    }
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    if (cfg->set<bool>(u_ctx->path, false))
+                    {
+                        IMP_AI_Disable(u_ctx->flag);
+                    }
+                }
+            }
+            append_message(
+                "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+        }
+        else if (ctx->path_match == PNT_AUDIO_INPUT_AGC_TARGET_LEVEL_DBFS || ctx->path_match == PNT_AUDIO_INPUT_AGC_COMPRESSION_GAIN_DB)
+        {
+            if (reason == LEJPCB_VAL_NUM_INT)
+            {
+                if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
+                {
+                    IMPAudioIOAttr ioattr;
+                    int ret = IMP_AI_GetPubAttr(u_ctx->flag, &ioattr);
+                    if (ret == 0)
+                    {                    
+                        IMPAudioAgcConfig agcConfig = {
+                            .TargetLevelDbfs = cfg->audio.input_agc_target_level_dbfs,
+                            .CompressionGaindB = cfg->audio.input_agc_compression_gain_db,
+                        };
+                        IMP_AI_EnableAgc(&ioattr, agcConfig);
+                    }
+                }
+            }
+            append_message(
+                "%d", cfg->get<int>(u_ctx->path));
+        }
+#else
+            append_message(
+                "%s", "null");
+        }
+#endif
         else
         {
-
             switch (ctx->path_match)
             {
             case PNT_AUDIO_INPUT_ENABLED:
@@ -1036,14 +1068,14 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                 {
                     if (cfg->set<bool>(u_ctx->path, true))
                     {
-                        IMP_AI_Enable(0);
+                        IMP_AI_Enable(u_ctx->flag);
                     }
                 }
                 else if (reason == LEJPCB_VAL_FALSE)
                 {
                     if (cfg->set<bool>(u_ctx->path, false))
                     {
-                        IMP_AI_Disable(0);
+                        IMP_AI_Disable(u_ctx->flag);
                     }
                 }
                 append_message(
@@ -1054,7 +1086,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                 {
                     if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
                     {
-                        IMP_AI_SetVol(0, 0, cfg->get<int>(u_ctx->path));
+                        IMP_AI_SetVol(u_ctx->flag, global_audio[u_ctx->flag]->aiChn, cfg->get<int>(u_ctx->path));
                     }
                 }
                 append_message(
@@ -1065,14 +1097,14 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                 {
                     if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
                     {
-                        IMP_AI_SetGain(0, 0, cfg->get<int>(u_ctx->path));
+                        IMP_AI_SetGain(u_ctx->flag, global_audio[u_ctx->flag]->aiChn, cfg->get<int>(u_ctx->path));
                     }
                 }
                 append_message(
                     "%d", cfg->get<int>(u_ctx->path));
                 break;
-            case PNT_AUDIO_INPUT_ALC_GAIN:
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+            case PNT_AUDIO_INPUT_ALC_GAIN:                
+#if defined(PLATFORM_T21) || defined(PLATFORM_T31)
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
                     if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -1084,66 +1116,8 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                     "%d", cfg->get<int>(u_ctx->path));
 #else
                 append_message(
-                    "%s", "null");
+                    "\"%s\"", unsupported);
 #endif
-                break;
-            case PNT_AUDIO_OUTPUT_ENABLED:
-                if (reason == LEJPCB_VAL_TRUE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, true))
-                    {
-                        IMP_AO_Enable(0);
-                    }
-                }
-                else if (reason == LEJPCB_VAL_FALSE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, false))
-                    {
-                        IMP_AO_Disable(0);
-                    }
-                }
-                append_message(
-                    "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
-                break;
-            case PNT_AUDIO_OUTPUT_VOL:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_AO_SetVol(0, 0, cfg->get<int>(u_ctx->path));
-                    }
-                }
-                append_message(
-                    "%d", cfg->get<int>(u_ctx->path));
-                break;
-            case PNT_AUDIO_OUTPUT_GAIN:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_AO_SetGain(0, 0, cfg->get<int>(u_ctx->path));
-                    }
-                }
-                append_message(
-                    "%d", cfg->get<int>(u_ctx->path));
-                break;
-            case PNT_AUDIO_INPUT_ECHO_CANCELLATION:
-                if (reason == LEJPCB_VAL_TRUE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, true))
-                    {
-                        IMP_AI_EnableAec(0, 0, 0, 0);
-                    }
-                }
-                else if (reason == LEJPCB_VAL_FALSE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, false))
-                    {
-                        IMP_AI_DisableAec(0, 0);
-                    }
-                }
-                append_message(
-                    "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
                 break;
             }
         }
@@ -1425,12 +1399,12 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                         if (u_ctx->flag == 0)
                         {
                             OSD::set_pos(&rgnAttr, cfg->stream0.osd.pos_logo_x,
-                                cfg->stream0.osd.pos_logo_y, 0, 0, cfg->stream0.width, cfg->stream0.height);
+                                         cfg->stream0.osd.pos_logo_y, 0, 0, cfg->stream0.width, cfg->stream0.height);
                         }
                         else if (u_ctx->flag == 1)
                         {
                             OSD::set_pos(&rgnAttr, cfg->stream1.osd.pos_logo_x,
-                                cfg->stream1.osd.pos_logo_y, 0, 0, cfg->stream1.width, cfg->stream1.height);
+                                         cfg->stream1.osd.pos_logo_y, 0, 0, cfg->stream1.width, cfg->stream1.height);
                         }
                         IMP_OSD_SetRgnAttr(3, &rgnAttr);
                     }
@@ -1449,12 +1423,12 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                         if (u_ctx->flag == 0)
                         {
                             OSD::set_pos(&rgnAttr, cfg->stream0.osd.pos_logo_y,
-                                cfg->stream0.osd.pos_logo_y, 0, 0, cfg->stream0.width, cfg->stream0.height);
+                                         cfg->stream0.osd.pos_logo_y, 0, 0, cfg->stream0.width, cfg->stream0.height);
                         }
                         else if (u_ctx->flag == 1)
                         {
                             OSD::set_pos(&rgnAttr, cfg->stream1.osd.pos_logo_y,
-                                cfg->stream1.osd.pos_logo_y, 0, 0, cfg->stream1.width, cfg->stream1.height);
+                                         cfg->stream1.osd.pos_logo_y, 0, 0, cfg->stream1.width, cfg->stream1.height);
                         }
                         IMP_OSD_SetRgnAttr(3, &rgnAttr);
                     }
@@ -1728,12 +1702,14 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
             if (reason == LEJPCB_VAL_NUM_INT)
             {
                 u_ctx->signal = atoi(ctx->buf);
-                if(u_ctx->signal & 1) {
+                if (u_ctx->signal & 1)
+                {
                     global_restart_rtsp = true;
                 }
-                if(u_ctx->signal & 2) {
+                if (u_ctx->signal & 2)
+                {
                     global_restart_video = true;
-                }                
+                }
             }
             append_message(
                 "\"%s\"", "initiated");
@@ -1795,18 +1771,19 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
 
 #if defined(AUDIO_SUPPORT)
         case PNT_AUDIO:
+            u_ctx->flag = global_audio[0]->aiChn;
             lejp_parser_push(ctx, u_ctx,
                              audio_keys, LWS_ARRAY_SIZE(audio_keys), audio_callback);
             break;
 #endif
 
         case PNT_STREAM0:
-            u_ctx->flag = 0;
+            u_ctx->flag = global_video[0]->encChn;
             lejp_parser_push(ctx, &u_ctx,
                              stream_keys, LWS_ARRAY_SIZE(stream_keys), stream_callback);
             break;
         case PNT_STREAM1:
-            u_ctx->flag = 1;
+            u_ctx->flag = global_video[1]->encChn;
             lejp_parser_push(ctx, &u_ctx,
                              stream_keys, LWS_ARRAY_SIZE(stream_keys), stream_callback);
             break;
@@ -1851,7 +1828,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
     switch (reason)
     {
     case LWS_CALLBACK_ESTABLISHED:
-        LOG_DEBUG("LWS_CALLBACK_ESTABLISHED " << client_ip);
+        LOG_DDEBUG("LWS_CALLBACK_ESTABLISHED " << client_ip);
 
         url_length = lws_get_urlarg_by_name_safe(wsi, "token", url_token, sizeof(url_token));
         if (url_length != WEBSOCKET_TOKEN_LENGTH || strcmp(token, url_token) != 0)
@@ -1865,19 +1842,19 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         }
         break;
     case LWS_CALLBACK_SERVER_WRITEABLE:
-        LOG_DEBUG("LWS_CALLBACK_SERVER_WRITEABLE");
+        LOG_DDEBUG("LWS_CALLBACK_SERVER_WRITEABLE");
 
         ws_send_msg_length = strlen(ws_send_msg);
         if (ws_send_msg_length)
         {
-            LOG_DEBUG("TO " << client_ip << ":  " << ws_send_msg);
+            LOG_DDEBUG("TO " << client_ip << ":  " << ws_send_msg);
             lws_write(wsi, (unsigned char *)ws_send_msg, ws_send_msg_length, LWS_WRITE_TEXT);
             memset(ws_send_msg, 0, sizeof(ws_send_msg));
         }
         break;
 
     case LWS_CALLBACK_RECEIVE:
-        LOG_DEBUG("LWS_CALLBACK_RECEIVE " << client_ip << ", " << json_data);
+        LOG_DDEBUG("LWS_CALLBACK_RECEIVE " << client_ip << ", " << json_data);
 
         // cleanup response buffer
         memset(ws_send_msg, 0, sizeof(ws_send_msg));
@@ -1889,20 +1866,20 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
         std::strcat(ws_send_msg, "}"); // close response json
 
-        //send jpeg image via websocket
+        // send jpeg image via websocket
         if ((u_ctx->signal & 32))
         {
             send_jpeg(wsi);
             memset(ws_send_msg, 0, sizeof(ws_send_msg));
         }
 
-        //inform main to restart threads
+        // inform main to restart threads
         if (global_restart_rtsp || global_restart_video)
         {
             global_cv_worker_restart.notify_one();
         }
 
-        //always reset signal
+        // always reset signal
         u_ctx->signal = 0;
         lws_callback_on_writable(wsi);
         break;
@@ -1950,7 +1927,7 @@ void WS::start()
 
     // add current class instances to lws context
     user_ctx u_ctx;
-    //u_ctx.ws = this;
+    // u_ctx.ws = this;
     u_ctx.s = 0;
     info.user = &u_ctx;
 
@@ -1973,7 +1950,8 @@ void WS::start()
     lws_context_destroy(context);
 }
 
-void* WS::run(void* arg) {
-    ((WS*)arg)->start();
+void *WS::run(void *arg)
+{
+    ((WS *)arg)->start();
     return nullptr;
 }

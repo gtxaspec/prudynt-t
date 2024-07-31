@@ -13,6 +13,11 @@
 #define NUM_AUDIO_CHANNELS 1
 #define NUM_VIDEO_CHANNELS 2
 
+/*
+    ToDo's
+    simplify msgChannel only vector required
+*/
+
 struct AudioFrame
 {
 	std::vector<uint8_t> data;
@@ -43,6 +48,7 @@ struct audio_stream {
     pthread_t thread;
     IMPAudio *imp_audio;
     std::shared_ptr<MsgChannel<AudioFrame>> msgChannel;
+    //std::shared_ptr<MsgChannel<std::vector<uint8_t>>> msgChannel;
     std::function<void(void)> onDataCallback;
 
     audio_stream(int devId, int aiChn)
@@ -61,11 +67,12 @@ struct video_stream {
     IMPEncoder *imp_encoder;
     IMPFramesource *imp_framesource;
     std::shared_ptr<MsgChannel<H264NALUnit>> msgChannel;
+    //std::shared_ptr<MsgChannel<std::vector<uint8_t>>> msgChannel;
     std::function<void(void)> onDataCallback;
 
     video_stream(int encChn, _stream* stream, const char *name)
         : encChn(encChn), stream(stream), running(false), name(name), idr(false), imp_encoder(nullptr), imp_framesource(nullptr),
-          msgChannel(std::make_shared<MsgChannel<H264NALUnit>>(MSG_CHANNEL_SIZE)), onDataCallback(nullptr) {}
+          msgChannel(std::make_shared<MsgChannel<H264NALUnit>>(MSG_CHANNEL_SIZE)), onDataCallback(nullptr), idr_fix(0) {}
 };
 
 //extern CFG *cfg;
