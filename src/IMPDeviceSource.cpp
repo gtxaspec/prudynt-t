@@ -7,13 +7,13 @@ template class IMPDeviceSource<H264NALUnit, video_stream>;
 template class IMPDeviceSource<AudioFrame, audio_stream>;
 
 template<typename FrameType, typename Stream>
-IMPDeviceSource<FrameType, Stream> *IMPDeviceSource<FrameType, Stream>::createNew(UsageEnvironment &env, int encChn, std::shared_ptr<Stream> stream, std::string name)
+IMPDeviceSource<FrameType, Stream> *IMPDeviceSource<FrameType, Stream>::createNew(UsageEnvironment &env, int encChn, std::shared_ptr<Stream> stream, const char *name)
 {
     return new IMPDeviceSource<FrameType, Stream>(env, encChn, stream, name);
 }
 
 template<typename FrameType, typename Stream>
-IMPDeviceSource<FrameType, Stream>::IMPDeviceSource(UsageEnvironment &env, int encChn, std::shared_ptr<Stream> stream, std::string name)
+IMPDeviceSource<FrameType, Stream>::IMPDeviceSource(UsageEnvironment &env, int encChn, std::shared_ptr<Stream> stream, const char *name)
     : FramedSource(env), encChn(encChn), eventTriggerId(0), stream{stream}, name{name}
 {
     std::lock_guard lock_stream {stream->lock};

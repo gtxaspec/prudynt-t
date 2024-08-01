@@ -3,7 +3,6 @@
 #include "IMPAudioServerMediaSubsession.hpp"
 #include "SimpleRTPSink.hh"
 #include "GroupsockHelper.hh"
-#include <format>
 
 IMPAudioServerMediaSubsession* IMPAudioServerMediaSubsession::createNew(
     UsageEnvironment& env,
@@ -29,7 +28,7 @@ FramedSource* IMPAudioServerMediaSubsession::createNewStreamSource(
     unsigned& estBitrate)
 {
     estBitrate = global_audio[audioChn]->imp_audio->bitrate;
-    IMPDeviceSource<AudioFrame, audio_stream> * audioSource = IMPDeviceSource<AudioFrame, audio_stream> ::createNew(envir(), audioChn, global_audio[audioChn], std::format("audio #{}", audioChn));
+    IMPDeviceSource<AudioFrame, audio_stream> * audioSource = IMPDeviceSource<AudioFrame, audio_stream> ::createNew(envir(), audioChn, global_audio[audioChn], "audio");
     return audioSource;
 }
 
