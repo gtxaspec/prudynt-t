@@ -486,7 +486,7 @@ void *Worker::audio_grabber(void *arg)
         else
         {
             std::unique_lock<std::mutex> lock_stream {global_audio[encChn]->lock};
-            while (global_audio[encChn]->onDataCallback == nullptr && !cfg->audio.input_enabled && !global_restart_audio)
+            while (global_audio[encChn]->onDataCallback == nullptr && !global_restart_audio)
                 global_audio[encChn]->should_grab_frames.wait(lock_stream);
         }
     } //while (global_audio[encChn]->running)
