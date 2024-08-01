@@ -1670,19 +1670,7 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
         case PNT_RESTART_THREAD:
             if (reason == LEJPCB_VAL_NUM_INT)
             {
-                u_ctx->signal = atoi(ctx->buf);
-                if (u_ctx->signal & PNT_THREAD_RTSP)
-                {
-                    global_restart_rtsp = true;
-                }
-                if (u_ctx->signal & PNT_THREAD_VIDEO)
-                {
-                    global_restart_video = true;
-                }
-                if (u_ctx->signal & PNT_THREAD_AUDIO)
-                {
-                    global_restart_audio = true;
-                }                
+                u_ctx->signal = atoi(ctx->buf);               
             }
             append_message(
                 "\"%s\"", "initiated");
@@ -1849,9 +1837,21 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             }
 
             // inform main to restart threads
-            if (global_restart_rtsp || global_restart_video || global_restart_audio)
+            if ((u_ctx->signal & PNT_THREAD_RTSP) || (u_ctx->signal & PNT_THREAD_VIDEO) || (u_ctx->signal & PNT_THREAD_AUDIO))
             {
-                global_cv_worker_restart.notify_one();
+                if (u_ctx->signal & PNT_THREAD_RTSP)
+                {
+                    global_restart_rtsp = true;
+                }                    
+                if (u_ctx->signal & PNT_THREAD_VIDEO)
+                {
+                    global_restart_video = true;
+                }
+                if (u_ctx->signal & PNT_THREAD_AUDIO)
+                {
+                    global_restart_audio = true;
+                }
+                global_cv_worker_restart.notify_one();           
             }
         }
 
