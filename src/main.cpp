@@ -198,6 +198,7 @@ int main(int argc, const char *argv[])
             if (global_video[1]->imp_encoder)
             {
                 global_video[1]->running = false;
+                global_video[1]->should_grab_frames.notify_one();
                 int ret = pthread_join(global_video[1]->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join stream1 thread");
             }
@@ -206,6 +207,7 @@ int main(int argc, const char *argv[])
             if (global_video[0]->imp_encoder)
             {
                 global_video[0]->running = false;
+                global_video[0]->should_grab_frames.notify_one();
                 int ret = ret = pthread_join(global_video[0]->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join stream0 thread");
             }
@@ -215,6 +217,7 @@ int main(int argc, const char *argv[])
         if (global_audio[0]->imp_audio && global_restart_audio)
         {
             global_audio[0]->running = false;
+            global_audio[0]->should_grab_frames.notify_one();
             int ret = pthread_join(global_audio[0]->thread, NULL);
             LOG_DEBUG_OR_ERROR(ret, "join audio thread");
         }

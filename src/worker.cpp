@@ -396,7 +396,7 @@ void *Worker::stream_grabber(void *arg)
             global_video[encChn]->stream->osd.stats.bps = 0;
             global_video[encChn]->stream->osd.stats.fps = 1;
             std::unique_lock<std::mutex> lock_stream {global_video[encChn]->lock};
-            while (global_video[encChn]->onDataCallback == nullptr)
+            while (global_video[encChn]->onDataCallback == nullptr && !global_restart_video)
                 global_video[encChn]->should_grab_frames.wait(lock_stream);
         }
     }
@@ -486,7 +486,7 @@ void *Worker::audio_grabber(void *arg)
         else
         {
             std::unique_lock<std::mutex> lock_stream {global_audio[encChn]->lock};
-            while (global_audio[encChn]->onDataCallback == nullptr && !cfg->audio.input_enabled)
+            while (global_audio[encChn]->onDataCallback == nullptr && !cfg->audio.input_enabled && !global_restart_audio)
                 global_audio[encChn]->should_grab_frames.wait(lock_stream);
         }
     } //while (global_audio[encChn]->running)
