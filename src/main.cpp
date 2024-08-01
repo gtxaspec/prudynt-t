@@ -191,7 +191,7 @@ int main(int argc, const char *argv[])
                 int ret = pthread_join(global_jpeg->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join jpeg thread");
             }
-            LOG_DDEBUG("STREAM1");
+
             // stop stream1
             if (global_video[1]->imp_encoder)
             {
@@ -200,7 +200,7 @@ int main(int argc, const char *argv[])
                 int ret = pthread_join(global_video[1]->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join stream1 thread");
             }
-            LOG_DDEBUG("STREAM2");
+
             // stop stream0
             if (global_video[0]->imp_encoder)
             {
