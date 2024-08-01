@@ -1,4 +1,5 @@
 #include "RTSP.hpp"
+#include <format>
 
 #define MODULE "RTSP"
 
@@ -6,7 +7,7 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
 {
 
     LOG_DEBUG("identify stream " << chnNr);
-    IMPDeviceSource *deviceSource = IMPDeviceSource::createNew(*env, chnNr);
+    auto deviceSource = IMPDeviceSource<H264NALUnit,video_stream>::createNew(*env, chnNr, global_video[chnNr], std::format("video/pps/sps/vps #{}", chnNr));
     H264NALUnit sps;
     H264NALUnit pps;
     H264NALUnit *vps = nullptr;

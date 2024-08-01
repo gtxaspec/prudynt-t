@@ -2,7 +2,6 @@
 #define IMPAudioServerMediaSubsession_hpp
 
 #include "OnDemandServerMediaSubsession.hh"
-#include "IMPAudioDeviceSource.hpp"
 
 class IMPAudioServerMediaSubsession : public OnDemandServerMediaSubsession
 {

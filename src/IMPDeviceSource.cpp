@@ -2,53 +2,64 @@
 #include <iostream>
 #include "GroupsockHelper.hh"
 
-IMPDeviceSource *IMPDeviceSource::createNew(UsageEnvironment &env, int encChn)
+// explicit instantiation
+template class IMPDeviceSource<H264NALUnit, video_stream>;
+template class IMPDeviceSource<AudioFrame, audio_stream>;
+
+template<typename FrameType, typename Stream>
+IMPDeviceSource<FrameType, Stream> *IMPDeviceSource<FrameType, Stream>::createNew(UsageEnvironment &env, int encChn, std::shared_ptr<Stream> stream, std::string name)
 {
-    return new IMPDeviceSource(env, encChn);
+    return new IMPDeviceSource<FrameType, Stream>(env, encChn, stream, name);
 }
 
-IMPDeviceSource::IMPDeviceSource(UsageEnvironment &env, int encChn)
-    : FramedSource(env), encChn(encChn), eventTriggerId(0)
+template<typename FrameType, typename Stream>
+IMPDeviceSource<FrameType, Stream>::IMPDeviceSource(UsageEnvironment &env, int encChn, std::shared_ptr<Stream> stream, std::string name)
+    : FramedSource(env), encChn(encChn), eventTriggerId(0), stream{stream}, name{name}
 {
-    std::lock_guard lock_stream {global_video[encChn]->lock};
-    global_video[encChn]->onDataCallback = [this]()
+    std::lock_guard lock_stream {stream->lock};
+    stream->onDataCallback = [this]()
     { this->on_data_available(); };
 
     eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
-    global_video[encChn]->should_grab_frames.notify_one();
-    LOG_DEBUG("IMPDeviceSource construct, encoder channel:" << encChn);
+    stream->should_grab_frames.notify_one();
+    LOG_DEBUG("IMPDeviceSource " << name << " constructed, encoder channel:" << encChn);
 }
 
-void IMPDeviceSource::deinit()
+template<typename FrameType, typename Stream>
+void IMPDeviceSource<FrameType, Stream>::deinit()
 {
-    std::lock_guard lock_stream {global_video[encChn]->lock};
+    std::lock_guard lock_stream {stream->lock};
     envir().taskScheduler().deleteEventTrigger(eventTriggerId);
-    global_video[encChn]->onDataCallback = nullptr;
-    LOG_DEBUG("IMPDeviceSource destruct, encoder channel:" << encChn);
+    stream->onDataCallback = nullptr;
+    LOG_DEBUG("IMPDeviceSource " << name << " destructed, encoder channel:" << encChn);
 }
 
-IMPDeviceSource::~IMPDeviceSource()
+template<typename FrameType, typename Stream>
+IMPDeviceSource<FrameType, Stream>::~IMPDeviceSource()
 {
     deinit();
 }
 
-void IMPDeviceSource::doGetNextFrame()
+template<typename FrameType, typename Stream>
+void IMPDeviceSource<FrameType, Stream>::doGetNextFrame()
 {
     deliverFrame();
 }
 
-void IMPDeviceSource::deliverFrame0(void *clientData)
+template <typename FrameType, typename Stream>
+void IMPDeviceSource<FrameType, Stream>::deliverFrame0(void *clientData)
 {
-    ((IMPDeviceSource *)clientData)->deliverFrame();
+    ((IMPDeviceSource<FrameType, Stream> *)clientData)->deliverFrame();
 }
 
-void IMPDeviceSource::deliverFrame()
+template <typename FrameType, typename Stream>
+void IMPDeviceSource<FrameType, Stream>::deliverFrame()
 {
     if (!isCurrentlyAwaitingData())
         return;
 
-    H264NALUnit nal;
-    if (global_video[encChn]->msgChannel->read(&nal))
+    FrameType nal;
+    if (stream->msgChannel->read(&nal))
     {
         if (nal.data.size() > fMaxSize)
         {

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <format>
 #include "IMPServerMediaSubsession.hpp"
 #include "IMPDeviceSource.hpp"
 #include "H264VideoRTPSink.hh"
@@ -47,7 +48,7 @@ FramedSource *IMPServerMediaSubsession::createNewStreamSource(
     LOG_DEBUG("Create Stream Source. ");
     estBitrate = cfg->rtsp.est_bitrate; // The expected bitrate?
 
-    IMPDeviceSource *imp = IMPDeviceSource::createNew(envir(), encChn);
+    auto imp = IMPDeviceSource<H264NALUnit,video_stream>::createNew(envir(), encChn, global_video[encChn], std::format("video #{}", encChn));
     // Here we need to decide based on the format whether to use H264 or H265 framer
     if (vps)
     {

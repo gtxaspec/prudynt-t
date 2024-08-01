@@ -47,7 +47,6 @@ struct audio_stream {
     pthread_t thread;
     IMPAudio *imp_audio;
     std::shared_ptr<MsgChannel<AudioFrame>> msgChannel;
-    //std::shared_ptr<MsgChannel<std::vector<uint8_t>>> msgChannel;
     std::function<void(void)> onDataCallback;
     std::mutex lock;    // protects mutable fields: imp_framesource, onDataCallback, etc.
     std::condition_variable should_grab_frames;
