@@ -170,7 +170,6 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
 #if defined(AUDIO_SUPPORT)
         {"audio.input_vol", audio.input_vol, 30, [](const int &v) { return v >= -30 && v <= 120; }},
         {"audio.input_gain", audio.input_gain, 18, [](const int &v) { return v >= 0 && v <= 31; }},
-        {"audio.input_bitrate", audio.input_bitrate, 64, [](const int &v) { return v >= 16 && v <= 256; }},
 #if defined(LIB_AUDIO_PROCESSING)
         {"audio.input_alc_gain", audio.input_alc_gain, 1, [](const int &v) { return v >= 0 && v <= 7; }},
         {"audio.input_agc_target_level_dbfs", audio.input_agc_target_level_dbfs, 10, [](const int &v) { return v >= 0 && v <= 31; }},

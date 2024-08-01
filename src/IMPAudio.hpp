@@ -21,6 +21,7 @@ public:
 
     int init();
     int deinit();
+    int bitrate;    // computed during setup, in Kbps
 
     int inChn{};
     int devId{};

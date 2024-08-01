@@ -8,10 +8,11 @@
 #include <queue>
 #include "globals.hpp"
 
+template <typename FrameType, typename Stream>
 class IMPDeviceSource : public FramedSource
 {
 public:
-    static IMPDeviceSource *createNew(UsageEnvironment &env, int encChn);
+    static IMPDeviceSource *createNew(UsageEnvironment &env, int encChn, std::shared_ptr<Stream> stream, std::string name);
 
     void on_data_available()
     {
@@ -20,17 +21,18 @@ public:
             envir().taskScheduler().triggerEvent(eventTriggerId, this);
         }
     }
-    void deinit();
-    int encChn;
-    EventTriggerId eventTriggerId;
-
-    IMPDeviceSource(UsageEnvironment &env, int encChn);
+    IMPDeviceSource(UsageEnvironment &env, int encChn, std::shared_ptr<Stream> stream, std::string name);
     virtual ~IMPDeviceSource();
 
 private:
-    virtual void doGetNextFrame();
+    virtual void doGetNextFrame() override;
     static void deliverFrame0(void *clientData);
     void deliverFrame();
+    std::shared_ptr<Stream> stream;
+    void deinit();
+    int encChn;
+    EventTriggerId eventTriggerId;
+    std::string name;   // for printing
 };
 
 #endif

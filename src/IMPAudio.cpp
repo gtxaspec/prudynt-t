@@ -22,6 +22,8 @@ int IMPAudio::init()
     ioattr.frmNum = 40;
     ioattr.numPerFrm = (int)ioattr.samplerate * 0.040;
     ioattr.chnCnt = 1;
+    // compute bitrate in kbps
+    bitrate = (int) ioattr.bitwidth * (int) ioattr.samplerate / 1000;
 
     ret = IMP_AI_SetPubAttr(devId, &ioattr);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetPubAttr(" << devId << ")");
