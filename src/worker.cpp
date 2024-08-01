@@ -265,7 +265,7 @@ void *Worker::stream_grabber(void *arg)
     global_video[encChn]->running = true;
     while (global_video[encChn]->running)
     {
-        if (global_video[encChn]->hasDataCallback())
+        if (global_video[encChn]->hasDataCallback)
         {
             if (IMP_Encoder_PollingStream(encChn, cfg->general.imp_polling_timeout) == 0)
             {
@@ -287,7 +287,7 @@ void *Worker::stream_grabber(void *arg)
                     fps++;
                     bps += stream.pack[i].length;
 
-                    if (global_video[encChn]->hasDataCallback())
+                    if (global_video[encChn]->hasDataCallback)
                     {
 #if defined(PLATFORM_T31)
                         uint8_t *start = (uint8_t *)stream.virAddr + stream.pack[i].offset;
@@ -348,7 +348,7 @@ void *Worker::stream_grabber(void *arg)
                             }
                             else
                             {
-                                std::unique_lock<std::mutex> lock_stream{global_video[encChn]->lock};
+                                std::unique_lock<std::mutex> lock_stream{global_video[encChn]->onDataCallbackLock};
                                 if (global_video[encChn]->onDataCallback)
                                     global_video[encChn]->onDataCallback();
                             }
@@ -396,7 +396,7 @@ void *Worker::stream_grabber(void *arg)
         {
             global_video[encChn]->stream->osd.stats.bps = 0;
             global_video[encChn]->stream->osd.stats.fps = 1;
-            std::unique_lock<std::mutex> lock_stream{global_video[encChn]->lock};
+            std::unique_lock<std::mutex> lock_stream{mutex_main};
             while (global_video[encChn]->onDataCallback == nullptr && !global_restart_video)
                 global_video[encChn]->should_grab_frames.wait(lock_stream);
         }
@@ -436,7 +436,7 @@ void *Worker::audio_grabber(void *arg)
     while (global_audio[encChn]->running)
     {
 
-        if (global_audio[encChn]->hasDataCallback() && cfg->audio.input_enabled)
+        if (global_audio[encChn]->hasDataCallback && cfg->audio.input_enabled)
         {
 
             if (IMP_AI_PollingFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, cfg->general.imp_polling_timeout) == 0)
@@ -459,7 +459,7 @@ void *Worker::audio_grabber(void *arg)
                 uint8_t *end = start + frame.len;
 
                 af.data.insert(af.data.end(), start, end);
-                if (global_audio[encChn]->hasDataCallback())
+                if (global_audio[encChn]->hasDataCallback)
                 {
                     if (!global_audio[encChn]->msgChannel->write(af))
                     {
@@ -467,7 +467,7 @@ void *Worker::audio_grabber(void *arg)
                     }
                     else
                     {
-                        std::unique_lock<std::mutex> lock_stream{global_audio[encChn]->lock};
+                        std::unique_lock<std::mutex> lock_stream{global_audio[encChn]->onDataCallbackLock};
                         if (global_audio[encChn]->onDataCallback)
                             global_audio[encChn]->onDataCallback();
                     }
@@ -486,7 +486,7 @@ void *Worker::audio_grabber(void *arg)
         }
         else
         {
-            std::unique_lock<std::mutex> lock_stream{global_audio[encChn]->lock};
+            std::unique_lock<std::mutex> lock_stream{mutex_main};
             while (global_audio[encChn]->onDataCallback == nullptr && !global_restart_audio)
                 global_audio[encChn]->should_grab_frames.wait(lock_stream);
         }

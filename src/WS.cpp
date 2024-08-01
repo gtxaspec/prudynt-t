@@ -1815,27 +1815,27 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         break;
 
     case LWS_CALLBACK_RECEIVE:
+        LOG_DDEBUG("LWS_CALLBACK_RECEIVE " << client_ip << ", " << json_data);
+
+        // cleanup response buffer
+        memset(ws_send_msg, 0, sizeof(ws_send_msg));
+
+        std::strcat(ws_send_msg, "{"); // start response json
+        lejp_construct(&ctx, root_callback, u_ctx, root_keys, LWS_ARRAY_SIZE(root_keys));
+        lejp_parse(&ctx, (uint8_t *)json_data.c_str(), json_data.length());
+        lejp_destruct(&ctx);
+
+        std::strcat(ws_send_msg, "}"); // close response json
+
+        // send jpeg image via websocket
+        if ((u_ctx->signal & 32))
+        {
+            send_jpeg(wsi);
+            memset(ws_send_msg, 0, sizeof(ws_send_msg));
+        }
+
         {
             std::unique_lock lck(mutex_main);
-            LOG_DDEBUG("LWS_CALLBACK_RECEIVE " << client_ip << ", " << json_data);
-
-            // cleanup response buffer
-            memset(ws_send_msg, 0, sizeof(ws_send_msg));
-
-            std::strcat(ws_send_msg, "{"); // start response json
-            lejp_construct(&ctx, root_callback, u_ctx, root_keys, LWS_ARRAY_SIZE(root_keys));
-            lejp_parse(&ctx, (uint8_t *)json_data.c_str(), json_data.length());
-            lejp_destruct(&ctx);
-
-            std::strcat(ws_send_msg, "}"); // close response json
-
-            // send jpeg image via websocket
-            if ((u_ctx->signal & 32))
-            {
-                send_jpeg(wsi);
-                memset(ws_send_msg, 0, sizeof(ws_send_msg));
-            }
-
             // inform main to restart threads
             if ((u_ctx->signal & PNT_THREAD_RTSP) || (u_ctx->signal & PNT_THREAD_VIDEO) || (u_ctx->signal & PNT_THREAD_AUDIO))
             {

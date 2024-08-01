@@ -48,22 +48,19 @@ struct audio_stream {
     IMPAudio *imp_audio;
     std::shared_ptr<MsgChannel<AudioFrame>> msgChannel;
     std::function<void(void)> onDataCallback;
-    std::mutex lock;    // protects mutable fields: imp_framesource, onDataCallback, etc.
-    std::condition_variable should_grab_frames;
-
-    audio_stream(int devId, int aiChn)
-        : devId(devId), aiChn(aiChn), running(false), imp_audio(nullptr), 
-          msgChannel(std::make_shared<MsgChannel<AudioFrame>>(30)), onDataCallback(nullptr) {}
-
     /* Check whether onDataCallback is not null in a data race free manner.
      * Returns a momentary value that may be stale by the time it is returned.
      * Use only for optimizations, i.e., to skip work if no data callback
      * is registered right now.
      */
-    bool hasDataCallback() {
-        std::unique_lock<std::mutex> lock_stream {lock};
-        return onDataCallback != nullptr;
-    }
+    std::atomic<bool> hasDataCallback;
+    std::mutex onDataCallbackLock;    // protects onDataCallback from deallocation
+    std::condition_variable should_grab_frames;
+
+    audio_stream(int devId, int aiChn)
+        : devId(devId), aiChn(aiChn), running(false), imp_audio(nullptr),
+          msgChannel(std::make_shared<MsgChannel<AudioFrame>>(30)),
+          onDataCallback{nullptr}, hasDataCallback{false} {}
 };
 
 struct video_stream {
@@ -78,16 +75,13 @@ struct video_stream {
     IMPFramesource *imp_framesource;
     std::shared_ptr<MsgChannel<H264NALUnit>> msgChannel;
     std::function<void(void)> onDataCallback;
-    std::mutex lock;    // protects mutable fields: imp_framesource, onDataCallback, etc.
+    std::atomic<bool> hasDataCallback;      // see comment in audio_stream
+    std::mutex onDataCallbackLock;    // protects onDataCallback from deallocation
     std::condition_variable should_grab_frames;
 
     video_stream(int encChn, _stream* stream, const char *name)
         : encChn(encChn), stream(stream), running(false), name(name), idr(false), imp_encoder(nullptr), imp_framesource(nullptr),
-          msgChannel(std::make_shared<MsgChannel<H264NALUnit>>(MSG_CHANNEL_SIZE)), onDataCallback(nullptr), idr_fix(0) {}
-    bool hasDataCallback() {
-        std::unique_lock<std::mutex> lock_stream {lock};
-        return onDataCallback != nullptr;
-    }
+          msgChannel(std::make_shared<MsgChannel<H264NALUnit>>(MSG_CHANNEL_SIZE)), onDataCallback(nullptr), idr_fix(0), hasDataCallback{false} {}
 };
 
 extern std::condition_variable global_cv_worker_restart;
