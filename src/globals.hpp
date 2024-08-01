@@ -77,7 +77,6 @@ struct video_stream {
     IMPEncoder *imp_encoder;
     IMPFramesource *imp_framesource;
     std::shared_ptr<MsgChannel<H264NALUnit>> msgChannel;
-    //std::shared_ptr<MsgChannel<std::vector<uint8_t>>> msgChannel;
     std::function<void(void)> onDataCallback;
     std::mutex lock;    // protects mutable fields: imp_framesource, onDataCallback, etc.
     std::condition_variable should_grab_frames;
