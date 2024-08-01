@@ -52,7 +52,7 @@ struct audio_stream {
     std::condition_variable should_grab_frames;
 
     audio_stream(int devId, int aiChn)
-        : devId(devId), aiChn(aiChn), running(false), 
+        : devId(devId), aiChn(aiChn), running(false), imp_audio(nullptr), 
           msgChannel(std::make_shared<MsgChannel<AudioFrame>>(30)), onDataCallback(nullptr) {}
 
     /* Check whether onDataCallback is not null in a data race free manner.
