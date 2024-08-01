@@ -16,9 +16,11 @@ template<typename FrameType, typename Stream>
 IMPDeviceSource<FrameType, Stream>::IMPDeviceSource(UsageEnvironment &env, int encChn, std::shared_ptr<Stream> stream, const char *name)
     : FramedSource(env), encChn(encChn), eventTriggerId(0), stream{stream}, name{name}
 {
-    std::lock_guard lock_stream {stream->lock};
+    std::lock_guard lock_stream {mutex_main};
+    std::lock_guard lock_callback {stream->onDataCallbackLock};
     stream->onDataCallback = [this]()
     { this->on_data_available(); };
+    stream->hasDataCallback = true;
 
     eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
     stream->should_grab_frames.notify_one();
@@ -28,8 +30,10 @@ IMPDeviceSource<FrameType, Stream>::IMPDeviceSource(UsageEnvironment &env, int e
 template<typename FrameType, typename Stream>
 void IMPDeviceSource<FrameType, Stream>::deinit()
 {
-    std::lock_guard lock_stream {stream->lock};
+    std::lock_guard lock_stream {mutex_main};
+    std::lock_guard lock_callback {stream->onDataCallbackLock};
     envir().taskScheduler().deleteEventTrigger(eventTriggerId);
+    stream->hasDataCallback = false;
     stream->onDataCallback = nullptr;
     LOG_DEBUG("IMPDeviceSource " << name << " destructed, encoder channel:" << encChn);
 }
