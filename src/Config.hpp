@@ -173,7 +173,8 @@ struct _osd {
     int pos_logo_x;
     int pos_logo_y;
     int logo_transparency;
-    int logo_rotation;            
+    int logo_rotation;
+    int start_delay;            
     bool enabled;            
     bool time_enabled;
     bool user_text_enabled;

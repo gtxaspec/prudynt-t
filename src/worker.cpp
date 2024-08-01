@@ -343,16 +343,16 @@ void *Worker::stream_grabber(void *arg)
                             if (!global_video[encChn]->msgChannel->write(nalu))
                             {
                                 LOG_ERROR("video encChn:" << encChn << ", size:" << nalu.data.size()
-                                                           << ", pC:" << stream.packCount << ", pS:" << nalu.data.size() << ", pN:"
-                                                           << i << " clogged!");
+                                                          << ", pC:" << stream.packCount << ", pS:" << nalu.data.size() << ", pN:"
+                                                          << i << " clogged!");
                             }
                             else
                             {
-                                std::unique_lock<std::mutex> lock_stream {global_video[encChn]->lock};
+                                std::unique_lock<std::mutex> lock_stream{global_video[encChn]->lock};
                                 if (global_video[encChn]->onDataCallback)
                                     global_video[encChn]->onDataCallback();
                             }
-                            //LOG_DEBUG("video:" <<  global_video[encChn]->encChn << " " << nalu.time.tv_sec << "." << nalu.time.tv_usec << " " << nalu.data.size());
+                            // LOG_DEBUG("video:" <<  global_video[encChn]->encChn << " " << nalu.time.tv_sec << "." << nalu.time.tv_usec << " " << nalu.data.size());
                         }
                     }
                 }
@@ -379,7 +379,8 @@ void *Worker::stream_grabber(void *arg)
                                 ", curPacks:" << encChnStats.curPacks <<
                                 ", work_done:" << encChnStats.work_done);
                     */
-                    if(global_video[encChn]->idr_fix) {
+                    if (global_video[encChn]->idr_fix)
+                    {
                         IMP_Encoder_RequestIDR(encChn);
                         global_video[encChn]->idr_fix--;
                     }
@@ -395,7 +396,7 @@ void *Worker::stream_grabber(void *arg)
         {
             global_video[encChn]->stream->osd.stats.bps = 0;
             global_video[encChn]->stream->osd.stats.fps = 1;
-            std::unique_lock<std::mutex> lock_stream {global_video[encChn]->lock};
+            std::unique_lock<std::mutex> lock_stream{global_video[encChn]->lock};
             while (global_video[encChn]->onDataCallback == nullptr && !global_restart_video)
                 global_video[encChn]->should_grab_frames.wait(lock_stream);
         }
@@ -466,11 +467,11 @@ void *Worker::audio_grabber(void *arg)
                     }
                     else
                     {
-                        std::unique_lock<std::mutex> lock_stream {global_audio[encChn]->lock};
+                        std::unique_lock<std::mutex> lock_stream{global_audio[encChn]->lock};
                         if (global_audio[encChn]->onDataCallback)
                             global_audio[encChn]->onDataCallback();
                     }
-                    //LOG_DEBUG("audio:" <<  global_audio[encChn]->aiChn << " " << af.time.tv_sec << "." << af.time.tv_usec << " " << af.data.size());
+                    // LOG_DEBUG("audio:" <<  global_audio[encChn]->aiChn << " " << af.time.tv_sec << "." << af.time.tv_usec << " " << af.data.size());
                 }
 
                 if (IMP_AI_ReleaseFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, &frame) < 0)
@@ -485,13 +486,14 @@ void *Worker::audio_grabber(void *arg)
         }
         else
         {
-            std::unique_lock<std::mutex> lock_stream {global_audio[encChn]->lock};
+            std::unique_lock<std::mutex> lock_stream{global_audio[encChn]->lock};
             while (global_audio[encChn]->onDataCallback == nullptr && !global_restart_audio)
                 global_audio[encChn]->should_grab_frames.wait(lock_stream);
         }
-    } //while (global_audio[encChn]->running)
+    } // while (global_audio[encChn]->running)
 
-    if(global_audio[encChn]->imp_audio) {
+    if (global_audio[encChn]->imp_audio)
+    {
         delete global_audio[encChn]->imp_audio;
     }
 
@@ -515,12 +517,26 @@ void *Worker::update_osd(void *arg)
                 {
                     if ((v->imp_encoder->osd != nullptr))
                     {
-                        v->imp_encoder->osd->updateDisplayEverySecond();
+                        if (v->imp_encoder->osd->is_started)
+                        {
+                            v->imp_encoder->osd->updateDisplayEverySecond();
+                        }
+                        else
+                        {
+                            if (v->imp_encoder->osd->startup_delay)
+                            {
+                                v->imp_encoder->osd->startup_delay--;
+                            }
+                            else
+                            {
+                                v->imp_encoder->osd->start();
+                            }
+                        }
                     }
                 }
             }
         }
-        usleep(THREAD_SLEEP * 2);
+        usleep(THREAD_SLEEP);
     }
 
     LOG_DEBUG("exit osd update thread.");

@@ -53,8 +53,9 @@ public:
     void rotateBGRAImage(uint8_t *&inputImage, uint16_t &width, uint16_t &height, int angle, bool del);
     static void set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, uint16_t width, uint16_t height, const uint16_t max_width, const uint16_t max_height);
     static uint16_t get_abs_pos(const uint16_t max,const uint16_t size,const int pos);
-    uint8_t flag{0};
-
+    int startup_delay{0};
+    bool is_started = false;
+    
 private:
 
     // libschrift
@@ -102,6 +103,7 @@ private:
     char uptimeFormatted[32];
     char fps[4];
     char bps[8];
+    uint8_t flag{0};
 };
 
 #endif

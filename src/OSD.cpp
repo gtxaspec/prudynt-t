@@ -715,12 +715,14 @@ void OSD::init()
         IMP_OSD_SetGrpRgnAttr(osdLogo.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
-    start();
+    if(osd.start_delay)
+        startup_delay = (int)(osd.start_delay*1000)/THREAD_SLEEP;
+
+    //start();
 }
 
 int OSD::start()
 {
-
     int ret;
 
     ret = IMP_OSD_Start(osdGrp);
@@ -729,15 +731,14 @@ int OSD::start()
     ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
 
+    is_started = true;
+
     return ret;
 }
 
 int OSD::exit()
 {
     int ret;
-
-    //remove "startet" flag
-    flag ^= 16;
 
     ret = IMP_OSD_Stop(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_Stop(" << osdGrp << ")");
@@ -800,6 +801,9 @@ void OSD::updateDisplayEverySecond()
     }
     else
     {
+        // The flag ensures that only 1 OSD object is updated
+        // on calling OSD::updateDisplayEverySecond()
+        // this should relieve the system
         if (flag != 0)
         {
             
