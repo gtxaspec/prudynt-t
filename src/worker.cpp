@@ -334,7 +334,7 @@ void *Worker::stream_grabber(void *arg)
                             }
                             else if (stream.pack[i].dataType.h265Type == 32)
                             {
-                                global_video[encChn]->IDR = true;
+                                global_video[encChn]->idr = true;
                             }
 #endif
                         }
