@@ -37,7 +37,7 @@ struct jpeg_stream {
     pthread_t thread;
     IMPEncoder * imp_encoder;
     jpeg_stream(int encChn, _stream* stream)
-        : encChn(encChn), stream(stream), running(false) {}  
+        : encChn(encChn), stream(stream), running(false), imp_encoder(nullptr) {}  
 };
 
 struct audio_stream {
