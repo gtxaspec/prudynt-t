@@ -8,7 +8,7 @@ prudynt(){
 	echo "Build prudynt"
 
 	make clean
-	/usr/bin/make -j\
+	/usr/bin/make -j$(nproc) \
 	ARCH= CROSS_COMPILE="${PRUDYNT_CROSS}" \
 	CFLAGS="-DPLATFORM_$1 -Os -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
 	-I./3rdparty/install/include \
@@ -34,7 +34,7 @@ deps() {
 	echo "Build libschrift"
 	cd 3rdparty
 	rm -rf libschrift
-	git clone https://github.com/tomolt/libschrift/
+	git clone --depth=1 https://github.com/tomolt/libschrift/
 	cd libschrift
 	mkdir -p $TOP/3rdparty/install/lib
 	mkdir -p $TOP/3rdparty/install/include
@@ -73,8 +73,6 @@ deps() {
 	fi
 	tar xf live555-latest.tar.gz
 	cd live
-	wget https://raw.githubusercontent.com/themactep/thingino-firmware/master/package/thingino-live555/0002_live555_sprintf_format.patch
-	patch -p1 < 0002_live555_sprintf_format.patch
 
 	if [[ -f Makefile ]]; then
 		make distclean
@@ -98,7 +96,7 @@ deps() {
 	cd 3rdparty
 	rm -rf ingenic-lib
 	if [[ ! -d ingenic-lib ]]; then
-	git clone https://github.com/gtxaspec/ingenic-lib
+	git clone --depth=1 https://github.com/gtxaspec/ingenic-lib
 
 	case "$1" in
 		T10)
@@ -137,7 +135,7 @@ deps() {
 	cd 3rdparty
 	rm -rf ingenic-musl
 	if [[ ! -d ingenic-musl ]]; then
-	git clone https://github.com/gtxaspec/ingenic-musl
+	git clone --depth=1 https://github.com/gtxaspec/ingenic-musl
 	cd ingenic-musl
 	if [[ "$2" == "-static" ]]; then
 		make CC="${PRUDYNT_CROSS}gcc" static
