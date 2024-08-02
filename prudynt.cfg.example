@@ -70,7 +70,7 @@ stream0: {
 		# uptime_enabled: true;  # Enable or disable the display of system uptime.
 		# uptime_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
 		# logo_enabled: true;  # Enable or disable the display of a logo image.
-		# logo_path: "/usr/share/thingino_logo_1.bgra";  # Path to the logo image file.
+		# logo_path: "/usr/share/images/thingino_logo_1.bgra";  # Path to the logo image file.
 		# logo_width: 100;  # Width of the logo image.
 		# logo_height: 30;  # Height of the logo image.
 		# logo_transparency: 255;  # Transparency (0-255) for the logo in the OSD.
@@ -128,7 +128,7 @@ stream1: {
 		# uptime_enabled: true;  # Enable or disable the display of system uptime.
 		# uptime_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
 		# logo_enabled: true;  # Enable or disable the display of a logo image.
-		# logo_path: "/usr/share/thingino_logo_1.bgra";  # Path to the logo image file.
+		# logo_path: "/usr/share/images/thingino_logo_1.bgra";  # Path to the logo image file.
 		# logo_width: 100;  # Width of the logo image.
 		# logo_height: 30;  # Height of the logo image.
 		# logo_transparency: 255;  # Transparency (0-255) for the logo in the OSD.
