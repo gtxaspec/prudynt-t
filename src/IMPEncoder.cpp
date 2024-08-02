@@ -222,7 +222,7 @@ void IMPEncoder::initProfile()
     chnAttr.rcAttr.outFrmRate.frmRateDen = 1;
     rcAttr->maxGop = stream->max_gop;
 
-    if (chnAttr.encAttr.enType = PT_H264)
+    if (chnAttr.encAttr.enType == PT_H264)
     {
         switch (rcMode)
         {
@@ -277,7 +277,7 @@ void IMPEncoder::initProfile()
         }
 #if defined(PLATFORM_T30)
     }
-    else if (chnAttr.encAttr.enType = PT_H265)
+    else if (chnAttr.encAttr.enType == PT_H265)
     {
         rcAttr->attrRcMode.rcMode = ENC_RC_MODE_SMART;
         rcAttr->attrRcMode.attrH265Smart.maxQp = 45;
@@ -290,7 +290,7 @@ void IMPEncoder::initProfile()
         rcAttr->attrRcMode.attrH265Smart.frmQPStep = 3;
         rcAttr->attrRcMode.attrH265Smart.gopQPStep = 15;
         rcAttr->attrRcMode.attrH265Smart.flucLvl = 2;
-#endif //defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
+#endif //defined(PLATFORM_T30)
     }
     rcAttr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
     rcAttr->attrHSkip.hSkipAttr.m = rcAttr->maxGop - 1;
@@ -299,11 +299,17 @@ void IMPEncoder::initProfile()
     rcAttr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
     rcAttr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
     rcAttr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X;
-#endif
-    LOG_DEBUG("STREAM PROFILE " << stream->rtsp_endpoint << ", "
-                                << chnAttr.rcAttr.outFrmRate.frmRateNum << "fps, " << stream->bitrate << "bps, "
-                                << stream->gop << "gop, profile:" << stream->profile << ", mode:" << rcMode << ", "
-                                << stream->width << "x" << stream->height);
+#endif //defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
+    LOG_DEBUG("STREAM PROFILE " << 
+        stream->rtsp_endpoint << ", " << 
+        "fps:" << chnAttr.rcAttr.outFrmRate.frmRateNum << ", " << 
+        "bps:" << stream->bitrate << ", " << 
+        "gop:" << stream->gop << ", " << 
+        "format:" << chnAttr.encAttr.enType << ", " << 
+        "profile:" << stream->profile << ", " <<
+        "mode:" << rcMode << ", " << 
+        stream->width << "x" << 
+        stream->height);
 }
 
 int IMPEncoder::init()
