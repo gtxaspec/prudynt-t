@@ -17,7 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${SCRIPT_DIR}/../3rdparty"
 LWS_REPO="https://github.com/warmcat/libwebsockets"
 LWS_DIR="${BUILD_DIR}/libwebsockets"
-LWS_VER="b0a749c8e7a8294b68581ce4feac0e55045eb00"
+LWS_VER="4415e84c095857629863804e941b9e1c2e9347ef"
 MAKEFILE="$SCRIPT_DIR/../Makefile"
 
 echo $MAKEFILE
@@ -177,7 +177,7 @@ echo "CONFIG_STATIC_BUILD setting not found or is set to an unexpected value."
 fi
 
 echo "Building libwebsockets library..."
-make
+make -j$(nproc)
 
 # Copy libwebsockets library and headers
 echo "Copying libwebsockets library and headers..."
