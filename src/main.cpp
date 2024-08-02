@@ -161,6 +161,7 @@ int main(int argc, const char *argv[])
         std::unique_lock lck(mutex_main);
         while (!global_restart_rtsp && !global_restart_video && !global_restart_audio)
             global_cv_worker_restart.wait(lck);
+        lck.unlock();
         LOG_DEBUG("wakup main thread");
 
         if (global_restart_rtsp)
