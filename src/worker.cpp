@@ -343,9 +343,11 @@ void *Worker::stream_grabber(void *arg)
                         {
                             if (!global_video[encChn]->msgChannel->write(nalu))
                             {
-                                LOG_ERROR("video encChn:" << encChn << ", size:" << nalu.data.size()
-                                                          << ", pC:" << stream.packCount << ", pS:" << nalu.data.size() << ", pN:"
-                                                          << i << " clogged!");
+                                LOG_ERROR("video " << 
+                                    "channel:" << encChn << ", " <<
+                                    "package:" << i << " of " << stream.packCount << ", " <<
+                                    "packageSize:" << nalu.data.size() <<
+                                    ".  !sink clogged!");
                             }
                             else
                             {
@@ -353,7 +355,6 @@ void *Worker::stream_grabber(void *arg)
                                 if (global_video[encChn]->onDataCallback)
                                     global_video[encChn]->onDataCallback();
                             }
-                            // LOG_DEBUG("video:" <<  global_video[encChn]->encChn << " " << nalu.time.tv_sec << "." << nalu.time.tv_usec << " " << nalu.data.size());
                         }
                     }
                 }
