@@ -6,12 +6,14 @@
 # Some options are only supported on specific SOC versions.  See the wiki for details:
 # https://github.com/gtxaspec/prudynt-t/wiki/Configuration
 
-version = "0.6";  # Configuration file version
+version = "1.0";  # Configuration file version
 
 # General Settings
 # ----------------
 general: {
-	loglevel: "INFO";  # Logging level. Options: DEBUG, INFO, WARNING, ERROR.
+	loglevel: "INFO";  # Logging level. Options: EMERGENCY, ALERT, CRITICAL, ERROR, WARN, NOTICE, INFO, DEBUG.
+	# osd_pool_size: 1024;  # OSD pool size (0-1024).
+	# imp_polling_timeout: 100;  # IMP polling timeout (1-5000 ms).
 };
 
 # RTSP (Real-Time Streaming Protocol) Settings
@@ -31,8 +33,8 @@ rtsp: {
 # ---------------
 sensor: {
 	# model: "gc2053";  # Sensor model.
-	# i2c_address: 0x37;  # I2C address of the sensor.
-	# fps: 24;  # Frames per second captured by the sensor.
+	# i2c_address: 0x37;  # I2C address of the sensor (0x0 - 0x7F).
+	# fps: 24;  # Frames per second captured by the sensor (0-60).
 	# width: 1920;  # Width of the sensor's image (in pixels).
 	# height: 1080;  # Height of the sensor's image (in pixels).
 };
@@ -40,62 +42,155 @@ sensor: {
 # Stream0 Settings
 # ----------------
 stream0: {
+	# enabled: true;  # Enable or disable Stream0.
 	# rtsp_endpoint: "ch0";  # Endpoint name for the RTSP url stream.
 	# format: "H264";  # Video format for the stream (H264 or H265).
-	# bitrate: 1000;  # Bitrate for the stream (in kbps).
+	# bitrate: 3000;  # Bitrate for the stream (in kbps).
 	# width: 1920;  # Width of the video stream (in pixels).
 	# height: 1080;  # Height of the video stream (in pixels).
 	# buffers: 2;  # Number of buffers for the stream.
-	# fps: 24;  # Frames per second for the stream.
-	# gop: 30;  # Group of Pictures size for the stream.
+	# fps: 24;  # Frames per second for the stream (0-60).
+	# gop: 20;  # Group of Pictures size for the stream.
 	# max_gop: 60;  # Maximum GOP size for the stream.
-	# osd_pos_time_x: 10;  # X position for the On-Screen Display (OSD) time.
-	# osd_pos_time_y: 10;  # Y position for the OSD.
-	# osd_time_transparency: 255;  #Transparency for time OSD in stream 0
-	# osd_pos_user_text_x: 900;  # X position for the user-defined text in the OSD.
-	# osd_pos_user_text_y: 5;  # Y position for the user-defined text in the OSD.
-	# osd_user_text_transparency: 255;  #Transparency for user text OSD in stream 0
-	# osd_pos_uptime_x: 1600;  # X position for the uptime display in the OSD.
-	# osd_pos_uptime_y: 5;  # Y position for the uptime display in the OSD.
-	# osd_uptime_transparency: 255;  #Transparency for uptime OSD in stream 0
-	# osd_pos_logo_x: 1800;  # X position for the logo in the OSD.
-	# osd_pos_logo_y: 1030;  # Y position for the logo in the OSD.
-	# osd_logo_transparency: 255; # Transparency (0-255) for the logo in the OSD.
-	# rotation: 0;  # Rotation of the video stream. 0: no rotation, 1: 90 degrees, 2: 270 degrees.
-	# scale_enabled: false;  # Enable scaling of the stream (true/false).
-	# scale_width: 640;  # Width of the scaled video stream (in pixels).
-	# scale_height: 360;  # Height of the scaled video stream (in pixels).
+	# profile: 2;  # Profile of the stream (0: baseline, 1: main, 2: high).
+	# rotation: 0;  # Rotation of the video stream (0: no rotation, 1: 90 degrees, 2: 270 degrees).
+	# osd: {
+		# enabled: true;  # Enable or disable the OSD (On-Screen Display).
+		# font_path: "/usr/share/fonts/NotoSansDisplay-Condensed2.ttf";  # Path to the font file for the OSD text.
+		# font_size: 64;  # Font size for OSD text.
+		# font_color: 0xFFFFFFFF;  # Font color for OSD text in ARGB format.
+		# font_stroke_enabled: true;  # Enable or disable a stroke (outline) for OSD text.
+		# font_stroke_size: 64;  # Size of the font stroke.
+		# font_stroke_color: 0xFF000000;  # Color of the font stroke in ARGB format.
+		# time_enabled: true;  # Enable or disable the time display in the OSD.
+		# time_format: "%F %T";  # Format string for displaying time.
+		# user_text_enabled: true;  # Enable or disable the display of custom user text.
+		# user_text_format: "%hostname, fps:%fps, bps:%bps";  # Custom text to display in the OSD.
+		# uptime_enabled: true;  # Enable or disable the display of system uptime.
+		# uptime_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
+		# logo_enabled: true;  # Enable or disable the display of a logo image.
+		# logo_path: "/usr/share/thingino_logo_1.bgra";  # Path to the logo image file.
+		# logo_width: 100;  # Width of the logo image.
+		# logo_height: 30;  # Height of the logo image.
+		# logo_transparency: 255;  # Transparency (0-255) for the logo in the OSD.
+		# pos_time_x: 10;  # X position for the OSD time.
+		# pos_time_y: 10;  # Y position for the OSD time.
+		# pos_user_text_x: 900;  # X position for the user-defined text in the OSD.
+		# pos_user_text_y: 5;  # Y position for the user-defined text in the OSD.
+		# pos_uptime_x: 1600;  # X position for the uptime display in the OSD.
+		# pos_uptime_y: 5;  # Y position for the uptime display in the OSD.
+		# pos_logo_x: 1800;  # X position for the logo in the OSD.
+		# pos_logo_y: 1030;  # Y position for the logo in the OSD.
+		# font_stroke: 1;  # Stroke width for the font.
+		# font_xscale: 100;  # X scale for the font.
+		# font_yscale: 100;  # Y scale for the font.
+		# font_yoffset: 3;  # Y offset for the font.
+		# logo_rotation: 0;  # Rotation for the logo (0-360 degrees).
+		# time_rotation: 0;  # Rotation for the time display (0-360 degrees).
+		# time_transparency: 255;  # Transparency for the time display (0-255).
+		# uptime_rotation: 0;  # Rotation for the uptime display (0-360 degrees).
+		# uptime_transparency: 255;  # Transparency for the uptime display (0-255).
+		# user_text_rotation: 0;  # Rotation for the user text (0-360 degrees).
+		# user_text_transparency: 255;  # Transparency for the user text (0-255).
+		# pos_logo_x: 1800;  # X position for the logo.
+		# pos_logo_y: 1030;  # Y position for the logo.
+	};
 };
 
 # Stream1 Settings (JPEG snapshots)
 # ---------------------------------
 stream1: {
-	# jpeg_enabled: true;  # Enable JPEG snapshots for Stream1.
+	# enabled: true;  # Enable or disable Stream1.
+	# rtsp_endpoint: "ch1";  # Endpoint name for the RTSP url stream.
+	# format: "H264";  # Video format for the stream (H264 or H265).
+	# bitrate: 1000;  # Bitrate for the stream (in kbps).
+	# width: 640;  # Width of the video stream (in pixels).
+	# height: 360;  # Height of the video stream (in pixels).
+	# buffers: 2;  # Number of buffers for the stream.
+	# fps: 24;  # Frames per second for the stream (0-60).
+	# gop: 20;  # Group of Pictures size for the stream.
+	# max_gop: 60;  # Maximum GOP size for the stream.
+	# profile: 2;  # Profile of the stream (0: baseline, 1: main, 2: high).
+	# osd: {
+		# enabled: true;  # Enable or disable the OSD (On-Screen Display).
+		# font_path: "/usr/share/fonts/NotoSansDisplay-Condensed2.ttf";  # Path to the font file for the OSD text.
+		# font_size: 64;  # Font size for OSD text.
+		# font_color: 0xFFFFFFFF;  # Font color for OSD text in ARGB format.
+		# font_stroke_enabled: true;  # Enable or disable a stroke (outline) for OSD text.
+		# font_stroke_size: 64;  # Size of the font stroke.
+		# font_stroke_color: 0xFF000000;  # Color of the font stroke in ARGB format.
+		# time_enabled: true;  # Enable or disable the time display in the OSD.
+		# time_format: "%F %T";  # Format string for displaying time.
+		# user_text_enabled: true;  # Enable or disable the display of custom user text.
+		# user_text_format: "%hostname, fps:%fps, bps:%bps";  # Custom text to display in the OSD.
+		# uptime_enabled: true;  # Enable or disable the display of system uptime.
+		# uptime_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
+		# logo_enabled: true;  # Enable or disable the display of a logo image.
+		# logo_path: "/usr/share/thingino_logo_1.bgra";  # Path to the logo image file.
+		# logo_width: 100;  # Width of the logo image.
+		# logo_height: 30;  # Height of the logo image.
+		# logo_transparency: 255;  # Transparency (0-255) for the logo in the OSD.
+		# pos_time_x: 10;  # X position for the OSD time.
+		# pos_time_y: 10;  # Y position for the OSD time.
+		# pos_user_text_x: 900;  # X position for the user-defined text in the OSD.
+		# pos_user_text_y: 5;  # Y position for the user-defined text in the OSD.
+		# pos_uptime_x: 1600;  # X position for the uptime display in the OSD.
+		# pos_uptime_y: 5;  # Y position for the uptime display in the OSD.
+		# pos_logo_x: 1800;  # X position for the logo in the OSD.
+		# pos_logo_y: 1030;  # Y position for the logo in the OSD.
+		# font_stroke: 1;  # Stroke width for the font.
+		# font_xscale: 100;  # X scale for the font.
+		# font_yscale: 100;  # Y scale for the font.
+		# font_yoffset: 3;  # Y offset for the font.
+		# logo_rotation: 0;  # Rotation for the logo (0-360 degrees).
+		# time_rotation: 0;  # Rotation for the time display (0-360 degrees).
+		# time_transparency: 255;  # Transparency for the time display (0-255).
+		# uptime_rotation: 0;  # Rotation for the uptime display (0-360 degrees).
+		# uptime_transparency: 255;  # Transparency for the uptime display (0-255).
+		# user_text_rotation: 0;  # Rotation for the user text (0-360 degrees).
+		# user_text_transparency: 255;  # Transparency for the user text (0-255).
+	};
+};
+
+# Stream2 Settings (JPEG snapshots)
+# ---------------------------------
+stream2: {
+	# enabled: true;  # Enable or disable Stream2.
+	# format: "JPEG";  # Video format for the stream (JPEG).
 	# jpeg_path: "/tmp/snapshot.jpg";  # File path for JPEG snapshots.
 	# jpeg_quality: 75;  # Quality of JPEG snapshots (1-100).
 	# jpeg_refresh: 1000;  # Refresh rate for JPEG snapshots (in milliseconds).
+	# jpeg_channel: 0;  # JPEG channel (0 or 1).
+	# width: 1920;  # Width of the JPEG snapshot (in pixels).
+	# height: 1080;  # Height of the JPEG snapshot (in pixels).
 };
 
-osd: {
-	# enabled: true;  # Enable or disable the OSD (On-Screen Display).
-	# font_path: "/usr/share/fonts/UbuntuMono-Regular2.ttf";  # Path to the font file for the OSD text.
-	# font_size: 64;  # Font size for OSD text.
-	# font_color: 0xFFFFFFFF;  # Font color for OSD text in ARGB format.
-	# font_stroke_enabled: true;  # Enable or disable a stroke (outline) for OSD text.
-	# font_stroke_size: 64;  # Size of the font stroke.
-	# font_stroke_color: 0xFF000000;  # Color of the font stroke in ARGB format.
-	# time_enabled: true;  # Enable or disable the time display in the OSD.
-	# time_format: "%I:%M:%S%p %m/%d/%Y";  # Format string for displaying time.
-	# user_text_enabled: true;  # Enable or disable the display of custom user text.
-	# user_text_format: "thingino";  # Custom text to display in the OSD.
-	# uptime_enabled: true;  # Enable or disable the display of system uptime.
-	# uptime_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
-	# logo_enabled: true;  # Enable or disable the display of a logo image.
-	# logo_path: "/usr/share/thingino_logo_1.bgra";  # Path to the logo image file.
-	# logo_width: 100;  # Width of the logo image.
-	# logo_height: 30;  # Height of the logo image.
+# WebSocket Settings
+# ------------------
+websocket: {
+	# enabled: true;  # Enable or disable WebSocket.
+	# secured: false;  # Enable or disable secured WebSocket.
+	# loglevel: 4096;  # Log level for WebSocket.
+	# port: 8089;  # Port number for WebSocket service.
 };
 
+# Audio Settings
+# --------------
+audio: {
+	# input_enabled: false;  # Enable or disable audio input.
+	# input_high_pass_filter: true;  # Enable or disable high pass filter for audio input.
+	# input_agc_enabled: true;  # Enable or disable AGC for audio input.
+	# input_vol: 30;  # Input volume for audio (-30 to 120).
+	# input_gain: 18;  # Input gain for audio (0 to 31).
+	# input_bitrate: 64;  # Input bitrate for audio (16 to 256).
+	# input_alc_gain: 1;  # ALC gain for audio input (0 to 7).
+	# input_agc_target_level_dbfs: 10;  # AGC target level in dBFS for audio input (0 to 31).
+	# input_agc_compression_gain_db: 0;  # AGC compression gain in dB for audio input (0 to 90).
+	# input_noise_suppression: 1;  # Noise suppression for audio input (0 to 3).
+};
+
+# Motion Settings
+# ---------------
 motion: {
 	enabled: false;  # Enable or disable motion detection.
 	# script_path: "/usr/sbin/motion";  # Path to the script executed when motion is detected.
