@@ -20,7 +20,7 @@ void Motion::detect()
     auto motionEndTime = steady_clock::now();
     auto startTime = steady_clock::now();
 
-    init();
+    if(init() != 0) return;
 
     global_motion_thread_signal = true;
     while (global_motion_thread_signal)
@@ -118,6 +118,12 @@ int Motion::init()
 {
     LOG_INFO("Initialize motion detection.");
 
+    if((cfg->motion.monitor_stream == 0 && !cfg->stream0.enabled) || 
+       (cfg->motion.monitor_stream == 1 && !cfg->stream1.enabled)) {
+
+        LOG_ERROR("Monitor stream is disabled, abort.");
+        return -1;
+    }
     int ret;
 
     ret = IMP_IVS_CreateGroup(0);
