@@ -100,11 +100,7 @@ deps() {
 	git clone --depth=1 https://github.com/gtxaspec/ingenic-lib
 
 	case "$1" in
-		T10)
-			echo "use T10 libs"
-			cp ingenic-lib/T10/lib/3.12.0/uclibc/4.7.2/* $TOP/3rdparty/install/lib
-			;;
-		T20)
+		T10|T20)
 			echo "use T20 libs"
 			cp ingenic-lib/T20/lib/3.12.0/uclibc/4.7.2/* $TOP/3rdparty/install/lib
 			;;
@@ -145,7 +141,7 @@ deps() {
 	fi
 	cp libmuslshim.* ../install/lib/
 	fi
-	cd ..
+	cd $TOP
 }
 
 if [ $# -eq 0 ]; then
