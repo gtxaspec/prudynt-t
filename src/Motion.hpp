@@ -4,30 +4,46 @@
 #include <memory>
 #include <thread>
 #include <atomic>
-#include "imp/imp_ivs.h"
-#include "imp/imp_ivs_move.h"
 #include "Config.hpp"
 #include "Logger.hpp"
-#include <imp/imp_system.h>
+#include "globals.hpp"
+#include "imp/imp_system.h"
+#include "imp/imp_ivs.h"
+#include "imp/imp_ivs_move.h"
+
+#if defined(PLATFORM_T31)
+#define IMPEncoderCHNAttr IMPEncoderChnAttr
+#define IMPEncoderCHNStat IMPEncoderChnStat
+#endif
+
+#if defined(PLATFORM_T31)
+#define picWidth uWidth
+#define picHeight uHeight
+#endif
 
 class Motion {
     public:
-        static void detect_start(Motion *m);
         void detect();
-        void run();
-        int init(std::shared_ptr<CFG> _cfg);
+        static void *run(void* arg);
+        int init();
         int exit();
 
     private:
+        int ivsChn = 0;
+        int ivsGrp = 0;
+
+        std::string getConfigPath(const char *itemName);
+
         std::atomic<bool> moving;
         std::atomic<bool> indicator;    
-        std::shared_ptr<CFG> cfg;
         IMP_IVS_MoveParam move_param;
         IMPIVSInterface *move_intf;
         std::thread detect_thread;
 
-        IMPCell fs = { DEV_ID_FS, 0, 1 };
-        IMPCell ivs_cell = { DEV_ID_IVS, 0, 0 };    
+        IMPCell fs = {};
+        IMPCell ivs_cell = {};
+
+        IMPEncoderCHNAttr channelAttributes;
 };
 
 #endif /* Motion_hpp */

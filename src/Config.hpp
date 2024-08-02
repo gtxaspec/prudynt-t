@@ -25,6 +25,8 @@
 
 #define IMP_AUTO_VALUE 16384
 #define OSD_AUTO_VALUE 16384
+#define IVS_AUTO_VALUE 16384
+
 #define THREAD_SLEEP 100000
 #define GET_STREAM_BLOCKING false
 
@@ -220,11 +222,12 @@ struct _stream {
 #endif
 };	
 struct _motion {
+    int monitor_stream;
     int debounce_time;
     int post_time;
     int cooldown_time;
     int init_time;
-    int thread_wait;
+    int ivs_polling_timeout;
     int sensitivity;
     int skip_frame_count;
     int frame_width;

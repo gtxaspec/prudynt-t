@@ -10,7 +10,7 @@
 #include "worker.hpp"
 #include "globals.hpp"
 #include "IMPSystem.hpp"
-
+#include "Motion.hpp"
 using namespace std::chrono;
 
 std::mutex mutex_main;
@@ -22,6 +22,7 @@ bool global_restart_audio = true;
 
 bool global_osd_thread_signal = false;
 bool global_main_thread_signal = false;
+bool global_motion_thread_signal = false;
 char volatile global_rtsp_thread_signal{1};
 
 std::shared_ptr<jpeg_stream> global_jpeg = {nullptr};
@@ -34,6 +35,7 @@ std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
 
 WS ws;
 RTSP rtsp;
+Motion motion;
 IMPSystem *imp_system = nullptr;
 
 bool timesync_wait()
@@ -66,9 +68,10 @@ int main(int argc, const char *argv[])
 {
     LOG_INFO("PRUDYNT Video Daemon: " << VERSION);
 
+    pthread_t ws_thread;
     pthread_t osd_thread;
     pthread_t rtsp_thread;
-    pthread_t ws_thread;
+    pthread_t motion_thread;
 
     if (Logger::init(cfg->general.loglevel))
     {
@@ -97,15 +100,6 @@ int main(int argc, const char *argv[])
 
     pthread_create(&ws_thread, nullptr, WS::run, &ws);
 
-    /*
-    if (cfg->motion.enabled)
-    {
-        LOG_DEBUG("Motion enabled");
-        ret = motion.init(cfg);
-        LOG_DEBUG_OR_ERROR(ret, "motion.init(cfg)");
-    }
-    */
-   
     while (true)
     {
         if (global_restart_video)
@@ -134,6 +128,12 @@ int main(int argc, const char *argv[])
                 int ret = pthread_create(&osd_thread, nullptr, Worker::update_osd, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "create osd thread");
             }
+
+            if (cfg->motion.enabled)
+            {
+                int ret = pthread_create(&motion_thread, nullptr, Motion::run, &motion);
+                LOG_DEBUG_OR_ERROR(ret, "create motion thread");
+            }            
         }
         global_restart_video = false;
 
@@ -177,6 +177,15 @@ int main(int argc, const char *argv[])
 
         if (global_restart_video)
         {
+
+            // stop motion thread
+            if (global_motion_thread_signal)
+            {
+                global_motion_thread_signal = false;
+                int ret = pthread_join(motion_thread, NULL);
+                LOG_DEBUG_OR_ERROR(ret, "join motion thread");
+            }
+
             // stop osd thread
             if (global_osd_thread_signal)
             {
