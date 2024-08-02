@@ -97,7 +97,7 @@ stream0: {
 	};
 };
 
-# Stream1 Settings (JPEG snapshots)
+# Stream1 Settings
 # ---------------------------------
 stream1: {
 	# enabled: true;  # Enable or disable Stream1.
@@ -152,7 +152,7 @@ stream1: {
 	};
 };
 
-# Stream2 Settings (JPEG snapshots)
+# Stream2 Settings (JPEG)
 # ---------------------------------
 stream2: {
 	# enabled: true;  # Enable or disable Stream2.
@@ -182,7 +182,6 @@ audio: {
 	# input_agc_enabled: true;  # Enable or disable AGC for audio input.
 	# input_vol: 30;  # Input volume for audio (-30 to 120).
 	# input_gain: 18;  # Input gain for audio (0 to 31).
-	# input_bitrate: 64;  # Input bitrate for audio (16 to 256).
 	# input_alc_gain: 1;  # ALC gain for audio input (0 to 7).
 	# input_agc_target_level_dbfs: 10;  # AGC target level in dBFS for audio input (0 to 31).
 	# input_agc_compression_gain_db: 0;  # AGC compression gain in dB for audio input (0 to 90).
