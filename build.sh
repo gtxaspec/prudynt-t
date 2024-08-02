@@ -7,6 +7,7 @@ TOP=$(pwd)
 prudynt(){
 	echo "Build prudynt"
 
+	cd $TOP
 	make clean
 	/usr/bin/make -j$(nproc) \
 	ARCH= CROSS_COMPILE="${PRUDYNT_CROSS}" \
@@ -138,9 +139,9 @@ deps() {
 	git clone --depth=1 https://github.com/gtxaspec/ingenic-musl
 	cd ingenic-musl
 	if [[ "$2" == "-static" ]]; then
-		make CC="${PRUDYNT_CROSS}gcc" static
+		make CC="${PRUDYNT_CROSS}gcc" -j$(nproc) static
 	else
-		make CC="${PRUDYNT_CROSS}gcc"
+		make CC="${PRUDYNT_CROSS}gcc" -j$(nproc)
 	fi
 	cp libmuslshim.* ../install/lib/
 	fi
@@ -150,10 +151,14 @@ deps() {
 if [ $# -eq 0 ]; then
 	echo "Usage: ./build.sh deps <platform> <-static>"
 	echo "Usage: ./build.sh prudynt <platform> <-static>"
+	echo "Usage: ./build.sh full <platform> <-static>"
 	echo "Platform: T20/T21/T23/T30/T31"
 	exit 1
 elif [[ "$1" == "deps" ]]; then
 	deps $2 $3
 elif [[ "$1" == "prudynt" ]]; then
+	prudynt $2 $3
+elif [[ "$1" == "full" ]]; then
+	deps $2 $3
 	prudynt $2 $3
 fi
