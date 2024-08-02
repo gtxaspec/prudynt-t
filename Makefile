@@ -8,13 +8,19 @@ CONFIG_MUSL_BUILD=y
 CONFIG_STATIC_BUILD=n
 DEBUG=n
 
+CXXFLAGS = $(CFLAGS) -std=c++20
+LDFLAGS = -lrt
+
 CFLAGS = -Wall -Wextra -Wno-unused-parameter -O2 -DNO_OPENSSL=1
 ifeq ($(KERNEL_VERSION_4),y)
 CFLAGS += -DKERNEL_VERSION_4
 endif
-CXXFLAGS = $(CFLAGS) -std=c++20
-LDFLAGS = -lrt
+
+ifneq (,$(findstring -static,$(LDFLAGS)))
+LIBS = -limp -lalog -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lwebsockets -lschrift
+else
 LIBS = -limp -lalog -laudioProcess -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lwebsockets -lschrift
+endif
 
 ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))
     LIBIMP_INC_DIR = ./include/T31
