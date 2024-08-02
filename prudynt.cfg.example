@@ -56,6 +56,7 @@ stream0: {
 	# rotation: 0;  # Rotation of the video stream (0: no rotation, 1: 90 degrees, 2: 270 degrees).
 	osd: {
 		# enabled: true;  # Enable or disable the OSD (On-Screen Display).
+		# start_delay: 0; # Delayed start of the OSD display
 		# font_path: "/usr/share/fonts/NotoSansDisplay-Condensed2.ttf";  # Path to the font file for the OSD text.
 		# font_size: 64;  # Font size for OSD text.
 		# font_color: 0xFFFFFFFF;  # Font color for OSD text in ARGB format.
@@ -113,6 +114,7 @@ stream1: {
 	# profile: 2;  # Profile of the stream (0: baseline, 1: main, 2: high).
 	osd: {
 		# enabled: true;  # Enable or disable the OSD (On-Screen Display).
+		# start_delay: 0; # Delayed start of the OSD display
 		# font_path: "/usr/share/fonts/NotoSansDisplay-Condensed2.ttf";  # Path to the font file for the OSD text.
 		# font_size: 64;  # Font size for OSD text.
 		# font_color: 0xFFFFFFFF;  # Font color for OSD text in ARGB format.
