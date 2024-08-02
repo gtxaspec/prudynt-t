@@ -986,7 +986,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
             append_message(
                 "%d", cfg->get<int>(u_ctx->path));
         }
-#if defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30) || defined(PLATFORM_T31)
+#if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30) || defined(PLATFORM_T31)
         else if (ctx->path_match == PNT_AUDIO_INPUT_AGC_ENABLED)
         {
             IMPAudioIOAttr ioattr;
