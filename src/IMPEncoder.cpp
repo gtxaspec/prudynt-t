@@ -305,7 +305,6 @@ void IMPEncoder::initProfile()
         "fps:" << chnAttr.rcAttr.outFrmRate.frmRateNum << ", " << 
         "bps:" << stream->bitrate << ", " << 
         "gop:" << stream->gop << ", " << 
-        "format:" << chnAttr.encAttr.enType << ", " << 
         "profile:" << stream->profile << ", " <<
         "mode:" << rcMode << ", " << 
         stream->width << "x" << 
