@@ -134,7 +134,7 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
         {"rtsp.username", rtsp.username, "thingino", validateCharNotEmpty},
         {"sensor.model", sensor.model, "gc2053", validateCharNotEmpty, false, "/proc/jz/sensor/name"},
         {"stream0.format", stream0.format, "H264", [](const char *v) { return strcmp(v, "H264") == 0 || strcmp(v, "H265") == 0; }},
-        {"stream0.osd.font_path", stream0.osd.font_path, "/usr/share/fonts/NotoSansDisplay-Condensed2.ttf", validateCharNotEmpty},
+        {"stream0.osd.font_path", stream0.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", validateCharNotEmpty},
         {"stream0.osd.logo_path", stream0.osd.logo_path, "/usr/share/images/thingino_logo_1.bgra", validateCharNotEmpty},
         {"stream0.osd.time_format", stream0.osd.time_format, "%F %T", validateCharNotEmpty},
         {"stream0.osd.uptime_format", stream0.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", validateCharNotEmpty},

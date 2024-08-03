@@ -124,7 +124,7 @@ stream1: {
 		# time_enabled: true;  # Enable or disable the time display in the OSD.
 		# time_format: "%F %T";  # Format string for displaying time.
 		# user_text_enabled: true;  # Enable or disable the display of custom user text.
-		# user_text_format: "%hostname, fps:%fps, bps:%bps";  # Custom text to display in the OSD.
+		user_text_format: "%hostname";  # Custom text to display in the OSD.
 		# uptime_enabled: true;  # Enable or disable the display of system uptime.
 		# uptime_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
 		# logo_enabled: true;  # Enable or disable the display of a logo image.
