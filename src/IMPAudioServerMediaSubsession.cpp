@@ -1,4 +1,5 @@
 #include "globals.hpp"
+#include "liveMedia.hh"
 #include "IMPDeviceSource.hpp"
 #include "IMPAudioServerMediaSubsession.hpp"
 #include "SimpleRTPSink.hh"
@@ -29,7 +30,11 @@ FramedSource* IMPAudioServerMediaSubsession::createNewStreamSource(
 {
     estBitrate = global_audio[audioChn]->imp_audio->bitrate;
     IMPDeviceSource<AudioFrame, audio_stream> * audioSource = IMPDeviceSource<AudioFrame, audio_stream> ::createNew(envir(), audioChn, global_audio[audioChn], "audio");
-    return audioSource;
+
+    //return audioSource;
+
+    FramedSource* endianSwapSource = EndianSwap16::createNew(envir(), audioSource);
+    return endianSwapSource;
 }
 
 RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
