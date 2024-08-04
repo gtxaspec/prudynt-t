@@ -182,8 +182,8 @@ audio: {
 	# input_enabled: false;  # Enable or disable audio input.
 	# input_high_pass_filter: true;  # Enable or disable high pass filter for audio input.
 	# input_agc_enabled: true;  # Enable or disable AGC for audio input.
-	# input_vol: 30;  # Input volume for audio (-30 to 120).
-	# input_gain: 18;  # Input gain for audio (0 to 31).
+	# input_vol: 80;  # Input volume for audio (-30 to 120).
+	# input_gain: 25;  # Input gain for audio (0 to 31).
 	# input_alc_gain: 1;  # ALC gain for audio input (0 to 7).
 	# input_agc_target_level_dbfs: 10;  # AGC target level in dBFS for audio input (0 to 31).
 	# input_agc_compression_gain_db: 0;  # AGC compression gain in dB for audio input (0 to 90).
