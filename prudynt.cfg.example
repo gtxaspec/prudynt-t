@@ -34,7 +34,7 @@ rtsp: {
 sensor: {
 	# model: "gc2053";  # Sensor model.
 	# i2c_address: 0x37;  # I2C address of the sensor (0x0 - 0x7F).
-	fps: 25;  # Frames per second captured by the sensor (0-60).
+	# fps: 25;  # Frames per second captured by the sensor (0-60).
 	# width: 1920;  # Width of the sensor's image (in pixels).
 	# height: 1080;  # Height of the sensor's image (in pixels).
 };
@@ -49,7 +49,7 @@ stream0: {
 	# width: 1920;  # Width of the video stream (in pixels).
 	# height: 1080;  # Height of the video stream (in pixels).
 	# buffers: 2;  # Number of buffers for the stream.
-	fps: 25;  # Frames per second for the stream (0-60).
+	# fps: 25;  # Frames per second for the stream (0-60).
 	# gop: 20;  # Group of Pictures size for the stream.
 	# max_gop: 60;  # Maximum GOP size for the stream.
 	# profile: 2;  # Profile of the stream (0: baseline, 1: main, 2: high).
@@ -66,7 +66,7 @@ stream0: {
 		# time_enabled: true;  # Enable or disable the time display in the OSD.
 		# time_format: "%F %T";  # Format string for displaying time.
 		# user_text_enabled: true;  # Enable or disable the display of custom user text.
-		# user_text_format: "%hostname, fps:%fps, bps:%bps";  # Custom text to display in the OSD.
+		# user_text_format: "%hostname";  # Custom text to display in the OSD.
 		# uptime_enabled: true;  # Enable or disable the display of system uptime.
 		# uptime_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
 		# logo_enabled: true;  # Enable or disable the display of a logo image.
@@ -108,7 +108,7 @@ stream1: {
 	# width: 640;  # Width of the video stream (in pixels).
 	# height: 360;  # Height of the video stream (in pixels).
 	# buffers: 2;  # Number of buffers for the stream.
-	fps: 25;  # Frames per second for the stream (0-60).
+	# fps: 25;  # Frames per second for the stream (0-60).
 	# gop: 20;  # Group of Pictures size for the stream.
 	# max_gop: 60;  # Maximum GOP size for the stream.
 	# profile: 2;  # Profile of the stream (0: baseline, 1: main, 2: high).
@@ -124,7 +124,7 @@ stream1: {
 		# time_enabled: true;  # Enable or disable the time display in the OSD.
 		# time_format: "%F %T";  # Format string for displaying time.
 		# user_text_enabled: true;  # Enable or disable the display of custom user text.
-		user_text_format: "%hostname";  # Custom text to display in the OSD.
+		# user_text_format: "%hostname";  # Custom text to display in the OSD.
 		# uptime_enabled: true;  # Enable or disable the display of system uptime.
 		# uptime_format: "Uptime: %02lu:%02lu:%02lu";  # Format string for displaying uptime.
 		# logo_enabled: true;  # Enable or disable the display of a logo image.
