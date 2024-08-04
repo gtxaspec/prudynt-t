@@ -13,7 +13,7 @@
 #define ENABLE_LOG_DEBUG
 
 //Some more debug output not usefull for users (Developer Debug)
-#define DDEBUG
+//#define DDEBUG
 
 //enable audio support
 #define AUDIO_SUPPORT
