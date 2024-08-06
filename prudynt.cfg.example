@@ -46,6 +46,7 @@ stream0: {
 	# rtsp_endpoint: "ch0";  # Endpoint name for the RTSP url stream.
 	# format: "H264";  # Video format for the stream (H264 or H265).
 	# bitrate: 3000;  # Bitrate for the stream (in kbps).
+	# mode: "SMART"; # Rate control mode: ("CBR", "VBR", "FIXQP", ("SMART" on T1x, T2x, T30), ("CAPPED_VBR", "CAPPED_QUALITY" on T31))
 	# width: 1920;  # Width of the video stream (in pixels).
 	# height: 1080;  # Height of the video stream (in pixels).
 	# buffers: 2;  # Number of buffers for the stream.
@@ -105,6 +106,7 @@ stream1: {
 	# rtsp_endpoint: "ch1";  # Endpoint name for the RTSP url stream.
 	# format: "H264";  # Video format for the stream (H264 or H265).
 	# bitrate: 1000;  # Bitrate for the stream (in kbps).
+	# mode: "SMART"; # Rate control mode: ("CBR", "VBR", "FIXQP", ("SMART" on T1x, T2x, T30), ("CAPPED_VBR", "CAPPED_QUALITY" on T31))
 	# width: 640;  # Width of the video stream (in pixels).
 	# height: 360;  # Height of the video stream (in pixels).
 	# buffers: 2;  # Number of buffers for the stream.
