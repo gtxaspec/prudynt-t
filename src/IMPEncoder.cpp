@@ -229,13 +229,6 @@ void IMPEncoder::initProfile()
         case ENC_RC_MODE_FIXQP:
             rcAttr->attrRcMode.rcMode = ENC_RC_MODE_FIXQP;
             rcAttr->attrRcMode.attrH264FixQp.qp = 42;
-            rcAttr->attrHSkip.hSkipAttr.skipType = IMP_Encoder_STYPE_N1X;
-            rcAttr->attrHSkip.hSkipAttr.m = 0;
-            rcAttr->attrHSkip.hSkipAttr.n = 0;
-            rcAttr->attrHSkip.hSkipAttr.maxSameSceneCnt = 0;
-            rcAttr->attrHSkip.hSkipAttr.bEnableScenecut = 0;
-            rcAttr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
-            rcAttr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X;
             break;
         case ENC_RC_MODE_CBR:
             rcAttr->attrRcMode.rcMode = ENC_RC_MODE_CBR;
