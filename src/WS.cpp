@@ -406,6 +406,7 @@ struct user_ctx
     int flag;
     int midx;
     int vidx;
+    size_t post_data_size;
 };
 
 std::string generateToken(int length)
@@ -992,7 +993,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
             IMPAudioIOAttr ioattr;
             int ret = IMP_AI_GetPubAttr(u_ctx->flag, &ioattr);
             if (ret == 0)
-            {            
+            {
                 if (reason == LEJPCB_VAL_TRUE)
                 {
                     if (cfg->set<bool>(u_ctx->path, true))
@@ -1024,9 +1025,9 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                 "%d", cfg->get<int>(u_ctx->path));
         }
 #else
-            append_message(
-                "%s", "null");
-        }
+        append_message(
+            "%s", "null");
+    }
 #endif
         else
         {
@@ -1072,7 +1073,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                 append_message(
                     "%d", cfg->get<int>(u_ctx->path));
                 break;
-            case PNT_AUDIO_INPUT_ALC_GAIN:                
+            case PNT_AUDIO_INPUT_ALC_GAIN:
 #if defined(PLATFORM_T21) || defined(PLATFORM_T31)
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
@@ -1084,8 +1085,8 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                 append_message(
                     "%d", cfg->get<int>(u_ctx->path));
 #else
-                append_message(
-                    "\"%s\"", unsupported);
+            append_message(
+                "\"%s\"", unsupported);
 #endif
                 break;
             }
@@ -1670,7 +1671,7 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
         case PNT_RESTART_THREAD:
             if (reason == LEJPCB_VAL_NUM_INT)
             {
-                u_ctx->signal = atoi(ctx->buf);               
+                u_ctx->signal = atoi(ctx->buf);
             }
             append_message(
                 "\"%s\"", "initiated");
@@ -1780,40 +1781,39 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
     char client_ip[128];
     lws_get_peer_simple(wsi, client_ip, sizeof(client_ip));
 
-    int ws_send_msg_length, url_length;
-    char url_token[128];
-    memset(url_token, 0, 128);
-
+    int url_length;
+    int request_method;
+    int ws_send_msg_length;
+    char *url_ptr;
+    char url_token[128]{0};
+    char content_type[128]{0};
     std::string json_data((char *)in, len);
 
-    switch (reason)
+    if (reason == LWS_CALLBACK_ESTABLISHED || reason == LWS_CALLBACK_HTTP)
     {
-    case LWS_CALLBACK_ESTABLISHED:
-        LOG_DDEBUG("LWS_CALLBACK_ESTABLISHED " << client_ip);
-
+        // check if security is required and validate token
         url_length = lws_get_urlarg_by_name_safe(wsi, "token", url_token, sizeof(url_token));
-        if (url_length != WEBSOCKET_TOKEN_LENGTH || strcmp(token, url_token) != 0)
+
+        if (strcmp(token, url_token) != 0)
         {
-            LOG_DEBUG("Unauthenticated websocket connect");
+            LOG_DEBUG("Unauthenticated websocket connect from: " << client_ip);
             if (cfg->websocket.secured)
             {
                 LOG_DEBUG("Connection refused.");
                 return -1;
             }
         }
-        break;
-    case LWS_CALLBACK_SERVER_WRITEABLE:
-        LOG_DDEBUG("LWS_CALLBACK_SERVER_WRITEABLE");
+    }
 
-        ws_send_msg_length = strlen(ws_send_msg);
-        if (ws_send_msg_length)
-        {
-            LOG_DDEBUG("TO " << client_ip << ":  " << ws_send_msg);
-            lws_write(wsi, (unsigned char *)ws_send_msg, ws_send_msg_length, LWS_WRITE_TEXT);
-            memset(ws_send_msg, 0, sizeof(ws_send_msg));
-        }
-        break;
+    // get url and method
+    if (reason >= LWS_CALLBACK_HTTP && reason <= LWS_CALLBACK_HTTP_WRITEABLE)
+    {
+        request_method = lws_http_get_uri_and_method(wsi, &url_ptr, &url_length);
+        lws_hdr_copy(wsi, content_type, sizeof(content_type), WSI_TOKEN_HTTP_CONTENT_TYPE);
+    }
 
+    switch (reason)
+    {
     case LWS_CALLBACK_RECEIVE:
         LOG_DDEBUG("LWS_CALLBACK_RECEIVE " << client_ip << ", " << json_data);
 
@@ -1824,7 +1824,6 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         lejp_construct(&ctx, root_callback, u_ctx, root_keys, LWS_ARRAY_SIZE(root_keys));
         lejp_parse(&ctx, (uint8_t *)json_data.c_str(), json_data.length());
         lejp_destruct(&ctx);
-
         std::strcat(ws_send_msg, "}"); // close response json
 
         // send jpeg image via websocket
@@ -1842,7 +1841,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                 if (u_ctx->signal & PNT_THREAD_RTSP)
                 {
                     global_restart_rtsp = true;
-                }                    
+                }
                 if (u_ctx->signal & PNT_THREAD_VIDEO)
                 {
                     global_restart_video = true;
@@ -1851,7 +1850,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                 {
                     global_restart_audio = true;
                 }
-                global_cv_worker_restart.notify_one();           
+                global_cv_worker_restart.notify_one();
             }
         }
 
@@ -1860,8 +1859,152 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         lws_callback_on_writable(wsi);
         break;
 
+    case LWS_CALLBACK_SERVER_WRITEABLE:
+        LOG_DDEBUG("LWS_CALLBACK_SERVER_WRITEABLE");
+
+        ws_send_msg_length = strlen(ws_send_msg);
+        if (ws_send_msg_length)
+        {
+            LOG_DDEBUG("TO " << client_ip << ":  " << ws_send_msg);
+            lws_write(wsi, (unsigned char *)ws_send_msg, ws_send_msg_length, LWS_WRITE_TEXT);
+            memset(ws_send_msg, 0, sizeof(ws_send_msg));
+        }
+        break;
+
     case LWS_CALLBACK_CLOSED:
-        LOG_DEBUG("LWS_CALLBACK_CLOSED " << client_ip);
+        LOG_DDEBUG("LWS_CALLBACK_CLOSED " << client_ip);
+        break;
+
+    case LWS_CALLBACK_HTTP:
+        LOG_DDEBUG("LWS_CALLBACK_HTTP " << client_ip << " url:" << (char *)url_ptr << " method:" << request_method);
+
+        // http get
+        if (request_method == 0)
+        {
+            // Send preview image
+            if (strcmp(url_ptr, "/preview.jpg") == 0) {
+                u_ctx->flag |= 128;
+                lws_callback_on_writable(wsi);
+                return 0;             
+            }
+        }
+        // http post
+        else if (request_method == 1)
+        {
+            // get content length
+            if (strcmp(url_ptr, "/json") == 0 && strcmp(content_type, "application/json") == 0)
+            {
+                u_ctx->flag |= 256;
+                // Read content length header and store received data
+                char length_str[16];
+                if (lws_hdr_copy(wsi, length_str, sizeof(length_str), WSI_TOKEN_HTTP_CONTENT_LENGTH) > 0)
+                {
+                    u_ctx->post_data_size = atoi(length_str);
+                }
+                return 0;
+            }
+        }
+
+        // not implemented
+        {
+            const char *response = "HTTP/1.1 501 Not Implemented\r\nContent-Type: text/plain\r\n\r\n";
+            lws_write(wsi, (unsigned char *)response, strlen(response), LWS_WRITE_HTTP);                  
+            return -1;
+        }
+        break;
+
+    case LWS_CALLBACK_HTTP_BODY:
+        LOG_DDEBUG("LWS_CALLBACK_HTTP_BODY " << client_ip);
+
+        if (u_ctx->post_data_size)
+        {
+            // cleanup response buffer
+            memset(ws_send_msg, 0, sizeof(ws_send_msg));
+
+            std::strcat(ws_send_msg, "{"); // start response json
+            lejp_construct(&ctx, root_callback, u_ctx, root_keys, LWS_ARRAY_SIZE(root_keys));
+            lejp_parse(&ctx, (uint8_t *)json_data.c_str(), json_data.length());
+            lejp_destruct(&ctx);
+            std::strcat(ws_send_msg, "}"); // close response json
+
+            {
+                std::unique_lock lck(mutex_main);
+                // inform main to restart threads
+                if ((u_ctx->signal & PNT_THREAD_RTSP) || (u_ctx->signal & PNT_THREAD_VIDEO) || (u_ctx->signal & PNT_THREAD_AUDIO))
+                {
+                    if (u_ctx->signal & PNT_THREAD_RTSP)
+                    {
+                        global_restart_rtsp = true;
+                    }
+                    if (u_ctx->signal & PNT_THREAD_VIDEO)
+                    {
+                        global_restart_video = true;
+                    }
+                    if (u_ctx->signal & PNT_THREAD_AUDIO)
+                    {
+                        global_restart_audio = true;
+                    }
+                    global_cv_worker_restart.notify_one();
+                }
+            }
+
+            // always reset signal
+            u_ctx->signal = 0;
+            lws_callback_on_writable(wsi);
+            return 0;
+        }
+        break;
+
+    case LWS_CALLBACK_HTTP_WRITEABLE:
+        //LOG_DDEBUG("LWS_CALLBACK_HTTP_WRITEABLE " << client_ip);
+
+        if (u_ctx->flag & 128)
+        {
+            u_ctx->flag &= ~128;
+            LOG_DDEBUG("/preview.jpg " << u_ctx->flag);
+
+            // create and send preview image
+            std::vector<uint8_t> jpeg_data = Worker::capture_jpeg_image(2);
+            size_t jpeg_size = jpeg_data.size();
+
+            // format image to send via libwebsockets
+            std::vector<unsigned char> jpeg_buf(LWS_PRE + jpeg_size);
+            memcpy(jpeg_buf.data() + LWS_PRE, jpeg_data.data(), jpeg_size);
+
+            // Prepare the HTTP headers
+            std::string headers = "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: " + std::to_string(jpeg_size) + "\r\n\r\n";
+            lws_write(wsi, (unsigned char *)headers.c_str(), headers.size(), LWS_WRITE_HTTP);
+
+            // Write image
+            lws_write(wsi, jpeg_buf.data() + LWS_PRE, jpeg_size, LWS_WRITE_HTTP);
+            lws_callback_on_writable(wsi);            
+        }
+
+        if (u_ctx->flag & 256)
+        {
+            u_ctx->flag &= ~256;
+            LOG_DDEBUG("/json " << u_ctx->flag);
+
+            ws_send_msg_length = strlen(ws_send_msg);
+            if (ws_send_msg_length)
+            {
+                LOG_DDEBUG("TO " << client_ip << ":  " << ws_send_msg);
+
+                // Prepare the HTTP headers
+                std::string headers = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + std::to_string(ws_send_msg_length) + "\r\n\r\n";
+                lws_write(wsi, (unsigned char *)headers.c_str(), headers.size(), LWS_WRITE_HTTP);
+
+                // write json response
+                lws_write(wsi, (unsigned char *)ws_send_msg, ws_send_msg_length, LWS_WRITE_TEXT);
+                memset(ws_send_msg, 0, sizeof(ws_send_msg));
+            }
+
+            if(lws_http_transaction_completed(wsi) != 0) {
+
+                LOG_ERROR("lws_http_transaction_completed failed.");
+            };
+            return -1;
+        }
         break;
 
     default:
@@ -1873,7 +2016,6 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
 void WS::start()
 {
-
     int opt;
     char *ip = NULL;
 
