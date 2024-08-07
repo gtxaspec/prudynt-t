@@ -39,10 +39,38 @@ sensor: {
 	# height: 1080;  # Height of the sensor's image (in pixels).
 };
 
+# Image Settings
+# ----------------
+image: {
+	# vflip = false;
+	# hflip = false;
+	# ae_compensation = 128;
+	# anti_flicker = 2;
+	# backlight_compensation = 0;
+	# brightness = 128;
+	# contrast = 128;
+	# core_wb_mode = 0;
+	# defog_strength = 128;
+	# dpc_strength = 128;
+	# drc_strength = 128;
+	# highlight_depress = 0;
+	# hue = 128;
+	# max_again = 160;
+	# max_dgain = 80;
+	# running_mode = 0;
+	# saturation = 128;
+	# sharpness = 128;
+	# sinter_strength = 128;
+	# temper_strength = 128;
+	# wb_bgain = 0;
+	# wb_rgain = 0;
+};
+
 # Stream0 Settings
 # ----------------
 stream0: {
 	# enabled: true;  # Enable or disable Stream0.
+	# audio_enabled: true; # Enable audio on the stream.
 	# rtsp_endpoint: "ch0";  # Endpoint name for the RTSP url stream.
 	# format: "H264";  # Video format for the stream (H264 or H265).
 	# bitrate: 3000;  # Bitrate for the stream (in kbps).
@@ -103,6 +131,7 @@ stream0: {
 # ---------------------------------
 stream1: {
 	# enabled: true;  # Enable or disable Stream1.
+	# audio_enabled: true; # Enable audio on the stream.
 	# rtsp_endpoint: "ch1";  # Endpoint name for the RTSP url stream.
 	# format: "H264";  # Video format for the stream (H264 or H265).
 	# bitrate: 1000;  # Bitrate for the stream (in kbps).
