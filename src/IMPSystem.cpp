@@ -27,7 +27,7 @@ int IMPSystem::init()
 
     ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
-    
+
     IMPVersion impVersion;
     ret = IMP_System_GetVersion(&impVersion);
     LOG_INFO("LIBIMP Version " << impVersion.aVersion);
@@ -57,11 +57,7 @@ int IMPSystem::init()
     ret = IMP_ISP_EnableTuning();
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_EnableTuning()");
 
-    /* Image tuning */
-    unsigned char value;
-
 #if !defined(NO_TUNINGS)
-
     ret = IMP_ISP_Tuning_SetContrast(cfg->image.contrast);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetContrast(" << cfg->image.contrast << ")");
 
@@ -114,14 +110,6 @@ int IMPSystem::init()
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetAeComp(" << cfg->image.ae_compensation << ")");
 #endif
 
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-    ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
-#else
-    ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
-#endif
-
     ret = IMP_ISP_Tuning_SetMaxAgain(cfg->image.max_again);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetMaxAgain(" << cfg->image.max_again << ")");
 
@@ -142,37 +130,53 @@ int IMPSystem::init()
     else
     {
         LOG_DEBUG("Set white balance. Mode: " << cfg->image.core_wb_mode << ", rgain: "
-                                                << cfg->image.wb_rgain << ", bgain: " << cfg->image.wb_bgain);
+                                              << cfg->image.wb_rgain << ", bgain: " << cfg->image.wb_bgain);
     }
 
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+#if defined(PLATFORM_T23) || defined(PLATFORM_T31)
     ret = IMP_ISP_Tuning_SetBcshHue(cfg->image.hue);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBcshHue(" << cfg->image.hue << ")");
-#endif
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+
     uint8_t _defog_strength = static_cast<uint8_t>(cfg->image.defog_strength);
     ret = IMP_ISP_Tuning_SetDefog_Strength(reinterpret_cast<uint8_t *>(&_defog_strength));
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDefog_Strength(" << cfg->image.defog_strength << ")");
-#endif
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+
     ret = IMP_ISP_Tuning_SetDPC_Strength(cfg->image.dpc_strength);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDPC_Strength(" << cfg->image.dpc_strength << ")");
 #endif
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+#if defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T31)
     ret = IMP_ISP_Tuning_SetDRC_Strength(cfg->image.drc_strength);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << cfg->image.drc_strength << ")");
 #endif
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
+
+#if defined(PLATFORM_T23) || defined(PLATFORM_T31)
+    if (cfg->image.backlight_compensation > 0)
+    {
         ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
         LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
+    }
+    else if (cfg->image.highlight_depress > 0)
+    {
+        ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
+    }
+#elif defined(PLATFORM_T21) || defined(PLATFORM_T30)
+    ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
 #endif
-
 #endif // #if !defined(NO_TUNINGS)
 
     LOG_DEBUG("ISP Tuning Defaults set");
 
     ret = IMP_ISP_Tuning_SetSensorFPS(cfg->sensor.fps, 1);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetSensorFPS(" << cfg->sensor.fps << ", 1);");
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetSensorFPS(" << cfg->sensor.fps << ", 1)");
+
+#if defined(PLATFORM_T21)
+    //T20 T21 only set FPS if it is read after set.
+    uint32_t fps_num, fps_den;
+    ret = IMP_ISP_Tuning_GetSensorFPS(&fps_num, &fps_den);
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_GetSensorFPS(" << fps_num << ", " << fps_den << ")");
+#endif
 
     // Set the ISP to DAY on launch
     ret = IMP_ISP_Tuning_SetISPRunningMode(IMPISP_RUNNING_MODE_DAY);
