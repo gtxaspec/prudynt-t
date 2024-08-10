@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
-
-PRUDYNT_CROSS="ccache mipsel-linux-"
+: "${PRUDYNT_CROSS:=ccache mipsel-linux-}"
 TOP=$(pwd)
 
 prudynt(){
@@ -29,7 +28,15 @@ deps() {
 
 	echo "Build libwebsockets"
 	cd 3rdparty
-	../scripts/make_libwebsockets_deps.sh
+
+	CROSS_COMPILE=${PRUDYNT_CROSS}
+
+        if [[ "$2" == "-static" ]]; then
+		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libwebsockets_deps.sh -static
+        else
+		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libwebsockets_deps.sh
+        fi
+
 	cd ../
 
 	echo "Build libschrift"
