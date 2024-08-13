@@ -76,10 +76,13 @@ void Motion::detect()
                         moving = true;
                         LOG_INFO("Motion Start");
 
-                        ret = system(cfg->motion.script_path);
+                        char cmd[128];
+                        memset(cmd, 0, sizeof(cmd));
+                        snprintf(cmd, sizeof(cmd), "%s start", cfg->motion.script_path);
+                        ret = system(cmd);
                         if (ret != 0)
                         {
-                            LOG_ERROR("Motion script failed:" << cfg->motion.script_path);
+                            LOG_ERROR("Motion script failed:" << cmd);
                         }
                     }
                     indicator = true;
@@ -94,6 +97,14 @@ void Motion::detect()
             if (moving && duration_cast<seconds>(currentTime - motionEndTime).count() >= cfg->motion.post_time)
             {
                 LOG_INFO("End of Motion");
+                char cmd[128];
+                memset(cmd, 0, sizeof(cmd));
+                snprintf(cmd, sizeof(cmd), "%s stop", cfg->motion.script_path);
+                ret = system(cmd);
+                if (ret != 0)
+                {
+                    LOG_ERROR("Motion script failed:" << cmd);
+                }
                 moving = false;
                 indicator = false;
                 cooldownEndTime = steady_clock::now(); // Start cooldown
