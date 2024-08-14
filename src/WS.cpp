@@ -1826,12 +1826,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         lejp_destruct(&ctx);
         std::strcat(ws_send_msg, "}"); // close response json
 
-        // send jpeg image via websocket
-        if ((u_ctx->signal & 32))
-        {
-            send_jpeg(wsi);
-            memset(ws_send_msg, 0, sizeof(ws_send_msg));
-        }
+
 
         {
             std::unique_lock lck(mutex_main);
@@ -1854,8 +1849,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             }
         }
 
-        // always reset signal
-        u_ctx->signal = 0;
+
         lws_callback_on_writable(wsi);
         break;
 
@@ -1869,6 +1863,17 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             lws_write(wsi, (unsigned char *)ws_send_msg, ws_send_msg_length, LWS_WRITE_TEXT);
             memset(ws_send_msg, 0, sizeof(ws_send_msg));
         }
+
+        // send jpeg image via websocket
+        if ((u_ctx->signal & 32))
+        {
+            send_jpeg(wsi);
+            memset(ws_send_msg, 0, sizeof(ws_send_msg));
+        }
+
+        // always reset signal
+        u_ctx->signal = 0;
+        
         break;
 
     case LWS_CALLBACK_CLOSED:
