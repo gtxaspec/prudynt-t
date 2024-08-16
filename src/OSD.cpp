@@ -861,11 +861,12 @@ void OSD::updateDisplayEverySecond()
             if ((flag & 4) && osd.uptime_enabled)
             {
                 unsigned long currentUptime = getSystemUptime();
-                unsigned long hours = currentUptime / 3600;
+                unsigned long days = currentUptime / 86400;
+                unsigned long hours = (currentUptime % 86400) / 3600;
                 unsigned long minutes = (currentUptime % 3600) / 60;
-                unsigned long seconds = currentUptime % 60;
+                //unsigned long seconds = currentUptime % 60;
 
-                snprintf(uptimeFormatted, sizeof(uptimeFormatted), osd.uptime_format, hours, minutes, seconds);
+                snprintf(uptimeFormatted, sizeof(uptimeFormatted), osd.uptime_format, days, hours, minutes);
 
                 set_text(&osdUptm, nullptr, uptimeFormatted,
                          osd.pos_uptime_x, osd.pos_uptime_y, osd.uptime_rotation);
