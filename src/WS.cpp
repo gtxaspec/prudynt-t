@@ -1887,10 +1887,11 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         if (request_method == 0)
         {
             // Send preview image
-            if (strcmp(url_ptr, "/preview.jpg") == 0) {
+            if (strcmp(url_ptr, "/preview.jpg") == 0)
+            {
                 u_ctx->flag |= 128;
                 lws_callback_on_writable(wsi);
-                return 0;             
+                return 0;
             }
         }
         // http post
@@ -1913,7 +1914,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         // not implemented
         {
             const char *response = "HTTP/1.1 501 Not Implemented\r\nContent-Type: text/plain\r\n\r\n";
-            lws_write(wsi, (unsigned char *)response, strlen(response), LWS_WRITE_HTTP);                  
+            lws_write(wsi, (unsigned char *)response, strlen(response), LWS_WRITE_HTTP);
             return -1;
         }
         break;
@@ -1961,7 +1962,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         break;
 
     case LWS_CALLBACK_HTTP_WRITEABLE:
-        //LOG_DDEBUG("LWS_CALLBACK_HTTP_WRITEABLE " << client_ip);
+        // LOG_DDEBUG("LWS_CALLBACK_HTTP_WRITEABLE " << client_ip);
 
         if (u_ctx->flag & 128)
         {
@@ -1982,7 +1983,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
             // Write image
             lws_write(wsi, jpeg_buf.data() + LWS_PRE, jpeg_size, LWS_WRITE_HTTP);
-            lws_callback_on_writable(wsi);            
+            lws_callback_on_writable(wsi);
         }
 
         if (u_ctx->flag & 256)
@@ -2004,7 +2005,8 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                 memset(ws_send_msg, 0, sizeof(ws_send_msg));
             }
 
-            if(lws_http_transaction_completed(wsi) != 0) {
+            if (lws_http_transaction_completed(wsi) != 0)
+            {
 
                 LOG_ERROR("lws_http_transaction_completed failed.");
             };
