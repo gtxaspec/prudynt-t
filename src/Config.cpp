@@ -137,7 +137,7 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
         {"stream0.osd.font_path", stream0.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", validateCharNotEmpty},
         {"stream0.osd.logo_path", stream0.osd.logo_path, "/usr/share/images/thingino_logo_1.bgra", validateCharNotEmpty},
         {"stream0.osd.time_format", stream0.osd.time_format, "%F %T", validateCharNotEmpty},
-        {"stream0.osd.uptime_format", stream0.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", validateCharNotEmpty},
+        {"stream0.osd.uptime_format", stream0.osd.uptime_format, "Up: %02lud %02lu:%02lu", validateCharNotEmpty},
         {"stream0.osd.user_text_format", stream0.osd.user_text_format, "%hostname", validateCharNotEmpty},
         {"stream0.mode", stream0.mode, DEFAULT_ENC_MODE_0, [](const char *v) {
             std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQP", "CAPPED_VBR", "CAPPED_QUALITY"};
@@ -149,7 +149,7 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
         {"stream1.osd.font_path", stream1.osd.font_path, "/usr/share/fonts/NotoSansDisplay-Condensed2.ttf", validateCharNotEmpty},
         {"stream1.osd.logo_path", stream1.osd.logo_path, "/usr/share/images/thingino_logo_1.bgra", validateCharNotEmpty},
         {"stream1.osd.time_format", stream1.osd.time_format, "%F %T", validateCharNotEmpty},
-        {"stream1.osd.uptime_format", stream1.osd.uptime_format, "Uptime: %02lu:%02lu:%02lu", validateCharNotEmpty},
+        {"stream1.osd.uptime_format", stream1.osd.uptime_format, "Up: %02lud %02lu:%02lu", validateCharNotEmpty},
         {"stream1.osd.user_text_format", stream1.osd.user_text_format, "%hostname", validateCharNotEmpty},
         {"stream1.mode", stream1.mode, DEFAULT_ENC_MODE_1, [](const char *v) {
             std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQP", "CAPPED_VBR", "CAPPED_QUALITY"};
