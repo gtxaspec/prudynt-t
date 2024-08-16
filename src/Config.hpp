@@ -208,6 +208,8 @@ struct _stream {
     int scale_height;
     bool enabled;
     bool scale_enabled;
+    bool power_saving;
+    bool allow_shared;
     const char *mode;
     const char *rtsp_endpoint;
     const char *format;
