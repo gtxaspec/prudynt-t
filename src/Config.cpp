@@ -99,6 +99,8 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
         {"stream0.audio_enabled", stream0.audio_enabled, true, validateBool},
 #endif
         {"stream0.enabled", stream0.enabled, true, validateBool},
+        {"stream0.power_saving", stream0.power_saving, true, validateBool},
+        {"stream0.allow_shared", stream0.allow_shared, true, validateBool},
         {"stream0.osd.enabled", stream0.osd.enabled, true, validateBool},
         {"stream0.osd.font_stroke_enabled", stream0.osd.font_stroke_enabled, true, validateBool},
         {"stream0.osd.logo_enabled", stream0.osd.logo_enabled, true, validateBool},
@@ -109,6 +111,8 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
         {"stream1.audio_enabled", stream1.audio_enabled, true, validateBool},
 #endif
         {"stream1.enabled", stream1.enabled, true, validateBool},
+        {"stream1.power_saving", stream1.power_saving, true, validateBool},
+        {"stream1.allow_shared", stream1.allow_shared, true, validateBool},     
         {"stream1.osd.enabled", stream1.osd.enabled, true, validateBool},
         {"stream1.osd.font_stroke_enabled", stream1.osd.font_stroke_enabled, true, validateBool},
         {"stream1.osd.logo_enabled", stream1.osd.logo_enabled, true, validateBool},

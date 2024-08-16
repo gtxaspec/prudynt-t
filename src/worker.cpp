@@ -266,7 +266,7 @@ void *Worker::stream_grabber(void *arg)
     global_video[encChn]->running = true;
     while (global_video[encChn]->running)
     {
-        if (global_video[encChn]->hasDataCallback)
+        if (global_video[encChn]->hasDataCallback || global_video[encChn]->stream->power_saving == false)
         {
             if (IMP_Encoder_PollingStream(encChn, cfg->general.imp_polling_timeout) == 0)
             {

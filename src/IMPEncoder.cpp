@@ -312,6 +312,18 @@ int IMPEncoder::init()
 
     initProfile();
 
+#if defined(PLATFORM_T31)
+    if(cfg->stream2.enabled && cfg->stream2.jpeg_channel == encChn && stream->allow_shared) {
+        ret = IMP_Encoder_SetbufshareChn(2, encChn);
+        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_SetbufshareChn(2, " << encChn << ")");
+
+        if(stream->power_saving) {
+            stream->power_saving = false;
+            LOG_DEBUG("power saving disabled for stream" << encChn);
+        }
+    }
+#endif
+
     ret = IMP_Encoder_CreateChn(encChn, &chnAttr);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_CreateChn(" << encChn << ", chnAttr)");
 
@@ -343,18 +355,15 @@ int IMPEncoder::init()
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&fs, &enc)");
         }
     }
+#if !defined(PLATFORM_T31)    
     else
     {
-#if defined(PLATFORM_T31)
-        ret = IMP_Encoder_SetbufshareChn(2, stream->jpeg_channel);
-        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_SetbufshareChn(2, " << stream->jpeg_channel << ")");
-#else
         IMPEncoderJpegeQl pstJpegeQl;
         MakeTables(stream->jpeg_quality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
         pstJpegeQl.user_ql_en = 1;
         IMP_Encoder_SetJpegeQl(2, &pstJpegeQl);
-#endif
     }
+#endif
 
     return ret;
 }
