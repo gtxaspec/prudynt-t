@@ -28,11 +28,11 @@
 #define LOG_DEBUG_OR_ERROR_AND_EXIT(condition, str)                                            \
     if ((condition) == 0)                                                                      \
     {                                                                                          \
-        Logger::log(Logger::DEBUG, FILENAME, LogMsg() << str);                             \
+        Logger::log(Logger::DEBUG, FILENAME, LogMsg() << str << " = " << condition); \
     }                                                                                          \
     else                                                                                       \
     {                                                                                          \
-        Logger::log(Logger::ERROR, FILENAME, LogMsg() << str << " returns " << condition); \
+        Logger::log(Logger::ERROR, FILENAME, LogMsg() << str << " = " << condition); \
         return condition;                                                                      \
     }
 #else
