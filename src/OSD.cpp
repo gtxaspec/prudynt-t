@@ -506,7 +506,7 @@ void OSD::init()
     int ret = 0;
     LOG_DEBUG("OSD init for begin");
 
-    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
+   ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
 
     // cfg = _cfg;
@@ -728,8 +728,8 @@ int OSD::start()
     ret = IMP_OSD_Start(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_Start(" << osdGrp << ")");
     
-    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
+//    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
+//    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
 
     is_started = true;
 

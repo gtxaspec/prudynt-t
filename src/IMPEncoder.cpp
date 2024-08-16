@@ -312,6 +312,9 @@ int IMPEncoder::init()
 
     initProfile();
 
+        ret = IMP_Encoder_SetbufshareChn(2, stream->jpeg_channel);
+        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_SetbufshareChn(2, " << stream->jpeg_channel << ")");
+
     ret = IMP_Encoder_CreateChn(encChn, &chnAttr);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_CreateChn(" << encChn << ", chnAttr)");
 
@@ -346,8 +349,6 @@ int IMPEncoder::init()
     else
     {
 #if defined(PLATFORM_T31)
-        ret = IMP_Encoder_SetbufshareChn(2, stream->jpeg_channel);
-        LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_SetbufshareChn(2, " << stream->jpeg_channel << ")");
 #else
         IMPEncoderJpegeQl pstJpegeQl;
         MakeTables(stream->jpeg_quality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));

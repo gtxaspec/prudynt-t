@@ -85,7 +85,7 @@ int IMPFramesource::init()
     ret = IMP_FrameSource_SetChnFifoAttr(chnNr, &fifo);
     LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnFifoAttr(" << chnNr << ", &fifo)");
 
-    ret = IMP_FrameSource_SetFrameDepth(chnNr, 0);
+    ret = IMP_FrameSource_SetFrameDepth(chnNr, 1.5);
     LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetFrameDepth(" << chnNr << ", 0)");
 #endif
 

@@ -25,8 +25,8 @@ int IMPSystem::init()
     LOG_DEBUG("IMPSystem::init()");
     int ret = 0;
 
-    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
+//    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
+//    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
 
     IMPVersion impVersion;
     ret = IMP_System_GetVersion(&impVersion);
