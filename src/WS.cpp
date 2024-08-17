@@ -23,6 +23,8 @@
     add new font stroke
     add osd pool size
     add polling timeout
+    add stream power save
+    add stream buffer sharing
     add audio enabled per stream
 */
 const char *unsupported = "not supported on this plattform";
@@ -1932,6 +1934,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             lejp_parse(&ctx, (uint8_t *)json_data.c_str(), json_data.length());
             lejp_destruct(&ctx);
             std::strcat(ws_send_msg, "}"); // close response json
+            u_ctx->flag |= 256;
 
             {
                 std::unique_lock lck(mutex_main);
@@ -1962,7 +1965,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         break;
 
     case LWS_CALLBACK_HTTP_WRITEABLE:
-        // LOG_DDEBUG("LWS_CALLBACK_HTTP_WRITEABLE " << client_ip);
+        LOG_DDEBUG("LWS_CALLBACK_HTTP_WRITEABLE " << client_ip << " " << (int)u_ctx->flag);
 
         if (u_ctx->flag & 128)
         {
