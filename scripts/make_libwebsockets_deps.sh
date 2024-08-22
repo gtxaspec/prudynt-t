@@ -108,8 +108,11 @@ $STRIP ./lib/libwebsockets.so.19
 
 mkdir -p ../../install/
 mkdir -p ../../install/lib/
-cp ./lib/libwebsockets.a ../../install/lib/
-cp ./lib/libwebsockets.so.19 ../../install/lib/libwebsockets.so
+if [[ "$1" == "-static" ]]; then
+	cp ./lib/libwebsockets.a ../../install/lib/
+else
+	cp ./lib/libwebsockets.so.19 ../../install/lib/libwebsockets.so
+fi
 #cp -R ../include/libwebsockets ../../../include/
 cp -R include/* ../../install/include/
 

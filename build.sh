@@ -25,18 +25,24 @@ deps() {
 	rm -rf 3rdparty
 	mkdir -p 3rdparty/install
 	mkdir -p 3rdparty/install/include
+	CROSS_COMPILE=${PRUDYNT_CROSS}
 
 	echo "Build libwebsockets"
 	cd 3rdparty
-
-	CROSS_COMPILE=${PRUDYNT_CROSS}
-
-        if [[ "$2" == "-static" ]]; then
+	if [[ "$2" == "-static" ]]; then
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libwebsockets_deps.sh -static
-        else
+	else
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libwebsockets_deps.sh
-        fi
+	fi
+	cd ../
 
+	echo "Build opus"
+	cd 3rdparty
+	if [[ "$2" == "-static" ]]; then
+		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_opus_deps.sh -static
+	else
+		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_opus_deps.sh
+	fi
 	cd ../
 
 	echo "Build libschrift"

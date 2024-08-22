@@ -1,16 +1,25 @@
 #ifndef IMPAudio_hpp
 #define IMPAudio_hpp
 
-#include "Logger.hpp"
 #include "Config.hpp"
 #include <imp/imp_audio.h>
+#include "Logger.hpp"
 
 enum IMPAudioFormat
 {
     PCM,
     G711A,
     G711U,
-    G726
+    G726,
+    OPUS,
+};
+
+class IMPAudioEncoder
+{
+public:
+    virtual int open() = 0;
+    virtual int encode(IMPAudioFrame* data, unsigned char* outbuf, int* outLen) = 0;
+    virtual int close() = 0;
 };
 
 class IMPAudio
@@ -23,7 +32,8 @@ public:
         init();
     };
 
-    ~IMPAudio(){
+    ~IMPAudio()
+    {
         deinit();
     };
 
@@ -35,8 +45,9 @@ public:
     int inChn{};
     int aeChn{};
     int devId{};
+
 private:
-    
+    int handle = 0;
     const char *name{};
     _stream *stream{};
 };
