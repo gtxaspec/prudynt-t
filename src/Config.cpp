@@ -128,8 +128,8 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
 {
     return {
 #if defined(AUDIO_SUPPORT)
-        {"audio.input_format", audio.input_format, "PCM", [](const char *v) {
-            std::set<std::string> a = {"PCM", "G711A", "G711U", "G726"};
+        {"audio.input_format", audio.input_format, "OPUS", [](const char *v) {
+            std::set<std::string> a = {"OPUS", "PCM", "G711A", "G711U", "G726"};
             return a.count(std::string(v)) == 1;
         }},
 #endif
@@ -176,6 +176,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
 {
     return {
 #if defined(AUDIO_SUPPORT)
+        {"audio.input_bitrate", audio.input_bitrate, 40, [](const int &v) { return v >= 6 && v <= 256; }},
         {"audio.input_vol", audio.input_vol, 80, [](const int &v) { return v >= -30 && v <= 120; }},
         {"audio.input_gain", audio.input_gain, 25, [](const int &v) { return v >= 0 && v <= 31; }},
 #if defined(LIB_AUDIO_PROCESSING)

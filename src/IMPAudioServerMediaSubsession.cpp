@@ -46,6 +46,7 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
     unsigned rtpPayloadFormat = rtpPayloadTypeIfDynamic;
     unsigned rtpTimestampFrequency = 16000;
     const char *rtpPayloadFormatName;
+    bool allowMultipleFramesPerPacket = true;
     switch (global_audio[audioChn]->imp_audio->format)
     {
     case IMPAudioFormat::PCM:
@@ -65,10 +66,17 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
         rtpTimestampFrequency = 8000;
         rtpPayloadFormatName = "G726-16";
         break;
+    case IMPAudioFormat::OPUS:
+        rtpTimestampFrequency = 48000;
+        rtpPayloadFormatName = "OPUS";
+        allowMultipleFramesPerPacket = false;
+        break;
     }
+
     return SimpleRTPSink::createNew(
         envir(), rtpGroupsock, rtpPayloadFormat, rtpTimestampFrequency,
         /* sdpMediaTypeString*/ "audio",
         rtpPayloadFormatName,
-        /* numChannels */ 1);
+        /* numChannels */ 1,
+        allowMultipleFramesPerPacket);
 }
