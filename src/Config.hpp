@@ -149,6 +149,8 @@ struct _audio {
     int input_agc_target_level_dbfs;
     int input_agc_compression_gain_db;    
 #endif
+    int output_bitrate;
+    const char *output_format;
 };
 #endif      
 struct _osd {            

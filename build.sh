@@ -149,6 +149,23 @@ deps() {
 	cp libmuslshim.* ../install/lib/
 	fi
 	cd $TOP
+
+	echo "Build faac"
+	cd 3rdparty
+	rm -rf faac
+	git clone --depth=1 https://github.com/knik0/faac.git
+	cd faac
+	sed -i 's/^#define MAX_CHANNELS 64/#define MAX_CHANNELS 1/' libfaac/coder.h
+	./bootstrap
+	if [[ "$2" == "-static" ]]; then
+		CC="${PRUDYNT_CROSS}gcc" ./configure --host mipsel-linux-gnu --prefix="$TOP/3rdparty/install" --enable-static --disable-shared
+	else
+		CC="${PRUDYNT_CROSS}gcc" ./configure --host mipsel-linux-gnu --prefix="$TOP/3rdparty/install" --disable-static --enable-shared
+	fi
+	make -j$(nproc)
+	make install
+	cd ../../
+
 }
 
 if [ $# -eq 0 ]; then

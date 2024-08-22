@@ -1,3 +1,5 @@
+#include "AACEncoder.hpp"
+#include "Config.hpp"
 #include "globals.hpp"
 #include "liveMedia.hh"
 #include "IMPDeviceSource.hpp"
@@ -31,10 +33,14 @@ FramedSource* IMPAudioServerMediaSubsession::createNewStreamSource(
     estBitrate = global_audio[audioChn]->imp_audio->bitrate;
     IMPDeviceSource<AudioFrame, audio_stream> * audioSource = IMPDeviceSource<AudioFrame, audio_stream> ::createNew(envir(), audioChn, global_audio[audioChn], "audio");
 
-    //return audioSource;
+    if (strcmp(cfg->audio.output_format, "AAC") == 0) {
+        return AACEncoder::createNew(envir(), audioSource);
+    }
+    else if (strcmp(cfg->audio.output_format, "PCM") != 0) {
+        LOG_ERROR("unsupported audio->output_format (" << cfg->audio.output_format << "). we only support AAC and PCM");
+    }
 
-    FramedSource* endianSwapSource = EndianSwap16::createNew(envir(), audioSource);
-    return endianSwapSource;
+    return EndianSwap16::createNew(envir(), audioSource);
 }
 
 RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
@@ -42,11 +48,22 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
     unsigned char rtpPayloadTypeIfDynamic,
     FramedSource* inputSource)
 {
+    if (strcmp(cfg->audio.output_format, "AAC") == 0) {
+        return MPEG4GenericRTPSink::createNew(
+            envir(), rtpGroupsock,
+            /* rtpPayloadFormat */ 96,
+            /* rtpTimestampFrequency */ 16000,
+            /* sdpMediaTypeString*/ "audio",
+            /* rtpPayloadFormatName */ "aac-hbr",
+            /* configurationString */ "",
+            /* numChannels */ 1);
+    }
+
     return SimpleRTPSink::createNew(
         envir(), rtpGroupsock,
         /* rtpPayloadFormat */ rtpPayloadTypeIfDynamic,
         /* rtpTimestampFrequency */ 16000,
         /* sdpMediaTypeString*/ "audio",
         /* rtpPayloadFormatName */ "L16",
-        /* numChannels */ 1);    
+        /* numChannels */ 1);
 }
