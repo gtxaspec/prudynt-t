@@ -6,6 +6,7 @@
 #include "IMPAudioServerMediaSubsession.hpp"
 #include "SimpleRTPSink.hh"
 #include "GroupsockHelper.hh"
+#include "Opus.hpp"
 
 IMPAudioServerMediaSubsession* IMPAudioServerMediaSubsession::createNew(
     UsageEnvironment& env,
@@ -36,8 +37,11 @@ FramedSource* IMPAudioServerMediaSubsession::createNewStreamSource(
     if (strcmp(cfg->audio.output_format, "AAC") == 0) {
         return AACEncoder::createNew(envir(), audioSource);
     }
+    else if (strcmp(cfg->audio.output_format, "OPUS") == 0) {
+        return Opus::createNew(envir(), audioSource);
+    }
     else if (strcmp(cfg->audio.output_format, "PCM") != 0) {
-        LOG_ERROR("unsupported audio->output_format (" << cfg->audio.output_format << "). we only support AAC and PCM");
+        LOG_ERROR("unsupported audio->output_format (" << cfg->audio.output_format << "). we only support AAC, OPUS, and PCM");
     }
 
     return EndianSwap16::createNew(envir(), audioSource);
@@ -57,6 +61,17 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
             /* rtpPayloadFormatName */ "aac-hbr",
             /* configurationString */ "",
             /* numChannels */ 1);
+    }
+
+    if (strcmp(cfg->audio.output_format, "OPUS") == 0) {
+        return SimpleRTPSink::createNew(
+            envir(), rtpGroupsock,
+            /* rtpPayloadFormat */ rtpPayloadTypeIfDynamic,
+            /* rtpTimestampFrequency */ 48000,
+            /* sdpMediaTypeString*/ "audio",
+            /* rtpPayloadFormatName */ "OPUS",
+            /* numChannels */ 1,
+	    /* allowMultipleFramesPerPacket */ false);
     }
 
     return SimpleRTPSink::createNew(

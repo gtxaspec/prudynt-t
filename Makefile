@@ -12,9 +12,9 @@ CFLAGS += -DKERNEL_VERSION_4
 endif
 
 ifneq (,$(findstring -static,$(LDFLAGS)))
-LIBS = -limp -lalog -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lwebsockets -lschrift -lfaac
+LIBS = -limp -lalog -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lwebsockets -lschrift -lfaac -lopus
 else
-LIBS = -limp -lalog -laudioProcess -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lwebsockets -lschrift -lfaac
+LIBS = -limp -lalog -laudioProcess -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lwebsockets -lschrift -lfaac -lopus
 endif
 
 ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))

@@ -129,7 +129,10 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
 {
     return {
 #if defined(AUDIO_SUPPORT)
-        {"audio.output_format", audio.output_format, "PCM", [](const char *v) { return strcmp(v, "AAC") == 0 || strcmp(v, "PCM") == 0; }},
+        {"audio.output_format", audio.output_format, "OPUS", [](const char *v) {
+            std::set<std::string> a = {"AAC", "OPUS", "PCM"};
+            return a.count(std::string(v)) == 1;
+	}},
 #endif
         {"general.loglevel", general.loglevel, "INFO", [](const char *v) {
             std::set<std::string> a = {"EMERGENCY", "ALERT", "CRITICAL", "ERROR", "WARN", "NOTICE", "INFO", "DEBUG"};
@@ -183,7 +186,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"audio.input_agc_compression_gain_db", audio.input_agc_compression_gain_db, 0, [](const int &v) { return v >= 0 && v <= 90; }},
         {"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }},
 #endif
-        {"audio.output_bitrate", audio.output_bitrate, 32000, validateIntGe0},
+        {"audio.output_bitrate", audio.output_bitrate, 40000, validateIntGe0},
 #endif
         {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 1024; }},
         {"general.imp_polling_timeout", general.imp_polling_timeout, 500, [](const int &v) { return v >= 1 && v <= 5000; }},

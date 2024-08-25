@@ -219,8 +219,8 @@ audio: {
 	# input_agc_target_level_dbfs: 10;  # AGC target level in dBFS for audio input (0 to 31).
 	# input_agc_compression_gain_db: 0;  # AGC compression gain in dB for audio input (0 to 90).
 	# input_noise_suppression: 0;  # Noise suppression for audio input (0 to 3).
-	# output_format: "PCM";  # Output audio format to use ("AAC", "PCM").
-	# output_bitrate: 32000;  # Output AAC encoder bitrate to use (32000 to 128000)
+	# output_format: "OPUS";  # Output audio format to use ("AAC", "OPUS", "PCM").
+	# output_bitrate: 40000;  # Output encoder bitrate to use (32000 to 128000)
 };
 
 # Motion Settings

@@ -39,6 +39,18 @@ deps() {
 
 	cd ../
 
+	echo "Build opus"
+	cd 3rdparty
+
+        if [[ "$2" == "-static" ]]; then
+		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_opus_deps.sh -static
+        else
+		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_opus_deps.sh
+        fi
+
+	cd ../
+
+
 	echo "Build libschrift"
 	cd 3rdparty
 	rm -rf libschrift
@@ -165,7 +177,6 @@ deps() {
 	make -j$(nproc)
 	make install
 	cd ../../
-
 }
 
 if [ $# -eq 0 ]; then
