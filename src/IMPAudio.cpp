@@ -5,9 +5,10 @@
 
 IMPAudio *IMPAudio::createNew(
     int devId,
-    int inChn)
+    int inChn,
+    int aeChn)
 {
-    return new IMPAudio(devId, inChn);
+    return new IMPAudio(devId, inChn, aeChn);
 }
 
 int IMPAudio::init()
@@ -15,13 +16,44 @@ int IMPAudio::init()
     LOG_DEBUG("IMPAudio::init()");
     int ret;
 
-    IMPAudioIOAttr ioattr;
-    ioattr.samplerate = AUDIO_SAMPLE_RATE_16000;
-    ioattr.bitwidth = AUDIO_BIT_WIDTH_16;
-    ioattr.soundmode = AUDIO_SOUND_MODE_MONO;
-    ioattr.frmNum = 30;
+    format = IMPAudioFormat::PCM;
+    IMPAudioIOAttr ioattr = {
+        .samplerate = AUDIO_SAMPLE_RATE_16000,
+        .bitwidth = AUDIO_BIT_WIDTH_16,
+        .soundmode = AUDIO_SOUND_MODE_MONO,
+        .frmNum = 30,
+        .chnCnt = 1,
+    };
+    IMPAudioEncChnAttr encattr = {
+        .type = IMPAudioPalyloadType::PT_PCM,
+        .bufSize = 2,
+    };
+
+    if (strcmp(cfg->audio.input_format, "G711A") == 0)
+    {
+        format = IMPAudioFormat::G711A;
+        encattr.type = IMPAudioPalyloadType::PT_G711A;
+        ioattr.samplerate = AUDIO_SAMPLE_RATE_8000;
+    }
+    else if (strcmp(cfg->audio.input_format, "G711U") == 0)
+    {
+        format = IMPAudioFormat::G711U;
+        encattr.type = IMPAudioPalyloadType::PT_G711U;
+        ioattr.samplerate = AUDIO_SAMPLE_RATE_8000;
+    }
+    else if (strcmp(cfg->audio.input_format, "G726") == 0)
+    {
+        format = IMPAudioFormat::G726;
+        encattr.type = IMPAudioPalyloadType::PT_G726;
+        ioattr.samplerate = AUDIO_SAMPLE_RATE_8000;
+    }
+    else if (strcmp(cfg->audio.input_format, "PCM") != 0)
+    {
+        LOG_ERROR("unsupported audio->input_format (" << cfg->audio.input_format
+            << "). we only support G711A, G711U, G726, and PCM.");
+    }
+
     ioattr.numPerFrm = (int)ioattr.samplerate * 0.040;
-    ioattr.chnCnt = 1;
     // compute bitrate in kbps
     bitrate = (int) ioattr.bitwidth * (int) ioattr.samplerate / 1000;
 
@@ -90,6 +122,12 @@ int IMPAudio::init()
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetAlcGain(" << devId << ", " << inChn << ", " << cfg->audio.input_alc_gain << ")");
 #endif        
 #endif //LIB_AUDIO_PROCESSING
+
+    if (format != IMPAudioFormat::PCM)
+    {
+        ret = IMP_AENC_CreateChn(aeChn, &encattr);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AENC_CreateChn(" << aeChn << ")");
+    }
     return 0;
 }
 
@@ -98,11 +136,17 @@ int IMPAudio::deinit()
     LOG_DEBUG("IMPAudio::deinit()");
     int ret;
 
+    if (format != IMPAudioFormat::PCM)
+    {
+        ret = IMP_AENC_DestroyChn(aeChn);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AENC_DestroyChn(" << aeChn << ")");
+    }
+
     ret = IMP_AI_DisableChn(devId, inChn);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableChn(0)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableChn(" << devId << ", " << inChn << ")");
 
     ret = IMP_AI_Disable(devId);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Disable(0)");
+    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Disable(" << devId << ")");
 
     return 0;
 }

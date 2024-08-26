@@ -43,6 +43,7 @@ struct jpeg_stream {
 struct audio_stream {
     int devId;
     int aiChn;
+    int aeChn;
     bool running;
     pthread_t thread;
     IMPAudio *imp_audio;
@@ -57,8 +58,8 @@ struct audio_stream {
     std::mutex onDataCallbackLock;    // protects onDataCallback from deallocation
     std::condition_variable should_grab_frames;
 
-    audio_stream(int devId, int aiChn)
-        : devId(devId), aiChn(aiChn), running(false), imp_audio(nullptr),
+    audio_stream(int devId, int aiChn, int aeChn)
+        : devId(devId), aiChn(aiChn), aeChn(aeChn), running(false), imp_audio(nullptr),
           msgChannel(std::make_shared<MsgChannel<AudioFrame>>(30)),
           onDataCallback{nullptr}, hasDataCallback{false} {}
 };

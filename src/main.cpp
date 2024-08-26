@@ -95,7 +95,7 @@ int main(int argc, const char *argv[])
     global_video[1] = std::make_shared<video_stream>(1, &cfg->stream1, "stream1");
     global_jpeg = std::make_shared<jpeg_stream>(jpeg_stream{2, &cfg->stream2});
 #if defined(AUDIO_SUPPORT)
-    global_audio[0] = std::make_shared<audio_stream>(1, 0);
+    global_audio[0] = std::make_shared<audio_stream>(1, 0, 0);
 #endif
 
     pthread_create(&ws_thread, nullptr, WS::run, &ws);

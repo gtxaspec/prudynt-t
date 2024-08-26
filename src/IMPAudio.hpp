@@ -5,12 +5,20 @@
 #include "Config.hpp"
 #include <imp/imp_audio.h>
 
+enum IMPAudioFormat
+{
+    PCM,
+    G711A,
+    G711U,
+    G726
+};
+
 class IMPAudio
 {
 public:
-    static IMPAudio *createNew(int devId, int inChn);
+    static IMPAudio *createNew(int devId, int inChn, int aeChn);
 
-    IMPAudio(int devId, int inChn) : devId(devId), inChn(inChn)
+    IMPAudio(int devId, int inChn, int aeChn) : devId(devId), inChn(inChn), aeChn(aeChn)
     {
         init();
     };
@@ -22,8 +30,10 @@ public:
     int init();
     int deinit();
     int bitrate;    // computed during setup, in Kbps
+    IMPAudioFormat format;
 
     int inChn{};
+    int aeChn{};
     int devId{};
 private:
     

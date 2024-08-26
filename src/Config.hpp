@@ -138,6 +138,7 @@ struct _image {
 #if defined(AUDIO_SUPPORT)        
 struct _audio {
     bool input_enabled;
+    const char *input_format;
     int input_vol;
     int input_bitrate;
     int input_gain;
