@@ -128,6 +128,12 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
 std::vector<ConfigItem<const char *>> CFG::getCharItems()
 {
     return {
+#if defined(AUDIO_SUPPORT)
+        {"audio.input_format", audio.input_format, "PCM", [](const char *v) {
+            std::set<std::string> a = {"PCM", "G711A", "G711U", "G726"};
+            return a.count(std::string(v)) == 1;
+        }},
+#endif
         {"general.loglevel", general.loglevel, "INFO", [](const char *v) {
             std::set<std::string> a = {"EMERGENCY", "ALERT", "CRITICAL", "ERROR", "WARN", "NOTICE", "INFO", "DEBUG"};
             return a.count(std::string(v)) == 1;

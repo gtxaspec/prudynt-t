@@ -427,9 +427,11 @@ void *Worker::audio_grabber(void *arg)
     StartHelper *sh = static_cast<StartHelper *>(arg);
     int encChn = sh->encChn;
 
-    LOG_DEBUG("Start audio_grabber thread for device " << global_audio[encChn]->devId << " and channel " << global_audio[encChn]->aiChn);
+    LOG_DEBUG("Start audio_grabber thread for device " << global_audio[encChn]->devId
+        << " and channel " << global_audio[encChn]->aiChn
+        << " and encoder " << global_audio[encChn]->aeChn);
 
-    global_audio[encChn]->imp_audio = IMPAudio::createNew(global_audio[encChn]->devId, global_audio[encChn]->aiChn);
+    global_audio[encChn]->imp_audio = IMPAudio::createNew(global_audio[encChn]->devId, global_audio[encChn]->aiChn, global_audio[encChn]->aeChn);
 
     // inform main that initialization is complete
     sh->has_started.release();
@@ -460,6 +462,28 @@ void *Worker::audio_grabber(void *arg)
                 uint8_t *start = (uint8_t *)frame.virAddr;
                 uint8_t *end = start + frame.len;
 
+                IMPAudioStream stream;
+                if (global_audio[encChn]->imp_audio->format != IMPAudioFormat::PCM)
+                {
+                    if (IMP_AENC_SendFrame(global_audio[encChn]->aeChn, &frame) != 0)
+                    {
+                        LOG_ERROR("IMP_AENC_SendFrame(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aeChn << ") failed");
+                    }
+                    else if (IMP_AENC_PollingStream(global_audio[encChn]->aeChn, cfg->general.imp_polling_timeout) != 0)
+                    {
+                        LOG_ERROR("IMP_AENC_PollingStream(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aeChn << ") failed");
+                    }
+                    else if (IMP_AENC_GetStream(global_audio[encChn]->aeChn, &stream, IMPBlock::BLOCK) != 0)
+                    {
+                        LOG_ERROR("IMP_AENC_GetStream(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aeChn << ") failed");
+                    }
+                    else
+                    {
+                        start = (uint8_t *)stream.stream;
+                        end = start + stream.len;
+                    }
+                }
+
                 af.data.insert(af.data.end(), start, end);
                 if (global_audio[encChn]->hasDataCallback)
                 {
@@ -474,6 +498,11 @@ void *Worker::audio_grabber(void *arg)
                             global_audio[encChn]->onDataCallback();
                     }
                     // LOG_DEBUG("audio:" <<  global_audio[encChn]->aiChn << " " << af.time.tv_sec << "." << af.time.tv_usec << " " << af.data.size());
+                }
+
+                if (global_audio[encChn]->imp_audio->format != IMPAudioFormat::PCM && IMP_AENC_ReleaseStream(global_audio[encChn]->aeChn, &stream) < 0)
+                {
+                    LOG_ERROR("IMP_AENC_ReleaseStream(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aeChn << ", &stream) failed");
                 }
 
                 if (IMP_AI_ReleaseFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, &frame) < 0)

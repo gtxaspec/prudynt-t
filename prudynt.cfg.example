@@ -211,6 +211,7 @@ websocket: {
 # --------------
 audio: {
 	# input_enabled: false;  # Enable or disable audio input.
+	# input_format: "PCM";  # Audio format to use ("PCM", "G711A", "G711U", "G726").
 	# input_high_pass_filter: false;  # Enable or disable high pass filter for audio input.
 	# input_agc_enabled: false;  # Enable or disable AGC for audio input.
 	# input_vol: 80;  # Input volume for audio (-30 to 120).
