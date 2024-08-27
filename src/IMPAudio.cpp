@@ -48,29 +48,36 @@ int IMPAudio::init()
         .bufSize = 2,
     };
 
+    // compute PCM bitrate in kbps
+    bitrate = (int) ioattr.bitwidth * (int) ioattr.samplerate / 1000;
+
     if (strcmp(cfg->audio.input_format, "OPUS") == 0)
     {
         format = IMPAudioFormat::OPUS;
         encattr.type = IMPAudioPalyloadType::PT_MAX;
         ioattr.samplerate = AUDIO_SAMPLE_RATE_48000;
+        bitrate = cfg->audio.input_bitrate;
     }
     else if (strcmp(cfg->audio.input_format, "G711A") == 0)
     {
         format = IMPAudioFormat::G711A;
         encattr.type = IMPAudioPalyloadType::PT_G711A;
         ioattr.samplerate = AUDIO_SAMPLE_RATE_8000;
+        bitrate = ioattr.bitwidth / 2 * ioattr.samplerate / 1000;
     }
     else if (strcmp(cfg->audio.input_format, "G711U") == 0)
     {
         format = IMPAudioFormat::G711U;
         encattr.type = IMPAudioPalyloadType::PT_G711U;
         ioattr.samplerate = AUDIO_SAMPLE_RATE_8000;
+        bitrate = ioattr.bitwidth / 2 * ioattr.samplerate / 1000;
     }
     else if (strcmp(cfg->audio.input_format, "G726") == 0)
     {
         format = IMPAudioFormat::G726;
         encattr.type = IMPAudioPalyloadType::PT_G726;
         ioattr.samplerate = AUDIO_SAMPLE_RATE_8000;
+        bitrate = 16;
     }
     else if (strcmp(cfg->audio.input_format, "PCM") != 0)
     {
@@ -80,8 +87,6 @@ int IMPAudio::init()
 
     // sample points per frame
     ioattr.numPerFrm = (int)ioattr.samplerate * 0.040;
-    // compute bitrate in kbps
-    bitrate = (int) ioattr.bitwidth * (int) ioattr.samplerate / 1000;
 
     if (encattr.type == IMPAudioPalyloadType::PT_MAX)
     {
