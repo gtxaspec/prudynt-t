@@ -43,4 +43,5 @@ private:
         static signed char action_callback(struct lejp_ctx *ctx, char reason);
 };
 
+        static uint32_t global_session_id = 0;
 #endif

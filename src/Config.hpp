@@ -212,13 +212,14 @@ struct _stream {
     bool allow_shared;
     const char *mode;
     const char *rtsp_endpoint;
-    const char *format;
+    const char *format{"JPEG"};
     /* JPEG stream*/
     int jpeg_quality;
     int jpeg_refresh;
     int jpeg_channel;
     const char *jpeg_path;
     _osd osd;
+    _stream_stats stats;
 #if defined(AUDIO_SUPPORT)    
     bool audio_enabled;
 #endif
@@ -245,10 +246,13 @@ struct _motion {
 };
 struct _websocket {
     bool enabled;
-    bool secured;
+    bool ws_secured;
+    bool http_secured;
     int port;
     int loglevel;
+    int first_image_delay;
     const char *name;
+    const char *usertoken{""};
 };
 
 class CFG {

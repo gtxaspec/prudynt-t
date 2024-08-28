@@ -189,13 +189,10 @@ stream1: {
 # ---------------------------------
 stream2: {
 	# enabled: true;  # Enable or disable Stream2.
-	# format: "JPEG";  # Video format for the stream (JPEG).
 	# jpeg_path: "/tmp/snapshot.jpg";  # File path for JPEG snapshots.
 	# jpeg_quality: 75;  # Quality of JPEG snapshots (1-100).
 	# jpeg_refresh: 1000;  # Refresh rate for JPEG snapshots (in milliseconds).
 	# jpeg_channel: 0;  # JPEG channel (0 or 1).
-	# width: 1920;  # Width of the JPEG snapshot (in pixels).
-	# height: 1080;  # Height of the JPEG snapshot (in pixels).
 };
 
 # WebSocket Settings

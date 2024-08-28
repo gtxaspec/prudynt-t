@@ -57,12 +57,6 @@ void IMPEncoder::initProfile()
     memset(&chnAttr, 0, sizeof(IMPEncoderCHNAttr));
     rcAttr = &chnAttr.rcAttr;
 
-    if (stream->fps == IMP_AUTO_VALUE)
-    {
-        std::string path = "stream" + std::to_string(encChn) + ".fps";
-        cfg->set<int>(path, cfg->sensor.fps, true);
-    }
-
 #if defined(PLATFORM_T31)
     IMPEncoderRcMode rcMode = IMP_ENC_RC_MODE_CAPPED_QUALITY;
     IMPEncoderProfile encoderProfile = IMP_ENC_PROFILE_AVC_HIGH;
@@ -77,8 +71,10 @@ void IMPEncoder::initProfile()
         IMP_Encoder_SetDefaultParam(&chnAttr, encoderProfile, IMP_ENC_RC_MODE_FIXQP,
                                     stream->width, stream->height, 24, 1, 0, 0, stream->jpeg_quality, 0);
         // 1000 / stream->jpeg_refresh
-        LOG_DEBUG("STREAM PROFILE " << encChn << ", " << encGrp << ", " << stream->format << ", "
-                                    << chnAttr.rcAttr.outFrmRate.frmRateNum << "fps, profile:" << stream->profile << ", " << stream->width << "x" << stream->height);
+        LOG_DEBUG("STREAM PROFILE " << encChn << ", " << 
+                    encGrp << ", " << stream->format << ", " << 
+                    chnAttr.rcAttr.outFrmRate.frmRateNum << "fps, profile:" << 
+                    stream->profile << ", " << stream->width << "x" << stream->height);
         return;
     }
 
@@ -316,11 +312,6 @@ int IMPEncoder::init()
     if(cfg->stream2.enabled && cfg->stream2.jpeg_channel == encChn && stream->allow_shared) {
         ret = IMP_Encoder_SetbufshareChn(2, encChn);
         LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_SetbufshareChn(2, " << encChn << ")");
-
-        if(stream->power_saving) {
-            stream->power_saving = false;
-            LOG_DEBUG("power saving disabled for stream" << encChn);
-        }
     }
 #endif
 
