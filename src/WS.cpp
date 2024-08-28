@@ -1237,7 +1237,7 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
         else
         {
             switch (ctx->path_match)
-            {                              
+            {
             case PNT_STREAM_RTSP_ENDPOINT:
                 if (reason == LEJPCB_VAL_STR_END)
                     cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
@@ -2093,12 +2093,12 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
          * so we have to collect all the data until we reach the last segment.
          * On receiving the first segment we should clear the rx_message
          */
-        if(lws_is_first_fragment(wsi))
+        if (lws_is_first_fragment(wsi))
             u_ctx->rx_message.clear();
 
         u_ctx->rx_message.append(json_data);
 
-        if(!lws_is_final_fragment(wsi))
+        if (!lws_is_final_fragment(wsi))
             return 0;    
 
         LOG_DDEBUG("u_ctx->rx_message: " << u_ctx->rx_message);
@@ -2125,7 +2125,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             u_ctx->flag &= ~PNT_FLAG_WS_REQUEST_PREVIEW;
 
             // drop overlapping image requests
-            if(u_ctx->flag & PNT_FLAG_WS_PREVIEW_PENDING) {
+            if (u_ctx->flag & PNT_FLAG_WS_PREVIEW_PENDING) {
                 LOG_DDEBUG("drop overlapping image request.");
                 return 0;
             };
@@ -2217,9 +2217,6 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             }
             u_ctx->flag &= ~(PNT_FLAG_WS_SEND_PREVIEW | PNT_FLAG_WS_PREVIEW_PENDING);
         }
-
-        // cleanup request pending flag
-        //u_ctx->flag &= ~PNT_FLAG_WS_REQUEST_PENDING;
         break;
 
     case LWS_CALLBACK_CLOSED:

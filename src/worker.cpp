@@ -419,7 +419,7 @@ void *Worker::stream_grabber(void *arg)
                 LOG_DDEBUG("IMP_Encoder_PollingStream(" << encChn << ", " << cfg->general.imp_polling_timeout << ") timeout !");
             }
         }
-        else if(global_video[encChn]->onDataCallback == nullptr && !global_restart_video && !global_video[encChn]->run_for_jpeg)
+        else if (global_video[encChn]->onDataCallback == nullptr && !global_restart_video && !global_video[encChn]->run_for_jpeg)
         {
             LOG_DDEBUG("VIDEO LOCK" << 
                        " channel:" << encChn << 
