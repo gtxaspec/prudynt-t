@@ -1,3 +1,4 @@
+#include "AACEncoder.hpp"
 #include "Config.hpp"
 #include "IMPAudio.hpp"
 #include "Opus.hpp"
@@ -47,6 +48,7 @@ int IMPAudio::init()
         .type = IMPAudioPalyloadType::PT_PCM,
         .bufSize = 2,
     };
+    float frameDuration = 0.040;
 
     // compute PCM bitrate in kbps
     bitrate = (int) ioattr.bitwidth * (int) ioattr.samplerate / 1000;
@@ -56,6 +58,15 @@ int IMPAudio::init()
         format = IMPAudioFormat::OPUS;
         encattr.type = IMPAudioPalyloadType::PT_MAX;
         ioattr.samplerate = AUDIO_SAMPLE_RATE_48000;
+        bitrate = cfg->audio.input_bitrate;
+    }
+    else if (strcmp(cfg->audio.input_format, "AAC") == 0)
+    {
+        format = IMPAudioFormat::AAC;
+        encattr.type = IMPAudioPalyloadType::PT_MAX;
+        encattr.bufSize = 20;
+        ioattr.samplerate = AUDIO_SAMPLE_RATE_16000;
+        frameDuration = 0.060; // IMP cannot do 0.066 or 1024 samples per frame
         bitrate = cfg->audio.input_bitrate;
     }
     else if (strcmp(cfg->audio.input_format, "G711A") == 0)
@@ -82,17 +93,21 @@ int IMPAudio::init()
     else if (strcmp(cfg->audio.input_format, "PCM") != 0)
     {
         LOG_ERROR("unsupported audio->input_format (" << cfg->audio.input_format
-            << "). we only support OPUS, G711A, G711U, G726, and PCM.");
+            << "). we only support OPUS, AAC, G711A, G711U, G726, and PCM.");
     }
 
     // sample points per frame
-    ioattr.numPerFrm = (int)ioattr.samplerate * 0.040;
+    ioattr.numPerFrm = (int)ioattr.samplerate * frameDuration;
 
     if (encattr.type == IMPAudioPalyloadType::PT_MAX)
     {
         if (format == IMPAudioFormat::OPUS)
         {
             encoder = Opus::createNew(ioattr.samplerate, ioattr.chnCnt);
+        }
+        else if (format == IMPAudioFormat::AAC)
+        {
+            encoder = AACEncoder::createNew(ioattr.samplerate, ioattr.chnCnt);
         }
 
         IMPAudioEncEncoder enc;
