@@ -1109,7 +1109,7 @@ int IMP_AENC_PollingStream(int AeChn, unsigned int timeout_ms);
  int IMP_AENC_RegisterEncoder(int *handle, IMPAudioEncEncoder *encoder);
 
 /**
- * @fn int IMP_AENC_ReleaseEncoder(int *handle)
+ * @fn int IMP_AENC_UnRegisterEncoder(int *handle)
  *
  * 注销编码器.
  *
@@ -1122,7 +1122,7 @@ int IMP_AENC_PollingStream(int AeChn, unsigned int timeout_ms);
  *
  * @attention 无.
  */
- int IMP_AENC_ReleaseEncoder(int *handle);
+ int IMP_AENC_UnRegisterEncoder(int *handle);
 
 /**
  * @fn int IMP_ADEC_CreateChn(int adChn, IMPAudioDecChnAttr *attr)
