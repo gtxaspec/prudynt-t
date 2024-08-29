@@ -99,7 +99,6 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
         {"stream0.audio_enabled", stream0.audio_enabled, true, validateBool},
 #endif
         {"stream0.enabled", stream0.enabled, true, validateBool},
-        {"stream0.power_saving", stream0.power_saving, true, validateBool},
         {"stream0.allow_shared", stream0.allow_shared, true, validateBool},
         {"stream0.osd.enabled", stream0.osd.enabled, true, validateBool},
         {"stream0.osd.font_stroke_enabled", stream0.osd.font_stroke_enabled, true, validateBool},
@@ -111,7 +110,6 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
         {"stream1.audio_enabled", stream1.audio_enabled, true, validateBool},
 #endif
         {"stream1.enabled", stream1.enabled, true, validateBool},
-        {"stream1.power_saving", stream1.power_saving, true, validateBool},
         {"stream1.allow_shared", stream1.allow_shared, true, validateBool},     
         {"stream1.osd.enabled", stream1.osd.enabled, true, validateBool},
         {"stream1.osd.font_stroke_enabled", stream1.osd.font_stroke_enabled, true, validateBool},
@@ -121,7 +119,8 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
         {"stream1.osd.user_text_enabled", stream1.osd.user_text_enabled, true, validateBool},
         {"stream2.enabled", stream2.enabled, true, validateBool},
         {"websocket.enabled", websocket.enabled, true, validateBool},
-        {"websocket.secured", websocket.secured, false, validateBool},
+        {"websocket.ws_secured", websocket.ws_secured, true, validateBool},
+        {"websocket.http_secured", websocket.http_secured, true, validateBool},
     };
 };
 
@@ -165,12 +164,11 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
             std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQP", "CAPPED_VBR", "CAPPED_QUALITY"};
             return a.count(std::string(v)) == 1;
         }},
-        {"stream2.format", stream2.format, "JPEG", [](const char *v) {
-            std::set<std::string> a = {"JPEG"};
-            return a.count(std::string(v)) == 1;
-        }},
-        {"stream2.jpeg_path", stream2.jpeg_path, "/tmp/snapshot.jpg", validateCharNotEmpty},
+       {"stream2.jpeg_path", stream2.jpeg_path, "/tmp/snapshot.jpg", validateCharNotEmpty},
         {"websocket.name", websocket.name, "wss prudynt", validateCharNotEmpty},
+        {"websocket.usertoken", websocket.usertoken, "", [](const char *v) {
+            return std::string(v).length() < 32;
+        }},
     };
 };
 
@@ -187,8 +185,8 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }},
 #endif
 #endif
-        {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 1024; }},
         {"general.imp_polling_timeout", general.imp_polling_timeout, 500, [](const int &v) { return v >= 1 && v <= 5000; }},
+        {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 1024; }},
         {"image.ae_compensation", image.ae_compensation, 128, validateInt255},
         {"image.anti_flicker", image.anti_flicker, 2, validateInt2},
         {"image.backlight_compensation", image.backlight_compensation, 0, [](const int &v) { return v >= 0 && v <= 10; }},
@@ -298,13 +296,12 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream1.osd.user_text_rotation", stream1.osd.user_text_rotation, 0, validateInt360},
         {"stream1.width", stream1.width, 640, validateIntGe0},
         {"stream1.profile", stream1.profile, 2, validateInt2},
-        {"stream2.height", stream2.height, OSD_AUTO_VALUE, validateIntGe0},
         {"stream2.jpeg_channel", stream2.jpeg_channel, 0, validateIntGe0},
         {"stream2.jpeg_quality", stream2.jpeg_quality, 75, [](const int &v) { return v > 0 && v <= 100; }},
-        {"stream2.jpeg_refresh", stream2.jpeg_refresh, 1000, validateIntGe0},
-        {"stream2.width", stream2.width, OSD_AUTO_VALUE, validateIntGe0},
+        {"stream2.fps", stream2.fps, 25, [](const int &v) { return v > 1 && v <= 30; }},
         {"websocket.loglevel", websocket.loglevel, 4096, [](const int &v) { return v > 0 && v <= 1024; }},
         {"websocket.port", websocket.port, 8089, validateInt65535},
+        {"websocket.first_image_delay", websocket.first_image_delay, 100, validateInt65535},
     };
 };
 
@@ -682,25 +679,13 @@ CFG::CFG()
 
     if (stream2.jpeg_channel == 0)
     {
-        if (stream2.width == OSD_AUTO_VALUE)
-        {
-            set<int>("stream2.width", stream0.width, true);
-        }
-        if (stream2.height == OSD_AUTO_VALUE)
-        {
-            set<int>("stream2.height", stream0.height, true);
-        }
-    }
-    if (stream2.jpeg_channel == 1)
+        stream2.width = stream0.width;
+        stream2.height = stream0.height;
+    } 
+    else
     {
-        if (stream2.width == OSD_AUTO_VALUE)
-        {
-            set<int>("stream2.width", stream1.width, true);
-        }
-        if (stream2.height == OSD_AUTO_VALUE)
-        {
-            set<int>("stream2.height", stream1.height, true);
-        }
+        stream2.width = stream1.width;
+        stream2.height = stream1.height;        
     }
 
     libconfig::Setting &root = lc.getRoot();

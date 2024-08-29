@@ -16,16 +16,18 @@ using namespace std::chrono;
 std::mutex mutex_main;
 std::condition_variable global_cv_worker_restart;
 
-bool global_restart_rtsp = true;
-bool global_restart_video = true;
-bool global_restart_audio = true;
+bool startup = true;
+
+bool global_restart_rtsp = false;
+bool global_restart_video = false;
+bool global_restart_audio = false;
 
 bool global_osd_thread_signal = false;
 bool global_main_thread_signal = false;
 bool global_motion_thread_signal = false;
 char volatile global_rtsp_thread_signal{1};
 
-std::shared_ptr<jpeg_stream> global_jpeg = {nullptr};
+std::shared_ptr<jpeg_stream> global_jpeg[NUM_VIDEO_CHANNELS] = {nullptr};
 std::shared_ptr<video_stream> global_video[NUM_VIDEO_CHANNELS] = {nullptr};
 #if defined(AUDIO_SUPPORT)
 std::shared_ptr<audio_stream> global_audio[NUM_AUDIO_CHANNELS] = {nullptr};
@@ -93,7 +95,9 @@ int main(int argc, const char *argv[])
 
     global_video[0] = std::make_shared<video_stream>(0, &cfg->stream0, "stream0");
     global_video[1] = std::make_shared<video_stream>(1, &cfg->stream1, "stream1");
-    global_jpeg = std::make_shared<jpeg_stream>(jpeg_stream{2, &cfg->stream2});
+    global_jpeg[0] = std::make_shared<jpeg_stream>(2, &cfg->stream2);
+    //global_jpeg[1] = std::make_shared<jpeg_stream>(jpeg_stream{3, &cfg->stream3});
+
 #if defined(AUDIO_SUPPORT)
     global_audio[0] = std::make_shared<audio_stream>(1, 0, 0);
 #endif
@@ -102,7 +106,7 @@ int main(int argc, const char *argv[])
 
     while (true)
     {
-        if (global_restart_video)
+        if (global_restart_video || startup)
         {
             if (cfg->stream0.enabled)
             {
@@ -117,7 +121,7 @@ int main(int argc, const char *argv[])
             if (cfg->stream2.enabled)
             {
                 StartHelper sh{2};
-                int ret = pthread_create(&global_jpeg->thread, nullptr, Worker::jpeg_grabber, static_cast<void *>(&sh));
+                int ret = pthread_create(&global_jpeg[0]->thread, nullptr, Worker::jpeg_grabber, static_cast<void *>(&sh));
                 LOG_DEBUG_OR_ERROR(ret, "create jpeg thread");
                 // wait for initialization done
                 sh.has_started.acquire();
@@ -138,7 +142,7 @@ int main(int argc, const char *argv[])
         global_restart_video = false;
 
 #if defined(AUDIO_SUPPORT)
-        if (cfg->audio.input_enabled && global_restart_audio)
+        if (cfg->audio.input_enabled && (global_restart_audio || startup))
         {
             StartHelper sh{0};
             int ret = pthread_create(&global_audio[0]->thread, nullptr, Worker::audio_grabber, static_cast<void *>(&sh));
@@ -150,12 +154,14 @@ int main(int argc, const char *argv[])
 #endif
 
         // start rtsp server
-        if (global_rtsp_thread_signal != 0 && global_restart_rtsp)
+        if (global_rtsp_thread_signal != 0 && (global_restart_rtsp || startup))
         {
             int ret = pthread_create(&rtsp_thread, nullptr, RTSP::run, &rtsp);
             LOG_DEBUG_OR_ERROR(ret, "create rtsp thread");
         }
         global_restart_rtsp = false;
+        
+        startup = false;
 
         LOG_DEBUG("main thread is going to sleep");
         std::unique_lock lck(mutex_main);
@@ -177,7 +183,6 @@ int main(int argc, const char *argv[])
 
         if (global_restart_video)
         {
-
             // stop motion thread
             if (global_motion_thread_signal)
             {
@@ -195,10 +200,11 @@ int main(int argc, const char *argv[])
             }
 
             // stop jpeg
-            if (global_jpeg->imp_encoder)
+            if (global_jpeg[0]->imp_encoder)
             {
-                global_jpeg->running = false;
-                int ret = pthread_join(global_jpeg->thread, NULL);
+                global_jpeg[0]->running = false;
+                global_jpeg[0]->should_grab_frames.notify_one();
+                int ret = pthread_join(global_jpeg[0]->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join jpeg thread");
             }
 
