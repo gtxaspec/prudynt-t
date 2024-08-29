@@ -129,7 +129,7 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
     return {
 #if defined(AUDIO_SUPPORT)
         {"audio.input_format", audio.input_format, "OPUS", [](const char *v) {
-            std::set<std::string> a = {"OPUS", "PCM", "G711A", "G711U", "G726"};
+            std::set<std::string> a = {"OPUS", "AAC", "PCM", "G711A", "G711U", "G726"};
             return a.count(std::string(v)) == 1;
         }},
 #endif

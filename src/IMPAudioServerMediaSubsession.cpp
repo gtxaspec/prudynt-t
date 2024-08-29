@@ -1,3 +1,4 @@
+#include "AACSink.hpp"
 #include "globals.hpp"
 #include "GroupsockHelper.hh"
 #include "liveMedia.hh"
@@ -71,6 +72,11 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
         rtpPayloadFormatName = "OPUS";
         allowMultipleFramesPerPacket = false;
         break;
+    case IMPAudioFormat::AAC:
+        return AACSink::createNew(
+            envir(), rtpGroupsock, rtpPayloadFormat, rtpTimestampFrequency,
+            rtpTimestampFrequency,
+            /* numChannels */ 1);
     }
 
     return SimpleRTPSink::createNew(

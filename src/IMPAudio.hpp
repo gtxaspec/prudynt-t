@@ -12,6 +12,7 @@ enum IMPAudioFormat
     G711U,
     G726,
     OPUS,
+    AAC,
 };
 
 class IMPAudioEncoder
