@@ -41,6 +41,7 @@ public:
     int init();
     int deinit();
     int bitrate;    // computed during setup, in Kbps
+    int sample_rate;
     IMPAudioFormat format;
 
     int inChn{};

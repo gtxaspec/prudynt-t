@@ -45,7 +45,7 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
     FramedSource* inputSource)
 {
     unsigned rtpPayloadFormat = rtpPayloadTypeIfDynamic;
-    unsigned rtpTimestampFrequency = 16000;
+    unsigned rtpTimestampFrequency = global_audio[audioChn]->imp_audio->sample_rate;
     const char *rtpPayloadFormatName;
     bool allowMultipleFramesPerPacket = true;
     switch (global_audio[audioChn]->imp_audio->format)
@@ -55,16 +55,13 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
         break;
     case IMPAudioFormat::G711A:
         rtpPayloadFormat = 8;
-        rtpTimestampFrequency = 8000;
         rtpPayloadFormatName = "PCMA";
         break;
     case IMPAudioFormat::G711U:
         rtpPayloadFormat = 0;
-        rtpTimestampFrequency = 8000;
         rtpPayloadFormatName = "PCMU";
         break;
     case IMPAudioFormat::G726:
-        rtpTimestampFrequency = 8000;
         rtpPayloadFormatName = "G726-16";
         break;
     case IMPAudioFormat::OPUS:

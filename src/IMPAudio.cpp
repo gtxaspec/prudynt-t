@@ -38,7 +38,7 @@ int IMPAudio::init()
 
     format = IMPAudioFormat::PCM;
     IMPAudioIOAttr ioattr = {
-        .samplerate = AUDIO_SAMPLE_RATE_16000,
+        .samplerate = static_cast<IMPAudioSampleRate>(cfg->audio.input_sample_rate),
         .bitwidth = AUDIO_BIT_WIDTH_16,
         .soundmode = AUDIO_SOUND_MODE_MONO,
         .frmNum = 30,
@@ -56,18 +56,17 @@ int IMPAudio::init()
     if (strcmp(cfg->audio.input_format, "OPUS") == 0)
     {
         format = IMPAudioFormat::OPUS;
-        encattr.type = IMPAudioPalyloadType::PT_MAX;
-        ioattr.samplerate = AUDIO_SAMPLE_RATE_48000;
         bitrate = cfg->audio.input_bitrate;
+        encoder = Opus::createNew(ioattr.samplerate, ioattr.chnCnt);
     }
     else if (strcmp(cfg->audio.input_format, "AAC") == 0)
     {
         format = IMPAudioFormat::AAC;
-        encattr.type = IMPAudioPalyloadType::PT_MAX;
         encattr.bufSize = 20;
         ioattr.samplerate = AUDIO_SAMPLE_RATE_16000;
         frameDuration = 0.060; // IMP cannot do 0.066 or 1024 samples per frame
         bitrate = cfg->audio.input_bitrate;
+        encoder = AACEncoder::createNew(ioattr.samplerate, ioattr.chnCnt);
     }
     else if (strcmp(cfg->audio.input_format, "G711A") == 0)
     {
@@ -96,20 +95,20 @@ int IMPAudio::init()
             << "). we only support OPUS, AAC, G711A, G711U, G726, and PCM.");
     }
 
+    sample_rate = ioattr.samplerate;
+    if (sample_rate != cfg->audio.input_sample_rate)
+    {
+        LOG_INFO("Overriding configured input sample rate of "
+            << cfg->audio.input_sample_rate << " Hz because "
+            << cfg->audio.input_format << " requires " << sample_rate
+            << " Hz.");
+    }
+
     // sample points per frame
     ioattr.numPerFrm = (int)ioattr.samplerate * frameDuration;
 
-    if (encattr.type == IMPAudioPalyloadType::PT_MAX)
+    if (encoder)
     {
-        if (format == IMPAudioFormat::OPUS)
-        {
-            encoder = Opus::createNew(ioattr.samplerate, ioattr.chnCnt);
-        }
-        else if (format == IMPAudioFormat::AAC)
-        {
-            encoder = AACEncoder::createNew(ioattr.samplerate, ioattr.chnCnt);
-        }
-
         IMPAudioEncEncoder enc;
         enc.maxFrmLen = 1024; // Maximum code stream length
         std::snprintf(enc.name, sizeof(enc.name), "%s", cfg->audio.input_format);

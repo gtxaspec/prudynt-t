@@ -201,7 +201,8 @@ enum
     PNT_AUDIO_INPUT_AGC_TARGET_LEVEL_DBFS,
     PNT_AUDIO_INPUT_AGC_COMPRESSION_GAIN_DB,
     PNT_AUDIO_INPUT_BITRATE,
-    PNT_AUDIO_INPUT_FORMAT
+    PNT_AUDIO_INPUT_FORMAT,
+    PNT_AUDIO_INPUT_SAMPLE_RATE
 };
 
 static const char *const audio_keys[] = {
@@ -214,8 +215,9 @@ static const char *const audio_keys[] = {
     "input_noise_suppression",
     "input_agc_target_level_dbfs",
     "input_agc_compression_gain_db",
-    "input_bitrate"
-    "input_format"};
+    "input_bitrate",
+    "input_format",
+    "input_sample_rate"};
 #endif
 
 /* STREAM */
