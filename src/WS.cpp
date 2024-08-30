@@ -2027,6 +2027,7 @@ static void
 send_snapshot(lws_sorted_usec_list_t *sul)
 {
     struct user_ctx *u_ctx = lws_container_of(sul, struct user_ctx, sul);
+    LOG_DDEBUG("process shedule. id:" << u_ctx->id);
     u_ctx->flag |= PNT_FLAG_WS_SEND_PREVIEW;
     lws_callback_on_writable(u_ctx->wsi);
 }
@@ -2061,7 +2062,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
     {
     // ############################ WEBSOCKET ###############################
     case LWS_CALLBACK_ESTABLISHED:
-        LOG_DDEBUG("LWS_CALLBACK_ESTABLISHED, ip:" << client_ip);
+        LOG_DDEBUG("LWS_CALLBACK_ESTABLISHED id:" << u_ctx->id << ", ip:" << client_ip);
 
         // check if security is required and validate token
         url_length = lws_get_urlarg_by_name_safe(wsi, "token", url_token, sizeof(url_token));
@@ -2103,7 +2104,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         if (!lws_is_final_fragment(wsi))
             return 0;    
 
-        LOG_DDEBUG("u_ctx->rx_message: " << u_ctx->rx_message);
+        LOG_DDEBUG("u_ctx->rx_message: id:" << u_ctx->id << ", rx:" << u_ctx->rx_message);
 
         // set request pending
         //u_ctx->flag |= PNT_FLAG_WS_REQUEST_PENDING;
@@ -2128,7 +2129,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
             // drop overlapping image requests
             if (u_ctx->flag & PNT_FLAG_WS_PREVIEW_PENDING) {
-                LOG_DDEBUG("drop overlapping image request.");
+                LOG_DDEBUG("drop overlapping image request. id:" << u_ctx->id);
                 return 0;
             };
 
@@ -2142,17 +2143,22 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
              */
             int first_request_delay = 0;
             u_ctx->snapshot.r++;
-            global_jpeg[0]->subscribers++;
 
-            /* if the jpeg channel is inactive we need to start him
-             * this can also cause that required video channel also
-             * must been started
-             */
-            if (!global_jpeg[0]->active)
             {
-                first_request_delay = cfg->websocket.first_image_delay * 1000;
-                global_jpeg[0]->should_grab_frames.notify_all();
-                global_jpeg[0]->is_activated.acquire();
+                std::unique_lock lck(mutex_main);
+                global_jpeg[0]->subscribers++;
+                lck.unlock();
+                
+                /* if the jpeg channel is inactive we need to start him
+                * this can also cause that required video channel also
+                * must been started
+                */
+                if (!global_jpeg[0]->active)
+                {
+                    first_request_delay = cfg->websocket.first_image_delay * 1000;
+                    global_jpeg[0]->should_grab_frames.notify_all();
+                    global_jpeg[0]->is_activated.acquire();
+                }
             }
 
             auto now = steady_clock::now();
@@ -2181,9 +2187,10 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
                 LOG_DDEBUG("RPS: " << u_ctx->snapshot.rps << " " << u_ctx->snapshot.throttle << " " << dur);
             }
-            
-            lws_sul_schedule(lws_get_context(wsi), 0, &u_ctx->sul, send_snapshot,
-                             (LWS_USEC_PER_SEC / (global_jpeg[0]->stream->stats.fps + u_ctx->snapshot.throttle)) + first_request_delay);
+
+            int delay = (LWS_USEC_PER_SEC / (global_jpeg[0]->stream->stats.fps + u_ctx->snapshot.throttle)) + first_request_delay;
+            LOG_DDEBUG("shedule preview image. id:" << u_ctx->id << " delay:" << delay);
+            lws_sul_schedule(lws_get_context(wsi), 0, &u_ctx->sul, send_snapshot, delay);
 
             // send response for the image request 
             u_ctx->tx_message = u_ctx->message;
@@ -2203,7 +2210,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         // send response message
         if (!u_ctx->tx_message.empty())
         {
-            LOG_DDEBUG("u_ctx->tx_message: " << u_ctx->tx_message);
+            LOG_DDEBUG("u_ctx->tx_message: id:" << u_ctx->id << ", tx:" << u_ctx->tx_message);
             lws_write(wsi, (unsigned char *)u_ctx->tx_message.c_str(), u_ctx->tx_message.length(), LWS_WRITE_TEXT);
             u_ctx->tx_message.clear();
         }
@@ -2211,6 +2218,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         // delayed snapshot request via websocket, sending the image
         if (u_ctx->flag & PNT_FLAG_WS_SEND_PREVIEW)
         {
+            LOG_DDEBUG("send preview image. id:" << u_ctx->id);
             global_jpeg[0]->subscribers--;
             std::vector<unsigned char> jpeg_buf;
             if (get_snapshot(jpeg_buf))
@@ -2269,7 +2277,10 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             if (strcmp(url_ptr, "/preview.jpg") == 0)
             {
                 u_ctx->flag |= PNT_FLAG_HTTP_SEND_PREVIEW;
+
+                std::unique_lock lck(mutex_main);
                 global_jpeg[0]->subscribers++;
+                lck.unlock()
 
                 if (!global_jpeg[0]->active)
                 {
@@ -2279,6 +2290,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                      * usleep is a bad choice, but lws_sul_schedule won't work as expected here
                      * hopfully we find a better solution later
                      */
+                    lck.unlock();
                     usleep(cfg->websocket.first_image_delay * 1000);
                 }
 
