@@ -210,9 +210,10 @@ void *Worker::jpeg_grabber(void *arg)
 
             global_jpeg[jpgChn]->stream->stats.bps = 0;
             global_jpeg[jpgChn]->stream->stats.fps = 0;
+
+            std::unique_lock<std::mutex> lock_stream{mutex_main};
             global_jpeg[jpgChn]->active = false;
             global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->run_for_jpeg = false;
-            std::unique_lock<std::mutex> lock_stream{mutex_main};
             while (!global_jpeg[jpgChn]->subscribers && !global_restart_video)
                 global_jpeg[jpgChn]->should_grab_frames.wait(lock_stream);
 
@@ -431,8 +432,9 @@ void *Worker::stream_grabber(void *arg)
             global_video[encChn]->stream->stats.fps = 0;
             global_video[encChn]->stream->osd.stats.bps = 0;
             global_video[encChn]->stream->osd.stats.fps = 0;
+
+            std::unique_lock<std::mutex> lock_stream{mutex_main};           
             global_video[encChn]->active = false;
-            std::unique_lock<std::mutex> lock_stream{mutex_main};
             while (global_video[encChn]->onDataCallback == nullptr && !global_restart_video && !global_video[encChn]->run_for_jpeg)
                 global_video[encChn]->should_grab_frames.wait(lock_stream);
 
@@ -480,7 +482,7 @@ void *Worker::audio_grabber(void *arg)
      * 'running' describes the runlevel of the thread, if this value is set to false
      *           the thread exits and cleanup all ressources 
      */
-    global_video[encChn]->active = true;
+    global_audio[encChn]->active = true;
     global_audio[encChn]->running = true;
     while (global_audio[encChn]->running)
     {
@@ -561,8 +563,8 @@ void *Worker::audio_grabber(void *arg)
         }
         else
         {
-            global_audio[encChn]->active = false;
             std::unique_lock<std::mutex> lock_stream{mutex_main};
+            global_audio[encChn]->active = false;
             while (global_audio[encChn]->onDataCallback == nullptr && !global_restart_audio)
                 global_audio[encChn]->should_grab_frames.wait(lock_stream);
 
