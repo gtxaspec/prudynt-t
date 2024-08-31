@@ -2147,7 +2147,6 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             {
                 std::unique_lock lck(mutex_main);
                 global_jpeg[0]->subscribers++;
-                lck.unlock();
                 
                 /* if the jpeg channel is inactive we need to start him
                 * this can also cause that required video channel also
@@ -2157,6 +2156,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                 {
                     first_request_delay = cfg->websocket.first_image_delay * 1000;
                     global_jpeg[0]->should_grab_frames.notify_all();
+                    lck.unlock();
                     global_jpeg[0]->is_activated.acquire();
                 }
             }
@@ -2280,17 +2280,16 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
                 std::unique_lock lck(mutex_main);
                 global_jpeg[0]->subscribers++;
-                lck.unlock()
-
+                
                 if (!global_jpeg[0]->active)
                 {
                     global_jpeg[0]->should_grab_frames.notify_all();
+                    lck.unlock();
                     global_jpeg[0]->is_activated.acquire();
                     /* we need this delay to grab a valid image when stream resume from sleep
                      * usleep is a bad choice, but lws_sul_schedule won't work as expected here
                      * hopfully we find a better solution later
                      */
-                    lck.unlock();
                     usleep(cfg->websocket.first_image_delay * 1000);
                 }
 
