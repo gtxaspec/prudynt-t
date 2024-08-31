@@ -45,7 +45,7 @@ int AACEncoder::open()
         return -1;
     }
 
-    LOG_INFO("faac expects " << inputSamples << " samples per frame");
+    LOG_INFO("FAAC expects " << inputSamples << " samples per frame");
 
     return 0;
 }
@@ -69,30 +69,25 @@ int AACEncoder::encode(IMPAudioFrame *data, unsigned char *outbuf, int *outLen)
     }
 
     const int frameSamples = data->len / sizeof(int16_t);
+    if (frameSamples != inputSamples)
+    {
+        LOG_WARN("FAAC was provided with " << frameSamples << " samples per frame.");
+    }
     const int frameLen = faacEncEncode(
         handle,
         reinterpret_cast<int32_t*>(data->virAddr),
         frameSamples,
         reinterpret_cast<unsigned char*>(outbuf),
         1024);
-    if (frameLen < 0)
+    *outLen = frameLen;
+    if (frameLen == 0)
+    {
+        LOG_INFO("FAAC buffered frame: " <<  data->seq);
+    }
+    else if (frameLen < 0)
     {
         LOG_WARN("Encoding failed with error code: " << frameLen);
         return -1;
-    }
-
-    *outLen = frameLen;
-
-    if (frameSamples < inputSamples)
-    {
-        // Adjust the timestamp of the sequence because faac outputs 1024
-        // samples per frame and we only can provide 960 per frame (at 16 kHz).
-        const int64_t frameDurationIn = static_cast<int64_t>(frameSamples * 1000) / sampleRate;
-        const int64_t frameDurationOut = static_cast<int16_t>(inputSamples * 1000) / sampleRate;
-        const int64_t driftMs = frameDurationOut - frameDurationIn;
-        const int64_t frameNum = data->seq + 3; // faac buffers the first 3 frames
-        const int64_t timestampAdjustment = driftMs * frameNum;
-        data->timeStamp += timestampAdjustment;
     }
 
     return 0;

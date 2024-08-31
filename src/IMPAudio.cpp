@@ -62,9 +62,6 @@ int IMPAudio::init()
     else if (strcmp(cfg->audio.input_format, "AAC") == 0)
     {
         format = IMPAudioFormat::AAC;
-        encattr.bufSize = 20;
-        ioattr.samplerate = AUDIO_SAMPLE_RATE_16000;
-        frameDuration = 0.060; // IMP cannot do 0.066 or 1024 samples per frame
         bitrate = cfg->audio.input_bitrate;
         encoder = AACEncoder::createNew(ioattr.samplerate, ioattr.chnCnt);
     }
