@@ -436,7 +436,6 @@ static const char *const action_keys[] = {
 #pragma endregion keys_and_enums
 
 char token[WEBSOCKET_TOKEN_LENGTH + 1]{0};
-char ws_send_msg[2048];
 
 struct snapshot_info
 {
