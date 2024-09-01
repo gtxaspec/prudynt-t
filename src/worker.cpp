@@ -119,6 +119,7 @@ void *Worker::jpeg_grabber(void *arg)
                 std::unique_lock<std::mutex> lock_stream{mutex_main};
                 global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->run_for_jpeg = true;
                 global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->should_grab_frames.notify_one();
+                lock_stream.unlock();
                 global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->is_activated.acquire();
             }
 
