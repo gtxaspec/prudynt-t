@@ -116,6 +116,7 @@ void *Worker::jpeg_grabber(void *arg)
                 /* required video channel was not running, we need to start it  
                  * and set run_for_jpeg as a reason.
                 */
+                std::unique_lock<std::mutex> lock_stream{mutex_main};
                 global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->run_for_jpeg = true;
                 global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->should_grab_frames.notify_one();
                 global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->is_activated.acquire();
@@ -144,22 +145,13 @@ void *Worker::jpeg_grabber(void *arg)
                     const char *finalPath = global_jpeg[jpgChn]->stream->jpeg_path; // Final path for the JPEG snapshot
 
                     // Open and create temporary file with read and write permissions
-                    int snap_fd = open(tempPath, O_RDWR | O_CREAT | O_TRUNC, 0777);
+                    int snap_fd = open(tempPath, O_RDWR | O_CREAT | O_TRUNC, 0666);
                     if (snap_fd >= 0)
                     {
-                        // Attempt to lock the temporary file for exclusive access
-                        if (flock(snap_fd, LOCK_EX) == -1)
-                        {
-                            LOG_ERROR("Failed to lock JPEG snapshot for writing: " << tempPath);
-                            close(snap_fd);
-                            return 0; // Exit the function if unable to lock the file
-                        }
-
                         // Save the JPEG stream to the file
                         save_jpeg_stream(snap_fd, &stream);
 
-                        // Unlock and close the temporary file after writing is done
-                        flock(snap_fd, LOCK_UN);
+                        // Close the temporary file after writing is done
                         close(snap_fd);
 
                         // Atomically move the temporary file to the final destination

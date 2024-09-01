@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <functional>
+#include <atomic>
 #include "MsgChannel.hpp"
 #include "IMPAudio.hpp"
 #include "IMPEncoder.hpp"
@@ -29,8 +30,8 @@ struct jpeg_stream {
     int encChn;
     _stream* stream;
     int subscribers{0};
-    bool running;
-    bool active{false};
+    std::atomic<bool> running;   // set to false to make jpeg_grabber thread exit
+    std::atomic<bool> active{false};
     pthread_t thread;
     IMPEncoder * imp_encoder;   
     std::condition_variable should_grab_frames;
@@ -79,7 +80,7 @@ struct video_stream {
     IMPFramesource *imp_framesource;
     std::shared_ptr<MsgChannel<H264NALUnit>> msgChannel;
     std::function<void(void)> onDataCallback;
-    std::atomic<bool> run_for_jpeg;         // see comment in audio_stream
+    bool run_for_jpeg;                      // see comment in audio_stream
     std::atomic<bool> hasDataCallback;      // see comment in audio_stream
     std::mutex onDataCallbackLock;          // protects onDataCallback from deallocation
     std::condition_variable should_grab_frames;

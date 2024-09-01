@@ -222,7 +222,7 @@ int main(int argc, const char *argv[])
             {
                 global_video[0]->running = false;
                 global_video[0]->should_grab_frames.notify_one();
-                int ret = ret = pthread_join(global_video[0]->thread, NULL);
+                int ret = pthread_join(global_video[0]->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join stream0 thread");
             }
         }
