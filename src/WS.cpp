@@ -751,7 +751,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                 u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
 #else
             append_session_msg(
-                u_ctx->message, "%s", "-");
+                u_ctx->message, "%s", "null");
 #endif
         }
         else if (ctx->path_match >= PNT_IMAGE_CORE_WB_MODE && ctx->path_match <= PNT_IMAGE_WB_BGAIN)
@@ -814,7 +814,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
 #else
                 append_session_msg(
-                    u_ctx->message, "%s", "-");
+                    u_ctx->message, "%s", "null");
 #endif
                 break;
             case PNT_IMAGE_SATURATION:
@@ -838,9 +838,9 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                 }
                 append_session_msg(
                     u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
-                break;
-#if !defined(PLATFORM_T21)                
+                break;               
             case PNT_IMAGE_SINTER_STRENGTH:
+#if !defined(PLATFORM_T21)             
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
                     if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -850,11 +850,11 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                 }
                 append_session_msg(
                     u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
-                break;
 #else
                 append_session_msg(
-                    u_ctx->message, "%s", "-");                
+                    u_ctx->message, "%s", "null");                
 #endif
+                break;
             case PNT_IMAGE_TEMPER_STRENGTH:
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
@@ -940,11 +940,11 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                 }
                 append_session_msg(
                     u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
-                break;
 #else
                 append_session_msg(
-                    u_ctx->message, "%s", "-");
+                    u_ctx->message, "%s", "null");
 #endif
+                break;
             case PNT_IMAGE_DPC_STRENGTH:
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -958,7 +958,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
 #else
                 append_session_msg(
-                    u_ctx->message, "%s", "-");
+                    u_ctx->message, "%s", "null");
 #endif
                 break;
             case PNT_IMAGE_DRC_STRENGTH:
@@ -974,7 +974,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
 #else
                 append_session_msg(
-                    u_ctx->message, "%s", "-");
+                    u_ctx->message, "%s", "null");
 #endif
                 break;
             case PNT_IMAGE_HIGHLIGHT_DEPRESS:
@@ -1001,7 +1001,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
 #else
                 append_session_msg(
-                    u_ctx->message, "%s", "-");
+                    u_ctx->message, "%s", "null");
 #endif
                 break;
             case PNT_IMAGE_MAX_AGAIN:
@@ -1130,7 +1130,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
         }
 #else
         append_session_msg(
-            u_ctx->message, "%s", "-");
+            u_ctx->message, "%s", "null");
     }
 #endif
         else
