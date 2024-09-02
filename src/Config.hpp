@@ -59,6 +59,17 @@
     #define DEFAULT_TEMPER_VALIDATE validateInt50_150
 #endif
 
+struct OsdConfigItem{
+    int *streams;
+    int posX;
+    int posY;
+    int width;
+    int height;
+    const char *text;
+    const char *file;
+    int impRgnHandle;
+};
+
 struct roi{
     int p0_x;
     int p0_y;
@@ -282,17 +293,9 @@ class CFG {
 		_motion motion{};
         _websocket websocket{};
 
-        std::atomic<int> main_thread_signal{1};
+        // new osdItems 
+        std::vector<OsdConfigItem> osdConfigItems{};
 
-        //initialized stopped so that the worker can start it initially
-        char volatile rtsp_thread_signal{2};
-
-        // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
-        std::atomic<int> motion_thread_signal{1};
-
-        // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
-        std::atomic<int> worker_thread_signal{1};
-        
     template <typename T>
     T get(const std::string &name) {
         T result;

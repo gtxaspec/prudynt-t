@@ -10,6 +10,7 @@
 #define MODULE "CONFIG"
 
 namespace fs = std::filesystem;
+using namespace libconfig;
 
 bool validateIntGe0(const int &v)
 {
@@ -321,17 +322,17 @@ std::vector<ConfigItem<unsigned int>> CFG::getUintItems()
     };
 };
 
-void ensurePathExists(libconfig::Setting &root, const std::string &path)
+void ensurePathExists(Setting &root, const std::string &path)
 {
     std::stringstream ss(path);
     std::string segment;
-    libconfig::Setting *current = &root;
+    Setting *current = &root;
 
     while (std::getline(ss, segment, '.'))
     {
         if (!current->exists(segment))
         {
-            current = &current->add(segment, libconfig::Setting::TypeGroup);
+            current = &current->add(segment, Setting::TypeGroup);
         }
         else
         {
@@ -340,7 +341,7 @@ void ensurePathExists(libconfig::Setting &root, const std::string &path)
     }
 }
 
-bool findSetting(const std::string &path, const libconfig::Setting *&foundSetting, libconfig::Setting *root)
+bool findSetting(const std::string &path, const Setting *&foundSetting, Setting *root)
 {
 
     std::string::size_type pos = path.find_first_of('.');
@@ -379,7 +380,7 @@ bool CFG::readConfig()
         lc.readFile(cfgFilePath.c_str());
         LOG_INFO("Loaded configuration from " + cfgFilePath.string());
     }
-    catch (const libconfig::FileIOException &)
+    catch (const FileIOException &)
     {
         fs::path etcPath = "/etc/prudynt.cfg";
         filePath = etcPath;
@@ -394,7 +395,7 @@ bool CFG::readConfig()
             return false; // Exit if configuration file is missing
         }
     }
-    catch (const libconfig::ParseException &pex)
+    catch (const ParseException &pex)
     {
         LOG_WARN("Parse error at " + std::string(pex.getFile()) + ":" + std::to_string(pex.getLine()) + " - " + pex.getError());
         return false; // Exit on parsing error
@@ -438,7 +439,7 @@ bool processLine(const std::string &line, T &value)
 }
 
 template <typename T>
-void handleConfigItem(libconfig::Config &lc, ConfigItem<T> &item)
+void handleConfigItem(Config &lc, ConfigItem<T> &item)
 {
     bool readFromProc = false;
     bool readFromConfig = false;
@@ -494,6 +495,7 @@ void handleConfigItem(libconfig::Config &lc, ConfigItem<T> &item)
     }
     else if (!item.validate(item.value))
     {
+        LOG_ERROR("invalid config value. " << item.path << " = " << item.value);
         item.value = item.defaultValue; // Revert to default if validation fails
     }
 
@@ -505,13 +507,14 @@ void handleConfigItem(libconfig::Config &lc, ConfigItem<T> &item)
         }
         else if (!item.validate(item.value))
         {
+            LOG_ERROR("invalid config value. " << item.path << " = " << item.value);
             item.value = strdup(item.defaultValue);
         }
     }
 }
 
 template <typename T>
-void handleConfigItem2(libconfig::Config &lc, ConfigItem<T> &item)
+void handleConfigItem2(Config &lc, ConfigItem<T> &item)
 {
     T configValue{0};
     bool readFromConfig = false;
@@ -581,31 +584,31 @@ void handleConfigItem2(libconfig::Config &lc, ConfigItem<T> &item)
     {
         ensurePathExists(lc.getRoot(), item.path);
 
-        libconfig::Setting &section = lc.lookup(sect);
+        Setting &section = lc.lookup(sect);
         if (section.exists(entr))
         {
             section.remove(entr);
         }
 
-        libconfig::Setting::Type type;
+        Setting::Type type;
         if constexpr (std::is_same_v<T, bool>)
         {
-            type = libconfig::Setting::TypeBoolean;
+            type = Setting::TypeBoolean;
         }
         else if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, const char *>)
         {
-            type = libconfig::Setting::TypeString;
+            type = Setting::TypeString;
         }
         else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, unsigned int>)
         {
-            type = libconfig::Setting::TypeInt;
+            type = Setting::TypeInt;
         }
 
-        libconfig::Setting &newSetting = section.add(entr, type);
+        Setting &newSetting = section.add(entr, type);
         if constexpr (std::is_same_v<T, unsigned int>)
         {
             newSetting = static_cast<long>(item.value);
-            newSetting.setFormat(libconfig::Setting::FormatHex);
+            newSetting.setFormat(Setting::FormatHex);
         }
         else if constexpr (std::is_same_v<T, const char *>)
         {
@@ -620,7 +623,7 @@ void handleConfigItem2(libconfig::Config &lc, ConfigItem<T> &item)
     {
         if (lc.exists(sect))
         {
-            libconfig::Setting &section = lc.lookup(sect);
+            Setting &section = lc.lookup(sect);
             if (section.exists(entr))
             {
                 section.remove(entr);
@@ -642,20 +645,20 @@ bool CFG::updateConfig()
     for (auto &item : uintItems)
         handleConfigItem2(lc, item);
 
-    libconfig::Setting &root = lc.getRoot();
+    Setting &root = lc.getRoot();
 
     if (root.exists("rois"))
         root.remove("rois");
 
-    libconfig::Setting &rois = root.add("rois", libconfig::Setting::TypeGroup);
+    Setting &rois = root.add("rois", Setting::TypeGroup);
 
     for (int i = 0; i < motion.roi_count; i++)
     {
-        libconfig::Setting &entry = rois.add("roi_" + std::to_string(i), libconfig::Setting::TypeArray);
-        entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p0_x;
-        entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p0_y;
-        entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p1_x;
-        entry.add(libconfig::Setting::TypeInt) = motion.rois[i].p1_y;
+        Setting &entry = rois.add("roi_" + std::to_string(i), Setting::TypeArray);
+        entry.add(Setting::TypeInt) = motion.rois[i].p0_x;
+        entry.add(Setting::TypeInt) = motion.rois[i].p0_y;
+        entry.add(Setting::TypeInt) = motion.rois[i].p1_x;
+        entry.add(Setting::TypeInt) = motion.rois[i].p1_y;
     }
 
     lc.writeFile(filePath);
@@ -693,11 +696,141 @@ CFG::CFG()
         stream2.height = stream1.height;        
     }
 
-    libconfig::Setting &root = lc.getRoot();
+    Setting &root = lc.getRoot();
+
+    /* read new OSD item section.
+     * osd itself may contain some global osd settings
+     * osd elements defined in a list with the following format
+     * 
+     * example:
+     * 
+     * osd: {
+     *   settng = value;
+     *   items = (
+     *     { 
+     *       streams = [0,1],       int array, defines in which streams the item should be displayed
+     *       posX = 10,             int, horizontal position. Negative values calculatet from right to left
+     *       posY = 10,             int, vertical position. Negative values calculatet from bottom to top
+     *       file = "/tmp/osd1.txt" string, osd content, if it has colon inside, it will be interpreted as image 
+     *                              otherwise the content is read and displayed as text
+     *                              an image requires width and height definition (see next element)
+     *     },
+     *     { 
+     *       streams = [0,1],
+     *       posX = -10,
+     *       posY = -10,
+     *       file = "/tmp/osd1.bgra:100:100" osd1.bgra image with a width of 200 and a height of 100 pixel
+     *     },* 
+     *   )
+     * }
+    */
+    if (root.exists("osd"))
+    {
+        Setting &osd = root.lookup("osd");
+        if (osd.exists("items"))
+        {
+            Setting &items = osd.lookup("items");
+
+            if (items.getType() == Setting::TypeList) {
+
+                for (int i = 0; i < items.getLength(); ++i) {
+                    const Setting& item = items[i];
+
+                    if (item.exists("streams"))
+                    {
+                        bool isValid = true;
+                        OsdConfigItem osdConfigItem{0};
+                        const char* delimiter = ":";
+
+                        const Setting& streams = item["streams"];
+                        if (streams.getType() == Setting::TypeArray) {
+
+                            osdConfigItem.streams = new int[streams.getLength()];
+                            for (int j = 0; j < streams.getLength(); ++j) {
+                                const Setting& stream = streams[j];
+                                if(stream.getType() == Setting::TypeInt) {
+                                    osdConfigItem.streams[j] = streams[j];
+                                }
+                                else 
+                                {
+                                    isValid = false;
+                                }
+                            }
+
+                            if (!(item.lookupValue("posX", osdConfigItem.posX)
+                                && item.lookupValue("posY", osdConfigItem.posY)
+                                && item.lookupValue("file", osdConfigItem.file)) && isValid) {
+                                isValid = false;
+                            }
+
+                            if (isValid && strchr(osdConfigItem.file, *delimiter)) {
+                                char* token;
+                                char* file = new char[strlen(osdConfigItem.file) + 1];
+                                strcpy(file, osdConfigItem.file);
+
+                                token = strtok_r(nullptr, delimiter, &file);
+                                if(token != nullptr)
+                                    osdConfigItem.file = token;                          
+                                else 
+                                    isValid = false;
+
+                                if(isValid && strchr(file, *delimiter)) 
+                                {
+                                    token = strtok_r(nullptr, delimiter, &file);
+                                    if(token != nullptr)
+                                        osdConfigItem.width = atoi(token);                          
+                                    else 
+                                        isValid = false;
+                                }
+                                else
+                                {
+                                    isValid = false;
+                                }
+
+                                if (isValid && !strchr(file, *delimiter))
+                                {
+                                    token = strtok_r(nullptr, delimiter, &file);
+                                    if(token != nullptr)
+                                        osdConfigItem.height = atoi(token);
+                                    else 
+                                        isValid = false;
+                                }
+                                else
+                                {
+                                    isValid = false;
+                                }
+                            }
+
+                            if (isValid) 
+                            {
+                                /*
+                                std::cout << "item " << i + 1 << ":\n";
+                                std::cout << "  posX: " << osdConfigItem.posX << "\n";
+                                std::cout << "  posY: " << osdConfigItem.posY << "\n";
+                                std::cout << "  width: " << osdConfigItem.width << "\n";
+                                std::cout << "  height: " << osdConfigItem.height << "\n";
+                                std::cout << "  file: " << osdConfigItem.file << "\n";
+                                std::cout << "  isValid: " << isValid << "\n";
+                                std::cout << std::endl;
+                                */
+                                osdConfigItems.push_back(osdConfigItem);
+                            }
+                            else
+                            {
+                                LOG_ERROR("\"osd.items\" invalid list entry at index:" << i);
+                            }
+                        }
+                    }
+                }              
+            } else {
+                LOG_ERROR("\"osd.items\" should be a list.");
+            }
+        }
+    }
 
     if (root.exists("rois"))
     {
-        libconfig::Setting &rois = root.lookup("rois");
+        Setting &rois = root.lookup("rois");
         for (int i = 0; i < motion.roi_count; i++)
         {
             if (rois.exists("roi_" + std::to_string(i)))

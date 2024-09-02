@@ -82,8 +82,10 @@ int IMPSystem::init()
     ret = IMP_ISP_Tuning_SetBrightness(cfg->image.brightness);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBrightness(" << cfg->image.brightness << ")");
 
+#if !defined(PLATFORM_T21)
     ret = IMP_ISP_Tuning_SetSinterStrength(cfg->image.sinter_strength);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSinterStrength(" << cfg->image.sinter_strength << ")");
+#endif
 
     ret = IMP_ISP_Tuning_SetTemperStrength(cfg->image.temper_strength);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetTemperStrength(" << cfg->image.temper_strength << ")");

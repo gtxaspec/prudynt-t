@@ -182,6 +182,7 @@ void *Worker::jpeg_grabber(void *arg)
                     } else if(fps < global_jpeg[jpgChn]->stream->fps && auto_fps > 0) {
                         auto_fps -= (global_jpeg[jpgChn]->stream->fps - fps) * (1000 / global_jpeg[jpgChn]->stream->fps);
                     }
+                    if(auto_fps<0) auto_fps = 0;
 
                     global_jpeg[jpgChn]->stream->stats.fps = fps;
                     global_jpeg[jpgChn]->stream->stats.bps = bps;
