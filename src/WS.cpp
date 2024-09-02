@@ -436,7 +436,6 @@ static const char *const action_keys[] = {
 #pragma endregion keys_and_enums
 
 char token[WEBSOCKET_TOKEN_LENGTH + 1]{0};
-char ws_send_msg[2048];
 
 struct snapshot_info
 {
@@ -2221,7 +2220,9 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         if (u_ctx->flag & PNT_FLAG_WS_SEND_PREVIEW)
         {
             LOG_DDEBUG("send preview image. id:" << u_ctx->id);
+            std::unique_lock lck(mutex_main);
             global_jpeg[0]->subscribers--;
+            lck.unlock();
             std::vector<unsigned char> jpeg_buf;
             if (get_snapshot(jpeg_buf))
             {
@@ -2239,6 +2240,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
         // decrease jpeg subscribers if sending preview was sheduled
         if(u_ctx->flag & PNT_FLAG_WS_PREVIEW_PENDING) {
+            std::unique_lock lck(mutex_main);
             global_jpeg[0]->subscribers--;
         }
         break;
@@ -2294,8 +2296,15 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                      */
                     usleep(cfg->websocket.first_image_delay * 1000);
                 }
+                else
+                {
+                    lck.unlock();
+                }
 
-                global_jpeg[0]->subscribers--;
+                {
+                    std::unique_lock lck(mutex_main);
+                    global_jpeg[0]->subscribers--;
+                }
                 lws_callback_on_writable(wsi);
                 return 0;
             }
