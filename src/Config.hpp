@@ -59,6 +59,17 @@
     #define DEFAULT_TEMPER_VALIDATE validateInt50_150
 #endif
 
+struct OsdConfigItem{
+    int *streams;
+    int posX;
+    int posY;
+    int width;
+    int height;
+    const char *text;
+    const char *file;
+    int impRgnHandle;
+};
+
 struct roi{
     int p0_x;
     int p0_y;
@@ -282,7 +293,8 @@ class CFG {
 		_motion motion{};
         _websocket websocket{};
 
-
+        // new osdItems 
+        std::vector<OsdConfigItem> osdConfigItems{};
 
     template <typename T>
     T get(const std::string &name) {
