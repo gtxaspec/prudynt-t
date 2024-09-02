@@ -2175,9 +2175,13 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
              */
             if (dur > 1000)
             {
+                u_ctx->snapshot.last_snapshot_request = now;
                 u_ctx->snapshot.rps = u_ctx->snapshot.r;
                 u_ctx->snapshot.r = 0;
-
+                
+                u_ctx->snapshot.throttle +=
+                    global_jpeg[0]->stream->stats.fps - u_ctx->snapshot.rps;
+                
                 if (u_ctx->snapshot.throttle > 100)
                 {
                     u_ctx->snapshot.throttle = 100;
@@ -2186,10 +2190,6 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                 {
                     u_ctx->snapshot.throttle = 1;
                 }
-
-                u_ctx->snapshot.throttle +=
-                    global_jpeg[0]->stream->stats.fps - u_ctx->snapshot.rps;
-                u_ctx->snapshot.last_snapshot_request = now;
 
                 LOG_DDEBUG("RPS: " << u_ctx->snapshot.rps << " " << u_ctx->snapshot.throttle << " " << dur);
             }
