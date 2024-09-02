@@ -507,7 +507,6 @@ void handleConfigItem(libconfig::Config &lc, ConfigItem<T> &item)
         else if (!item.validate(item.value))
         {
             LOG_ERROR("invalid config value. " << item.path << " = " << item.value);
-        {
             item.value = strdup(item.defaultValue);
         }
     }
