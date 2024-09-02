@@ -282,17 +282,8 @@ class CFG {
 		_motion motion{};
         _websocket websocket{};
 
-        std::atomic<int> main_thread_signal{1};
 
-        //initialized stopped so that the worker can start it initially
-        char volatile rtsp_thread_signal{2};
 
-        // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
-        std::atomic<int> motion_thread_signal{1};
-
-        // bit 1 = init, 2 = running, 4 = stop, 8 stopped, 256 = exit
-        std::atomic<int> worker_thread_signal{1};
-        
     template <typename T>
     T get(const std::string &name) {
         T result;
