@@ -2217,7 +2217,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         if (!u_ctx->tx_message.empty())
         {
             LOG_DDEBUG("u_ctx->tx_message: id:" << u_ctx->id << ", tx:" << u_ctx->tx_message);
-            lws_write(wsi, (unsigned char *)u_ctx->tx_message.c_str(), u_ctx->tx_message.length(), LWS_WRITE_TEXT);
+            lws_write(wsi, (unsigned char *)u_ctx->tx_message.c_str() + LWS_PRE, u_ctx->tx_message.length() - LWS_PRE, LWS_WRITE_TEXT);
             u_ctx->tx_message.clear();
         }
 
