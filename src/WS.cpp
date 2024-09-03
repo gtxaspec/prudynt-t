@@ -486,7 +486,7 @@ std::string generateToken(int length)
 
 bool get_snapshot(std::vector<unsigned char> &image)
 {
-    std::ifstream file("/tmp/snapshot.jpg", std::ios::binary);
+    std::ifstream file(global_jpeg[0]->stream->jpeg_path, std::ios::binary);
     if (!file.is_open())
     {
         LOG_DDEBUG(strerror(errno));
