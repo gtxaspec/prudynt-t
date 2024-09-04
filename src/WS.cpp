@@ -486,7 +486,7 @@ std::string generateToken(int length)
 
 bool get_snapshot(std::vector<unsigned char> &image)
 {
-    std::ifstream file("/tmp/snapshot.jpg", std::ios::binary);
+    std::ifstream file(global_jpeg[0]->stream->jpeg_path, std::ios::binary);
     if (!file.is_open())
     {
         LOG_DDEBUG(strerror(errno));
@@ -2248,6 +2248,8 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             std::unique_lock lck(mutex_main);
             global_jpeg[0]->subscribers--;
         }
+
+        u_ctx->~user_ctx();
         break;
 
 
@@ -2444,6 +2446,11 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             };
             return -1;
         }
+        break;
+
+    case LWS_CALLBACK_HTTP_DROP_PROTOCOL:
+        LOG_DDEBUG("LWS_CALLBACK_HTTP_DROP_PROTOCOL ip:" << client_ip << ", id:" << u_ctx->id);
+        u_ctx->~user_ctx();
         break;
 
     default:
