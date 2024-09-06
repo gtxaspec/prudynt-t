@@ -2127,6 +2127,9 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         // restart threads if required
         restart_threads_by_signal(u_ctx->flag);
 
+        // init with LWS_PRE
+        u_ctx->tx_message = std::string(LWS_PRE, '\0');
+
         // incoming snapshot request via websocket
         if (u_ctx->flag & PNT_FLAG_WS_REQUEST_PREVIEW)
         {
@@ -2199,12 +2202,12 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             lws_sul_schedule(lws_get_context(wsi), 0, &u_ctx->sul, send_snapshot, delay);
 
             // send response for the image request 
-            u_ctx->tx_message = u_ctx->message;
+            u_ctx->tx_message.append(u_ctx->message);
             lws_callback_on_writable(wsi);                             
         } else {
 
             // send response for all 'non image request' json requests
-            u_ctx->tx_message = u_ctx->message;
+            u_ctx->tx_message.append(u_ctx->message);
             lws_callback_on_writable(wsi);
         }
 
