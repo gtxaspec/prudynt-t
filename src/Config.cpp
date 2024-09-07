@@ -304,6 +304,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream1.profile", stream1.profile, 2, validateInt2},
         {"stream2.jpeg_channel", stream2.jpeg_channel, 0, validateIntGe0},
         {"stream2.jpeg_quality", stream2.jpeg_quality, 75, [](const int &v) { return v > 0 && v <= 100; }},
+        {"stream2.jpeg_idle_fps", stream2.jpeg_idle_fps, 1, [](const int &v) { return v >= 0 && v <= 30; }},
         {"stream2.fps", stream2.fps, 25, [](const int &v) { return v > 1 && v <= 30; }},
         {"websocket.loglevel", websocket.loglevel, 4096, [](const int &v) { return v > 0 && v <= 1024; }},
         {"websocket.port", websocket.port, 8089, validateInt65535},
