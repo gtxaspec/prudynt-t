@@ -2154,9 +2154,8 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             u_ctx->snapshot.r++;
 
             {
-                std::unique_lock lck(mutex_main);
-                global_jpeg[0]->subscribers++;
-                
+                global_jpeg[0]->request();
+
                 /* if the jpeg channel is inactive we need to start him
                 * this can also cause that required video channel also
                 * must been started
@@ -2165,7 +2164,6 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                 {
                     first_request_delay = cfg->websocket.first_image_delay * 1000;
                     global_jpeg[0]->should_grab_frames.notify_all();
-                    lck.unlock();
                     global_jpeg[0]->is_activated.acquire();
                 }
             }
@@ -2228,9 +2226,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         if (u_ctx->flag & PNT_FLAG_WS_SEND_PREVIEW)
         {
             LOG_DDEBUG("send preview image. id:" << u_ctx->id);
-            std::unique_lock lck(mutex_main);
-            global_jpeg[0]->subscribers--;
-            lck.unlock();
+            global_jpeg[0]->request();
             std::vector<unsigned char> jpeg_buf;
             if (get_snapshot(jpeg_buf))
             {
@@ -2245,12 +2241,6 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
         // cleanup delete possibly existing shedules for this session    
         lws_sul_cancel(&u_ctx->sul);
-
-        // decrease jpeg subscribers if sending preview was sheduled
-        if(u_ctx->flag & PNT_FLAG_WS_PREVIEW_PENDING) {
-            std::unique_lock lck(mutex_main);
-            global_jpeg[0]->subscribers--;
-        }
 
         u_ctx->~user_ctx();
         break;
@@ -2292,13 +2282,11 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             {
                 u_ctx->flag |= PNT_FLAG_HTTP_SEND_PREVIEW;
 
-                std::unique_lock lck(mutex_main);
-                global_jpeg[0]->subscribers++;
-                
+                global_jpeg[0]->request();
+
                 if (!global_jpeg[0]->active)
                 {
                     global_jpeg[0]->should_grab_frames.notify_all();
-                    lck.unlock();
                     global_jpeg[0]->is_activated.acquire();
                     /* we need this delay to grab a valid image when stream resume from sleep
                      * usleep is a bad choice, but lws_sul_schedule won't work as expected here
@@ -2306,15 +2294,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                      */
                     usleep(cfg->websocket.first_image_delay * 1000);
                 }
-                else
-                {
-                    lck.unlock();
-                }
 
-                {
-                    std::unique_lock lck(mutex_main);
-                    global_jpeg[0]->subscribers--;
-                }
                 lws_callback_on_writable(wsi);
                 return 0;
             }

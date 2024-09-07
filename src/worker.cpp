@@ -1,6 +1,7 @@
 #include "worker.hpp"
 #include "Motion.hpp"
 #include "AudioReframer.hpp"
+#include <cmath>
 
 #define MODULE "WORKER"
 
@@ -78,11 +79,16 @@ void *Worker::jpeg_grabber(void *arg)
     StartHelper *sh = static_cast<StartHelper *>(arg);
     int jpgChn = sh->encChn - 2;
     int ret;
-    uint32_t bps{0};
-    int delay{0};
-    uint32_t fps{(uint32_t)global_jpeg[jpgChn]->stream->fps};
-    int64_t auto_fps{(int64_t)((1000000/global_jpeg[jpgChn]->stream->fps) * 0.8)};
 
+    /* targetFps is set to stream.fps or stream.jpeg_idle_fps
+     *  depending on whether a client is connected or not
+    */
+    int targetFps = global_jpeg[jpgChn]->stream->jpeg_idle_fps;
+
+    uint32_t bps{0}; // Bytes per second
+    uint32_t fps{0}; // frames per second
+ 
+    // timestamp for stream stats calculation
     unsigned long long ms{0};
     gettimeofday(&global_jpeg[jpgChn]->stream->stats.ts, NULL);
     global_jpeg[jpgChn]->stream->stats.ts.tv_sec -= 10;
@@ -102,100 +108,116 @@ void *Worker::jpeg_grabber(void *arg)
     global_jpeg[jpgChn]->running = true;
     while (global_jpeg[jpgChn]->running)
     {
-        /* 'delay'
-         * if the last request is handled, the counter is used to serve some additional images
-         * By this we can prevent unwanted suspends if less images requested than created
-         */ 
-        if (global_jpeg[jpgChn]->subscribers || delay)
+        /*
+        * if jpeg_idle_fps = 0, the thread is put into sleep until a client is connected.
+        * if jpeg_idle_fps > 0, we try to reach a frame rate of stream.jpeg_idle_fps. enen if no client is connected.
+        * if a client is connected via WS / HTTP we try to reach a framerate of stream.fps
+        * the thread will fallback into idle / sleep mode if no client request was made for more than a second
+        */
+        auto now = steady_clock::now();
+        
+        std::unique_lock lck(mutex_main);
+        bool request_or_overrun = global_jpeg[jpgChn]->request_or_overrun();
+        lck.unlock();
+
+        if (request_or_overrun || targetFps)
         {
-            /* check if current jpeg channal is running if not start it
-             */
+            auto diff_last_image = duration_cast<milliseconds>(now - global_jpeg[jpgChn]->last_image).count();
 
-            if(!global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->active) {
-                
-                /* required video channel was not running, we need to start it  
-                 * and set run_for_jpeg as a reason.
-                */
-                std::unique_lock<std::mutex> lock_stream{mutex_main};
-                global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->run_for_jpeg = true;
-                global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->should_grab_frames.notify_one();
-                lock_stream.unlock();
-                global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->is_activated.acquire();
-            }
+            // we remove 2 millisecond's as image creation time
+            // by this we get besser FPS results
+            if(targetFps && diff_last_image >= ((1000/targetFps)-2))
+            {   
+                // check if current jpeg channal is running if not start it
+                if(!global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->active) {
+                    
+                    /* required video channel was not running, we need to start it  
+                    * and set run_for_jpeg as a reason.
+                    */
+                    std::unique_lock<std::mutex> lock_stream{mutex_main};
+                    global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->run_for_jpeg = true;
+                    global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->should_grab_frames.notify_one();
+                    lock_stream.unlock();
+                    global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->is_activated.acquire();
+                }
 
-            if(!global_jpeg[jpgChn]->subscribers && delay)
-                delay--;
-            else
-                delay = 25;
-
-            auto start_grab = steady_clock::now();
-
-            if (IMP_Encoder_PollingStream(global_jpeg[jpgChn]->encChn, cfg->general.imp_polling_timeout) == 0)
-            {
-                IMPEncoderStream stream;
-                if (IMP_Encoder_GetStream(global_jpeg[jpgChn]->encChn, &stream, GET_STREAM_BLOCKING) == 0)
+                // subscriber is connected
+                if(request_or_overrun) 
                 {
+                    if(targetFps != global_jpeg[jpgChn]->stream->fps)
+                        targetFps = global_jpeg[jpgChn]->stream->fps;
+                }
+                // no subscriber is connected
+                else
+                {
+                    if(targetFps != global_jpeg[jpgChn]->stream->jpeg_idle_fps)
+                        targetFps = global_jpeg[jpgChn]->stream->jpeg_idle_fps;
+                }
 
-                    usleep(auto_fps);
-
-                    fps++;
-                    bps += stream.pack->length;
-
-                    //  Check for success
-                    const char *tempPath = "/tmp/snapshot.tmp";             // Temporary path
-                    const char *finalPath = global_jpeg[jpgChn]->stream->jpeg_path; // Final path for the JPEG snapshot
-
-                    // Open and create temporary file with read and write permissions
-                    int snap_fd = open(tempPath, O_RDWR | O_CREAT | O_TRUNC, 0666);
-                    if (snap_fd >= 0)
+                if (IMP_Encoder_PollingStream(global_jpeg[jpgChn]->encChn, cfg->general.imp_polling_timeout) == 0)
+                {
+                    IMPEncoderStream stream;
+                    if (IMP_Encoder_GetStream(global_jpeg[jpgChn]->encChn, &stream, GET_STREAM_BLOCKING) == 0)
                     {
-                        // Save the JPEG stream to the file
-                        save_jpeg_stream(snap_fd, &stream);
+                        fps++;
+                        bps += stream.pack->length;
 
-                        // Close the temporary file after writing is done
-                        close(snap_fd);
+                        //  Check for success
+                        const char *tempPath = "/tmp/snapshot.tmp";             // Temporary path
+                        const char *finalPath = global_jpeg[jpgChn]->stream->jpeg_path; // Final path for the JPEG snapshot
 
-                        // Atomically move the temporary file to the final destination
-                        if (rename(tempPath, finalPath) != 0)
+                        // Open and create temporary file with read and write permissions
+                        int snap_fd = open(tempPath, O_RDWR | O_CREAT | O_TRUNC, 0666);
+                        if (snap_fd >= 0)
                         {
-                            LOG_ERROR("Failed to move JPEG snapshot from " << tempPath << " to " << finalPath);
-                            std::remove(tempPath); // Attempt to remove the temporary file if rename fails
+                            // Save the JPEG stream to the file
+                            save_jpeg_stream(snap_fd, &stream);
+
+                            // Close the temporary file after writing is done
+                            close(snap_fd);
+
+                            // Atomically move the temporary file to the final destination
+                            if (rename(tempPath, finalPath) != 0)
+                            {
+                                LOG_ERROR("Failed to move JPEG snapshot from " << tempPath << " to " << finalPath);
+                                std::remove(tempPath); // Attempt to remove the temporary file if rename fails
+                            }
+                            else
+                            {
+                                // LOG_DEBUG("JPEG snapshot successfully updated");
+                            }
                         }
                         else
                         {
-                            // LOG_DEBUG("JPEG snapshot successfully updated");
+                            LOG_ERROR("Failed to open JPEG snapshot for writing: " << tempPath);
                         }
-                    }
-                    else
-                    {
-                        LOG_ERROR("Failed to open JPEG snapshot for writing: " << tempPath);
+
+                        IMP_Encoder_ReleaseStream(global_jpeg[jpgChn]->encChn, &stream); // Release stream after saving
                     }
 
-                    IMP_Encoder_ReleaseStream(global_jpeg[jpgChn]->encChn, &stream); // Release stream after saving
+                    ms = tDiffInMs(&global_jpeg[jpgChn]->stream->stats.ts);
+                    if (ms > 1000)
+                    {
+                        global_jpeg[jpgChn]->stream->stats.fps = fps;
+                        global_jpeg[jpgChn]->stream->stats.bps = bps;
+                        fps = 0; bps = 0;
+                        gettimeofday(&global_jpeg[jpgChn]->stream->stats.ts, NULL);
+
+                        LOG_DDEBUG("JPG " << jpgChn << 
+                                " fps: " << global_jpeg[jpgChn]->stream->stats.fps << 
+                                " bps: " << global_jpeg[jpgChn]->stream->stats.bps <<
+                                " diff_last_image: " << diff_last_image <<
+                                " request_or_overrun: " << request_or_overrun <<
+                                " targetFps: " << targetFps <<
+                                " ms: " << ms);
+                    }                
                 }
 
-                ms = tDiffInMs(&global_jpeg[jpgChn]->stream->stats.ts);
-                if (ms > 1000)
-                {
-                    if(fps > global_jpeg[jpgChn]->stream->fps && auto_fps < 1000000) {
-                        auto_fps += (fps - global_jpeg[jpgChn]->stream->fps) * (1000 / global_jpeg[jpgChn]->stream->fps);
-                    } else if(fps < global_jpeg[jpgChn]->stream->fps && auto_fps > 0) {
-                        auto_fps -= (global_jpeg[jpgChn]->stream->fps - fps) * (1000 / global_jpeg[jpgChn]->stream->fps);
-                    }
-                    if(auto_fps<0) auto_fps = 0;
-
-                    global_jpeg[jpgChn]->stream->stats.fps = fps;
-                    global_jpeg[jpgChn]->stream->stats.bps = bps;
-                    fps = 0; bps = 0;
-                    gettimeofday(&global_jpeg[jpgChn]->stream->stats.ts, NULL);
-
-                    LOG_DDEBUG("JPG " << jpgChn << 
-                              " fps: " << global_jpeg[jpgChn]->stream->stats.fps << 
-                              " bps: " << global_jpeg[jpgChn]->stream->stats.bps <<
-                              " subscribers: " << global_jpeg[jpgChn]->subscribers <<
-                              " auto_fps: " << auto_fps <<
-                              " ms: " << ms);
-                }                
+                global_jpeg[jpgChn]->last_image = steady_clock::now();
+            }
+            else
+            {
+                usleep(1000);
             }
         }
         else
@@ -205,12 +227,15 @@ void *Worker::jpeg_grabber(void *arg)
 
             global_jpeg[jpgChn]->stream->stats.bps = 0;
             global_jpeg[jpgChn]->stream->stats.fps = 0;
+            targetFps = 0;
 
             std::unique_lock<std::mutex> lock_stream{mutex_main};
             global_jpeg[jpgChn]->active = false;
             global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->run_for_jpeg = false;
-            while (!global_jpeg[jpgChn]->subscribers && !global_restart_video)
+            while (!global_jpeg[jpgChn]->request_or_overrun() && !global_restart_video)
                 global_jpeg[jpgChn]->should_grab_frames.wait(lock_stream);
+
+            targetFps = global_jpeg[jpgChn]->stream->fps;
 
             global_jpeg[jpgChn]->is_activated.release();
             global_jpeg[jpgChn]->active = true;
