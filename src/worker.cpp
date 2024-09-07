@@ -124,9 +124,9 @@ void *Worker::jpeg_grabber(void *arg)
         {
             auto diff_last_image = duration_cast<milliseconds>(now - global_jpeg[jpgChn]->last_image).count();
 
-            // we remove 2 millisecond's as image creation time
+            // we remove targetFps/10 millisecond's as image creation time
             // by this we get besser FPS results
-            if(targetFps && diff_last_image >= ((1000/targetFps)-2))
+            if(targetFps && diff_last_image >= ((1000/targetFps)-targetFps/10))
             {   
                 // check if current jpeg channal is running if not start it
                 if(!global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->active) {
