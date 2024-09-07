@@ -193,6 +193,7 @@ stream2: {
 	# jpeg_quality: 75;  # Quality of JPEG snapshots (1-100).
 	# jpeg_refresh: 1000;  # Refresh rate for JPEG snapshots (in milliseconds).
 	# jpeg_channel: 0;  # JPEG channel (0 or 1).
+	# jpeg_idle_fps: 1; # fps if no requests made via ws / http. 0 = sleep on idle. ! affects jpeg_path
 };
 
 # WebSocket Settings
