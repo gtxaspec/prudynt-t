@@ -1837,6 +1837,8 @@ signed char WS::info_callback(struct lejp_ctx *ctx, char reason)
         append_session_msg(
             u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", info_keys[ctx->path_match - 1]);
 
+        u_ctx->flag |= PNT_FLAG_SEPARATOR;
+        
         switch (ctx->path_match)
         {
         case PNT_INFO_IMP_SYSTEM_VERSION:
@@ -1880,6 +1882,8 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
 
         append_session_msg(
             u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", action_keys[ctx->path_match - 1]);
+
+        u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
         switch (ctx->path_match)
         {
