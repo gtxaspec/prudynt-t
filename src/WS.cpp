@@ -1079,7 +1079,10 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
             append_session_msg(
                 u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
         }
-        else if (ctx->path_match == PNT_AUDIO_INPUT_NOISE_SUPPRESSION)
+        // integer values
+        else if (ctx->path_match == PNT_AUDIO_INPUT_NOISE_SUPPRESSION || 
+                 ctx->path_match == PNT_AUDIO_INPUT_SAMPLE_RATE ||
+                 ctx->path_match == PNT_AUDIO_INPUT_BITRATE )
         {
             if (reason == LEJPCB_VAL_NUM_INT)
             {
@@ -1193,6 +1196,12 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                 u_ctx->message, "\"%s\"", unsupported);
 #endif
                 break;
+            case PNT_AUDIO_INPUT_FORMAT:
+                if (reason == LEJPCB_VAL_STR_END)
+                    cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
+                append_session_msg(
+                    u_ctx->message, "\"%s\"", cfg->get<const char *>(u_ctx->path));
+                break;                
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
                 break;                  
