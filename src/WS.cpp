@@ -2140,8 +2140,12 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         // restart threads if required
         restart_threads_by_signal(u_ctx->flag);
 
-        // init with LWS_PRE
-        u_ctx->tx_message = std::string(LWS_PRE, '\0');
+        // splitt overlapping responses with a ";"
+        if(u_ctx->flag & PNT_FLAG_WS_REQUEST_PENDING) {
+            u_ctx->tx_message.append(";");
+        }
+
+        u_ctx->flag |= PNT_FLAG_WS_REQUEST_PENDING;
 
         // incoming snapshot request via websocket
         if (u_ctx->flag & PNT_FLAG_WS_REQUEST_PREVIEW)
@@ -2230,9 +2234,23 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         // send response message
         if (!u_ctx->tx_message.empty())
         {
-            LOG_DDEBUG("u_ctx->tx_message: id:" << u_ctx->id << ", tx:" << u_ctx->tx_message);
-            lws_write(wsi, (unsigned char *)u_ctx->tx_message.c_str() + LWS_PRE, u_ctx->tx_message.length() - LWS_PRE, LWS_WRITE_TEXT);
-            u_ctx->tx_message.clear();
+            u_ctx->flag &= ~PNT_FLAG_WS_REQUEST_PENDING;
+
+            /* send all outstanding messages
+             * if messages faster received than an answer can be send, they will append to 
+             * tx_message and separated with a ";". now we split them and send each 
+             * segment separate
+             */
+            std::stringstream ss(u_ctx->tx_message);
+            std::string item;
+
+            while (std::getline(ss, item, ';')) {
+                LOG_DDEBUG("u_ctx->tx_message id:" << u_ctx->id << ", tx:" << item);
+                item = std::string(LWS_PRE, '\0') + item;
+                lws_write(wsi, (unsigned char *)item.c_str() + LWS_PRE, item.length() - LWS_PRE, LWS_WRITE_TEXT);
+            }
+
+            u_ctx->tx_message.clear();            
         }
 
         // delayed snapshot request via websocket, sending the image
