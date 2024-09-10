@@ -192,7 +192,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
 #endif
 #endif
         {"general.imp_polling_timeout", general.imp_polling_timeout, 500, [](const int &v) { return v >= 1 && v <= 5000; }},
-        {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 1024; }},
+        {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 4096; }},
         {"image.ae_compensation", image.ae_compensation, 128, validateInt255},
         {"image.anti_flicker", image.anti_flicker, 2, validateInt2},
         {"image.backlight_compensation", image.backlight_compensation, 0, [](const int &v) { return v >= 0 && v <= 10; }},
