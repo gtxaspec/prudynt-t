@@ -50,6 +50,7 @@ deps() {
 	rm -rf libschrift
 	git clone --depth=1 https://github.com/tomolt/libschrift/
 	cd libschrift
+	git apply ../../res/libschrift.patch
 	mkdir -p $TOP/3rdparty/install/lib
 	mkdir -p $TOP/3rdparty/install/include
 	if [[ "$2" == "-static" ]]; then
