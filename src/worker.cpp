@@ -676,7 +676,7 @@ void *Worker::update_osd(void *arg)
                 }
             }
         }
-        usleep(25000);
+        usleep(THREAD_SLEEP);
     }
 
     LOG_DEBUG("exit osd update thread.");

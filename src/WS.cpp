@@ -29,7 +29,30 @@ using namespace std::filesystem;
     add new font stroke
     add stream buffer sharing
 */
-const char *unsupported = "not supported on this plattform";
+
+/* PNT_WS_MSG */
+enum
+{
+    PNT_WS_MSG_OK,
+    PNT_WS_MSG_NULL,
+    PNT_WS_MSG_ERROR,
+    PNT_WS_MSG_INITIATED,
+    PNT_WS_MSG_DROPPED,
+    PNT_WS_MSG_TRUE,
+    PNT_WS_MSG_FALSE,
+    PNT_WS_MSG_UNSUPPORTED
+};
+
+static const char *const pnt_ws_msg[] = {
+    "ok",
+    "null",
+    "error",
+    "initiated",
+    "dropped",
+    "true",
+    "false",
+    "not supported on this plattform"
+};
 
 /* u_ctx->flag */
 enum
@@ -484,6 +507,40 @@ std::string generateToken(int length)
     return randomString;
 }
 
+int restart_threads_by_signal(int &flag)
+{
+    // inform main to restart threads
+    std::unique_lock lck(mutex_main);
+    if (!global_restart_rtsp && !global_restart_video && !global_restart_audio) 
+    {
+        if ((flag & PNT_FLAG_RESTART_RTSP) || (flag & PNT_FLAG_RESTART_VIDEO) || (flag & PNT_FLAG_RESTART_AUDIO))
+        {
+            if (flag & PNT_FLAG_RESTART_RTSP)
+            {
+                global_restart_rtsp = true;
+                flag &= ~PNT_FLAG_RESTART_RTSP;
+            }
+            if (flag & PNT_FLAG_RESTART_VIDEO)
+            {
+                global_restart_video = true;
+                flag &= ~PNT_FLAG_RESTART_VIDEO;
+            }
+            if (flag & PNT_FLAG_RESTART_AUDIO)
+            {
+                global_restart_audio = true;
+                flag &= ~PNT_FLAG_RESTART_AUDIO;
+            }
+            global_cv_worker_restart.notify_one();
+            return 1;
+        }
+    }
+    else
+    {
+        return -1;
+    }
+    return 0;
+}
+
 bool get_snapshot(std::vector<unsigned char> &image)
 {
     std::ifstream file(global_jpeg[0]->stream->jpeg_path, std::ios::binary);
@@ -516,6 +573,36 @@ void append_session_msg(std::string &ws_send_msg, const char *t, Args &&...a)
     ws_send_msg += message;
 }
 
+void add_json_null(std::string &message) {
+    append_session_msg(
+        message, "%s", pnt_ws_msg[PNT_WS_MSG_NULL]);    
+}
+
+void add_json_bool(std::string &message, bool bl) {
+    append_session_msg(
+        message, "%s", bl ? pnt_ws_msg[PNT_WS_MSG_TRUE] : pnt_ws_msg[PNT_WS_MSG_FALSE]);   
+}
+
+void add_json_str(std::string &message, const char *value) {
+    append_session_msg(
+        message, "\"%s\"", value);   
+}
+
+void add_json_num(std::string &message, int value) {
+    append_session_msg(
+        message, "%d", value);   
+}
+
+void add_json_uint(std::string &message, unsigned int value) {
+    append_session_msg(
+        message, "\"%#x\"", value);   
+}
+
+void add_json_key(std::string &message, bool separator, const char *key, const char * opener = "") {
+    append_session_msg(
+        message, "%s\"%s\":%s", separator ? "," : "", key, opener);
+}
+
 signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
 {
     struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
@@ -524,17 +611,17 @@ signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
     {
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", general_keys[ctx->path_match - 1]);
-        
+        LOG_DEBUG("general_callback #0 " << ctx->path_match);
+
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), general_keys[ctx->path_match - 1]);
+
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
         if (ctx->path_match >= PNT_GENERAL_OSD_POOL_SIZE && ctx->path_match <= PNT_GENERAL_IMP_POLLING_TIMEOUT)
         { // integer values
             if (reason == LEJPCB_VAL_NUM_INT)
                 cfg->set<int>(u_ctx->path, atoi(ctx->buf));
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
         }
         else 
         {
@@ -548,8 +635,7 @@ signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
                         Logger::setLevel(ctx->buf);
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "\"%s\"", cfg->get<const char *>(u_ctx->path));
+                add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));                
                 break;                    
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
@@ -575,8 +661,7 @@ signed char WS::rtsp_callback(struct lejp_ctx *ctx, char reason)
     {
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", rtsp_keys[ctx->path_match - 1]);
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), rtsp_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
@@ -591,8 +676,7 @@ signed char WS::rtsp_callback(struct lejp_ctx *ctx, char reason)
                     // u_ctx->signal = PNT_THREAD_RTSP | PNT_THREAD_ACTION_RESTART; // restart RTSP
                 }
             }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
             // const char * values
         }
         else if (ctx->path_match >= PNT_RTSP_NAME && ctx->path_match <= PNT_RTSP_PASSWORD)
@@ -605,8 +689,7 @@ signed char WS::rtsp_callback(struct lejp_ctx *ctx, char reason)
                     // u_ctx->signal = PNT_THREAD_RTSP | PNT_THREAD_ACTION_RESTART;
                 }
             }
-            append_session_msg(
-                u_ctx->message, "\"%s\"", cfg->get<const char *>(u_ctx->path));
+            add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
         }
         else
         {
@@ -629,8 +712,7 @@ signed char WS::rtsp_callback(struct lejp_ctx *ctx, char reason)
                         // u_ctx->signal = PNT_THREAD_RTSP | PNT_THREAD_ACTION_RESTART;
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
                 break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
@@ -657,56 +739,27 @@ signed char WS::sensor_callback(struct lejp_ctx *ctx, char reason)
     {
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", sensor_keys[ctx->path_match - 1]);
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), sensor_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
         // int values
         if (ctx->path_match >= PNT_SENSOR_FPS && ctx->path_match <= PNT_SENSOR_HEIGHT)
         {
-            /* normally this cannot be set and is read from proc
-            if (reason == LEJPCB_VAL_NUM_INT)
-            {
-                if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                {
-                    u_ctx->signal = PNT_THREAD_ENCODER | PNT_THREAD_ACTION_RESTART; //restart encoder
-                }
-            }
-            */
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            // normally this cannot be set and is read from proc
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
         }
         else
         {
-
             switch (ctx->path_match)
             {
             case PNT_SENSOR_MODEL:
-                /* normally this cannot be set and is read from proc
-                if (reason == LEJPCB_VAL_STR_END)
-                {
-                    if (cfg->set<std::string>(u_ctx->path, ctx->buf))
-                    {
-                        u_ctx->signal = PNT_THREAD_ENCODER | PNT_THREAD_ACTION_RESTART; //restart encoder
-                    }
-                }
-                */
-                append_session_msg(
-                    u_ctx->message, "\"%s\"", cfg->get<const char *>(u_ctx->path));
+                // normally this cannot be set and is read from proc
+                add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
                 break;
             case PNT_SENSOR_I2C_ADDRESS:
-                /* normally this cannot be set and is read from proc
-                if (reason == LEJPCB_VAL_STR_END)
-                {
-                    if (cfg->set<unsigned int>(u_ctx->path, (unsigned int)strtol(ctx->buf, NULL, 16)))
-                    {
-                        u_ctx->signal = PNT_THREAD_ENCODER | PNT_THREAD_ACTION_RESTART; //restart encoder
-                    }
-                }
-                */
-                append_session_msg(
-                    u_ctx->message, "\"%#x\"", cfg->get<unsigned int>(u_ctx->path));
+                // normally this cannot be set and is read from proc
+                add_json_uint(u_ctx->message, cfg->get<unsigned int>(u_ctx->path));
                 break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
@@ -731,8 +784,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
     {
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", image_keys[ctx->path_match - 1]);
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), image_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
@@ -747,11 +799,9 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     IMP_ISP_Tuning_SetDefog_Strength(reinterpret_cast<uint8_t *>(&t));
                 }
             }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
 #else
-            append_session_msg(
-                u_ctx->message, "%s", "null");
+            add_json_null(u_ctx->message);
 #endif
         }
         else if (ctx->path_match >= PNT_IMAGE_CORE_WB_MODE && ctx->path_match <= PNT_IMAGE_WB_BGAIN)
@@ -772,8 +822,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     }
                 }
             }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
         }
         else
         {
@@ -787,8 +836,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetBrightness(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_IMAGE_CONTRAST:
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -798,8 +846,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetContrast(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_IMAGE_HUE:
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
@@ -810,11 +857,9 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetBcshHue(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
 #else
-                append_session_msg(
-                    u_ctx->message, "%s", "null");
+                add_json_null(u_ctx->message);
 #endif
                 break;
             case PNT_IMAGE_SATURATION:
@@ -825,8 +870,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetSaturation(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_IMAGE_SHARPNESS:
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -836,8 +880,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetSharpness(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;               
             case PNT_IMAGE_SINTER_STRENGTH:
 #if !defined(PLATFORM_T21)             
@@ -848,11 +891,9 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetSinterStrength(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
 #else
-                append_session_msg(
-                    u_ctx->message, "%s", "null");                
+                add_json_null(u_ctx->message);                
 #endif
                 break;
             case PNT_IMAGE_TEMPER_STRENGTH:
@@ -863,8 +904,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetTemperStrength(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_IMAGE_VFLIP:
                 if (reason == LEJPCB_VAL_TRUE)
@@ -881,8 +921,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetISPVflip(IMPISP_TUNING_OPS_MODE_DISABLE);
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
                 break;
             case PNT_IMAGE_HFLIP:
                 if (reason == LEJPCB_VAL_TRUE)
@@ -899,8 +938,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetISPHflip(IMPISP_TUNING_OPS_MODE_DISABLE);
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
                 break;
             case PNT_IMAGE_ANTIFLICKER:
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -910,8 +948,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetAntiFlickerAttr((IMPISPAntiflickerAttr)cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_IMAGE_RUNNING_MODE:
                 {
@@ -925,8 +962,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
 
                     IMPISPRunningMode running_mode;
                     IMP_ISP_Tuning_GetISPRunningMode(&running_mode);
-                    append_session_msg(
-                        u_ctx->message, "%d", (int)running_mode);
+                    add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 }
                 break;
             case PNT_IMAGE_AE_COMPENSATION:
@@ -938,11 +974,9 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetAeComp(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
 #else
-                append_session_msg(
-                    u_ctx->message, "%s", "null");
+                add_json_null(u_ctx->message);
 #endif
                 break;
             case PNT_IMAGE_DPC_STRENGTH:
@@ -954,11 +988,9 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetDPC_Strength(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
 #else
-                append_session_msg(
-                    u_ctx->message, "%s", "null");
+                add_json_null(u_ctx->message);
 #endif
                 break;
             case PNT_IMAGE_DRC_STRENGTH:
@@ -970,11 +1002,9 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetDRC_Strength(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
 #else
-                append_session_msg(
-                    u_ctx->message, "%s", "null");
+                add_json_null(u_ctx->message);
 #endif
                 break;
             case PNT_IMAGE_HIGHLIGHT_DEPRESS:
@@ -985,8 +1015,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetHiLightDepress(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_IMAGE_BACKLIGHT_COMPENSTATION:
 #if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
@@ -997,11 +1026,9 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetBacklightComp(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
 #else
-                append_session_msg(
-                    u_ctx->message, "%s", "null");
+                add_json_null(u_ctx->message);
 #endif
                 break;
             case PNT_IMAGE_MAX_AGAIN:
@@ -1012,8 +1039,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetMaxAgain(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_IMAGE_MAX_DGAIN:
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -1023,8 +1049,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                         IMP_ISP_Tuning_SetMaxDgain(cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
@@ -1050,8 +1075,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
     {
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", audio_keys[ctx->path_match - 1]);
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), audio_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
@@ -1076,8 +1100,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                     }
                 }
             }
-            append_session_msg(
-                u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+            add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
         }
         // integer values
         else if (ctx->path_match == PNT_AUDIO_INPUT_NOISE_SUPPRESSION || 
@@ -1091,8 +1114,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                     global_restart_audio = true;
                 }
             }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
         }
 #if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30) || defined(PLATFORM_T31)
         else if (ctx->path_match == PNT_AUDIO_INPUT_AGC_ENABLED)
@@ -1116,8 +1138,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                     }
                 }
             }
-            append_session_msg(
-                u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+            add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
         }
         else if (ctx->path_match == PNT_AUDIO_INPUT_AGC_TARGET_LEVEL_DBFS || ctx->path_match == PNT_AUDIO_INPUT_AGC_COMPRESSION_GAIN_DB)
         {
@@ -1128,12 +1149,10 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                     global_restart_audio = true;
                 }
             }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
         }
 #else
-        append_session_msg(
-            u_ctx->message, "%s", "null");
+        add_json_null(u_ctx->message);
     }
 #endif
         else
@@ -1155,8 +1174,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                         IMP_AI_Disable(u_ctx->value);
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
                 break;
             case PNT_AUDIO_INPUT_VOL:
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -1166,8 +1184,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                         IMP_AI_SetVol(u_ctx->value, global_audio[u_ctx->value]->aiChn, cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_AUDIO_INPUT_GAIN:
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -1177,8 +1194,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                         IMP_AI_SetGain(u_ctx->value, global_audio[u_ctx->value]->aiChn, cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_AUDIO_INPUT_ALC_GAIN:
 #if defined(PLATFORM_T21) || defined(PLATFORM_T31)
@@ -1189,18 +1205,15 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                         IMP_AI_SetAlcGain(0, 0, cfg->get<int>(u_ctx->path));
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
 #else
-            append_session_msg(
-                u_ctx->message, "\"%s\"", unsupported);
+            add_json_str(u_ctx->message, pnt_ws_msg[PNT_WS_MSG_UNSUPPORTED]);
 #endif
                 break;
             case PNT_AUDIO_INPUT_FORMAT:
                 if (reason == LEJPCB_VAL_STR_END)
                     cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
-                append_session_msg(
-                    u_ctx->message, "\"%s\"", cfg->get<const char *>(u_ctx->path));
+                add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
                 break;                
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
@@ -1226,8 +1239,7 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
 
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", stream_keys[ctx->path_match - 1]);
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), stream_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
@@ -1235,8 +1247,7 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
         { // integer values
             if (reason == LEJPCB_VAL_NUM_INT)
                 cfg->set<int>(u_ctx->path, atoi(ctx->buf));
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
         }
         else if(ctx->path_match >= PNT_STREAM_ENABLED && ctx->path_match <= PNT_STREAM_SCALE_ENABLED)
         { // bool values
@@ -1248,8 +1259,7 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
             {
                 cfg->set<bool>(u_ctx->path, false);
             }
-            append_session_msg(
-                u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+            add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
         }
         else
         {
@@ -1258,8 +1268,7 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
             case PNT_STREAM_RTSP_ENDPOINT:
                 if (reason == LEJPCB_VAL_STR_END)
                     cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
-                append_session_msg(
-                    u_ctx->message, "\"%s\"", cfg->get<const char *>(u_ctx->path));
+                add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
                 break;
             case PNT_STREAM_SCALE_ENABLED:
                 if (reason == LEJPCB_VAL_TRUE)
@@ -1270,14 +1279,12 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
                 {
                     cfg->set<bool>(u_ctx->path, false);
                 }
-                append_session_msg(
-                    u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+                add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
                 break;
             case PNT_STREAM_FORMAT:
                 if (reason == LEJPCB_VAL_STR_END)
                     cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
-                append_session_msg(
-                    u_ctx->message, "\"%s\"", cfg->get<const char *>(u_ctx->path));
+                add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
                 break;
             case PNT_STREAM_STATS:
                 if (reason == LEJPCB_VAL_NULL)
@@ -1306,8 +1313,7 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
     }
     else if (reason == LECPCB_PAIR_NAME && ctx->path_match == PNT_STREAM_OSD)
     {
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":{", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", stream_keys[ctx->path_match - 1]);
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), stream_keys[ctx->path_match - 1], "{");
 
         // remove separator for sub section
         u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
@@ -1332,8 +1338,7 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
     {
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", stream2_keys[ctx->path_match - 1]);
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), stream2_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
@@ -1348,8 +1353,7 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
             {
                 cfg->set<bool>(u_ctx->path, false);
             }
-            append_session_msg(
-                u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+            add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
             break;
         case PNT_STREAM2_JPEG_PATH:
             if (reason == LEJPCB_VAL_STR_END)
@@ -1358,8 +1362,7 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
                 {
                 }
             }
-            append_session_msg(
-                u_ctx->message, "\"%s\"", cfg->get<const char *>(u_ctx->path));
+            add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
             break;
         case PNT_STREAM2_JPEG_QUALITY:
             if (reason == LEJPCB_VAL_NUM_INT)
@@ -1368,21 +1371,8 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
                 {
                 }
             }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
             break;
-        /*
-        case PNT_STREAM2_JPEG_REFRESH:
-            if (reason == LEJPCB_VAL_NUM_INT)
-            {
-                if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                {
-                }
-            }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
-            break;
-        */
         case PNT_STREAM2_FPS:
             if (reason == LEJPCB_VAL_NUM_INT)
             {
@@ -1390,8 +1380,7 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
                 {
                 }
             }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
             break;       
         case PNT_STREAM2_JPEG_CHANNEL:
             if (reason == LEJPCB_VAL_NUM_INT)
@@ -1400,8 +1389,7 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
                 {
                 }
             }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
             break;
         case PNT_STREAM2_STATS:
             if (reason == LEJPCB_VAL_NULL)
@@ -1439,8 +1427,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
     {
         u_ctx->path = u_ctx->root + ".osd." + std::string(ctx->path);
 
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", osd_keys[ctx->path_match - 1]);
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), osd_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
@@ -1494,8 +1481,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                     }
                 };
             }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
         }
         // integer
         else if (ctx->path_match >= PNT_OSD_FONT_SIZE && ctx->path_match <= PNT_OSD_UPTIME_ROTATION)
@@ -1504,8 +1490,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
             {
                 cfg->set<int>(u_ctx->path, atoi(ctx->buf));
             }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
         }
         // bool
         else if (ctx->path_match >= PNT_OSD_ENABLED && ctx->path_match <= PNT_OSD_FONT_STROKE_ENABLED)
@@ -1518,8 +1503,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
             {
                 cfg->set<bool>(u_ctx->path, false);
             }
-            append_session_msg(
-                u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+            add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
         }
         // const char *
         else if (ctx->path_match >= PNT_OSD_FONT_PATH && ctx->path_match <= PNT_OSD_LOGO_PATH)
@@ -1530,8 +1514,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                 {
                 }
             }
-            append_session_msg(
-                u_ctx->message, "\"%s\"", cfg->get<const char *>(u_ctx->path));
+            add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
         }
         // unsigned int
         else if (ctx->path_match >= PNT_OSD_FONT_COLOR && ctx->path_match <= PNT_OSD_FONT_STROKE_COLOR)
@@ -1542,8 +1525,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                 {
                 }
             }
-            append_session_msg(
-                u_ctx->message, "\"%#x\"", cfg->get<unsigned int>(u_ctx->path));
+            add_json_uint(u_ctx->message, cfg->get<unsigned int>(u_ctx->path));
         }
         else
         {
@@ -1570,8 +1552,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                         IMP_OSD_SetRgnAttr(3, &rgnAttr);
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_OSD_POS_LOGO_Y:
                 if (reason == LEJPCB_VAL_NUM_INT)
@@ -1594,32 +1575,19 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                         IMP_OSD_SetRgnAttr(3, &rgnAttr);
                     }
                 }
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_OSD_LOGO_ROTATION:
                 // encoder restart required
                 if (reason == LEJPCB_VAL_NUM_INT)
                     cfg->set<int>(u_ctx->path, atoi(ctx->buf));
-                append_session_msg(
-                    u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
                 break;                 
             };
         }
-        
-        /*
-        if (u_ctx->value == 0)
-        {
-            cfg->stream0.osd.thread_signal.fetch_or(2);
-        }
-        else if (u_ctx->value == 1)
-        {
-            cfg->stream1.osd.thread_signal.fetch_or(2);
-        }
-        */
     }
     else if (reason == LEJPCB_OBJECT_END)
     {
@@ -1638,8 +1606,7 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
 
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", motion_keys[ctx->path_match - 1]);
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), motion_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
@@ -1650,8 +1617,7 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
             {
                 cfg->set<int>(u_ctx->path, atoi(ctx->buf));
             }
-            append_session_msg(
-                u_ctx->message, "%d", cfg->get<int>(u_ctx->path));
+            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
             // bool
         }
         else if (ctx->path_match == PNT_MOTION_ENABLED)
@@ -1664,8 +1630,7 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
             {
                 cfg->set<bool>(u_ctx->path, false);
             }
-            append_session_msg(
-                u_ctx->message, "%s", cfg->get<bool>(u_ctx->path) ? "true" : "false");
+            add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
             // std::string
         }
         else if (ctx->path_match == PNT_MOTION_SCRIPT_PATH)
@@ -1676,8 +1641,7 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
                 {
                 }
             }
-            append_session_msg(
-                u_ctx->message, "\"%s\"", cfg->get<const char *>(u_ctx->path));
+            add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
         }
         else if (ctx->path_match == PNT_MOTION_ROIS)
         {
@@ -1687,8 +1651,7 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
                 {
                 }
             }
-            append_session_msg(
-                u_ctx->message, "\"%s\"", cfg->get<std::string>(u_ctx->path).c_str());
+            add_json_str(u_ctx->message, cfg->get<std::string>(u_ctx->path).c_str());
         }
         else
         {
@@ -1697,8 +1660,7 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
     }
     else if (reason == LECPCB_PAIR_NAME && ctx->path_match == PNT_MOTION_ROIS)
     {
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? ", " : "", motion_keys[ctx->path_match - 1]);
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), motion_keys[ctx->path_match - 1]);
 
         // remove separator for sub section
         u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
@@ -1834,8 +1796,8 @@ signed char WS::info_callback(struct lejp_ctx *ctx, char reason)
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", info_keys[ctx->path_match - 1]);
+        
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), info_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
         
@@ -1847,13 +1809,11 @@ signed char WS::info_callback(struct lejp_ctx *ctx, char reason)
                 int ret = IMP_System_GetVersion(&impVersion);
                 if (ret)
                 {
-                    append_session_msg(
-                        u_ctx->message, "\"%s\"", impVersion.aVersion);
+                    add_json_str(u_ctx->message, impVersion.aVersion);
                 }
                 else
                 {
-                    append_session_msg(
-                        u_ctx->message, "\"%s\"", "error");
+                    add_json_str(u_ctx->message, pnt_ws_msg[PNT_WS_MSG_ERROR]);
                 }
             }
             break;
@@ -1880,8 +1840,7 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
     {
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", action_keys[ctx->path_match - 1]);
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), action_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
@@ -1890,32 +1849,44 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
         case PNT_RESTART_THREAD:
             if (reason == LEJPCB_VAL_NUM_INT)
             {
+                int msg_id = PNT_WS_MSG_INITIATED;
+                int restart_flag = 0;
                 int thread_restart = atoi(ctx->buf);
+
                 if (thread_restart & PNT_THREAD_RTSP)
                 {
-                    u_ctx->flag |= PNT_FLAG_RESTART_RTSP;
+                    restart_flag |= PNT_FLAG_RESTART_RTSP;
                 }
                 if (thread_restart & PNT_THREAD_VIDEO)
                 {
-                    u_ctx->flag |= PNT_FLAG_RESTART_VIDEO;
+                    restart_flag |= PNT_FLAG_RESTART_VIDEO;
                 }
                 if (thread_restart & PNT_THREAD_AUDIO)
                 {
-                    u_ctx->flag |= PNT_FLAG_RESTART_AUDIO;
+                    restart_flag |= PNT_FLAG_RESTART_AUDIO;
                 }
+                if (restart_flag) {
+                    if(restart_threads_by_signal(restart_flag) < 0)
+                        msg_id = PNT_WS_MSG_DROPPED;
+                }
+                else
+                {
+                    msg_id = PNT_WS_MSG_ERROR;
+                }
+                add_json_str(u_ctx->message, pnt_ws_msg[msg_id]);                                          
             }
-            append_session_msg(
-                u_ctx->message, "\"%s\"", "initiated");
+            else
+            {
+                add_json_null(u_ctx->message);
+            }
             break;
         case PNT_SAVE_CONFIG:
             cfg->updateConfig();
-            append_session_msg(
-                u_ctx->message, "\"%s\"", "initiated");
+            add_json_str(u_ctx->message, pnt_ws_msg[PNT_WS_MSG_INITIATED]); 
             break;
         case PNT_CAPTURE:
             u_ctx->flag |= PNT_FLAG_WS_REQUEST_PREVIEW;
-            append_session_msg(
-                u_ctx->message, "\"%s\"", "initiated");
+            add_json_str(u_ctx->message, pnt_ws_msg[PNT_WS_MSG_INITIATED]); 
             break;
         default:
             u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
@@ -1940,8 +1911,11 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
         u_ctx->path.clear();
         u_ctx->root = ctx->path;
 
-        append_session_msg(
-            u_ctx->message, "%s\"%s\":{", (u_ctx->flag & PNT_FLAG_SEPARATOR) ? "," : "", root_keys[ctx->path_match - 1]);
+        LOG_DEBUG("root_callback #0 " << ctx->path_match);
+
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), root_keys[ctx->path_match - 1], "{");
+
+        LOG_DEBUG("root_callback #1 " << ctx->path_match);
 
         u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
 
@@ -2002,32 +1976,6 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
     }
 
     return 0;
-}
-
-void restart_threads_by_signal(int &flag)
-{
-
-    // inform main to restart threads
-    std::unique_lock lck(mutex_main);
-    if ((flag & PNT_FLAG_RESTART_RTSP) || (flag & PNT_FLAG_RESTART_VIDEO) || (flag & PNT_FLAG_RESTART_AUDIO))
-    {
-        if (flag & PNT_FLAG_RESTART_RTSP)
-        {
-            global_restart_rtsp = true;
-            flag &= ~PNT_FLAG_RESTART_RTSP;
-        }
-        if (flag & PNT_FLAG_RESTART_VIDEO)
-        {
-            global_restart_video = true;
-            flag &= ~PNT_FLAG_RESTART_VIDEO;
-        }
-        if (flag & PNT_FLAG_RESTART_AUDIO)
-        {
-            global_restart_audio = true;
-            flag &= ~PNT_FLAG_RESTART_AUDIO;
-        }
-        global_cv_worker_restart.notify_one();
-    }
 }
 
 std::string generateSessionID()
@@ -2136,9 +2084,6 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         u_ctx->message.append("}");         // close response json
         u_ctx->rx_message.clear();          // cleanup received data
         u_ctx->flag &= ~PNT_FLAG_SEPARATOR; // always reset separator after parsing
-
-        // restart threads if required
-        restart_threads_by_signal(u_ctx->flag);
 
         // splitt overlapping responses with a ";"
         if(u_ctx->flag & PNT_FLAG_WS_REQUEST_PENDING) {
@@ -2383,9 +2328,6 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
             // send response
             lws_callback_on_writable(wsi);
-
-            // restart threads if requested
-            restart_threads_by_signal(u_ctx->flag);
 
             return 0;
         }
