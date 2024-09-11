@@ -611,8 +611,6 @@ signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
     {
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
 
-        LOG_DEBUG("general_callback #0 " << ctx->path_match);
-
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), general_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
@@ -1911,11 +1909,7 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
         u_ctx->path.clear();
         u_ctx->root = ctx->path;
 
-        LOG_DEBUG("root_callback #0 " << ctx->path_match);
-
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), root_keys[ctx->path_match - 1], "{");
-
-        LOG_DEBUG("root_callback #1 " << ctx->path_match);
 
         u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
 
