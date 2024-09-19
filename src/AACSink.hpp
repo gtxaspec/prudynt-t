@@ -14,6 +14,9 @@ protected:
             u_int8_t rtpPayloadFormat, u_int32_t rtpTimestampFrequency,
             unsigned samplingFrequency, unsigned numChannels);
     virtual ~AACSink();
+
+private:
+    char* config;
 };
 
 #endif // AAC_SINK_HPP

@@ -42,10 +42,12 @@ AACSink::AACSink(UsageEnvironment& env, Groupsock* RTPgs,
                  u_int8_t rtpPayloadFormat, u_int32_t rtpTimestampFrequency,
                  unsigned samplingFrequency, unsigned numChannels)
     : MPEG4GenericRTPSink(env, RTPgs, rtpPayloadFormat, rtpTimestampFrequency, "audio", "AAC-hbr",
-                          generateConfig(rtpTimestampFrequency, numChannels).c_str(), numChannels)
+                          config = strdup(generateConfig(rtpTimestampFrequency, numChannels).c_str()),
+                          numChannels)
 {
 }
 
 AACSink::~AACSink()
 {
+    free(config);
 }
