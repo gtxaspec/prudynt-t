@@ -519,8 +519,12 @@ static void process_frame(int encChn, IMPAudioFrame &frame)
         }
     }
 
-    af.data.insert(af.data.end(), start, end);
-    if (global_audio[encChn]->hasDataCallback)
+    if (end > start)
+    {
+        af.data.insert(af.data.end(), start, end);
+    }
+
+    if (!af.data.empty() && global_audio[encChn]->hasDataCallback)
     {
         if (!global_audio[encChn]->msgChannel->write(af))
         {
@@ -587,13 +591,13 @@ void *Worker::audio_grabber(void *arg)
 
                 if (reframer)
                 {
-                    std::vector<int16_t> frameData(frame.len / sizeof(int16_t));
-                    std::memcpy(frameData.data(), frame.virAddr, frame.len);
-                    reframer->addFrame(frameData, frame.timeStamp);
+                    reframer->addFrame(reinterpret_cast<uint8_t*>(frame.virAddr), frame.timeStamp);
                     while (reframer->hasMoreFrames())
                     {
+                        size_t frameLen = 1024 * sizeof(uint16_t);
+                        std::vector<uint8_t> frameData(frameLen, 0);
                         int64_t audio_ts;
-                        reframer->getReframedFrame(frameData, audio_ts);
+                        reframer->getReframedFrame(frameData.data(), audio_ts);
                         IMPAudioFrame reframed = {
                             .bitwidth = frame.bitwidth,
                             .soundmode = frame.soundmode,
@@ -601,7 +605,7 @@ void *Worker::audio_grabber(void *arg)
                             .phyAddr = frame.phyAddr,
                             .timeStamp = audio_ts,
                             .seq = frame.seq,
-                            .len = static_cast<int>(frameData.size() * sizeof(int16_t))
+                            .len = static_cast<int>(frameLen)
                         };
                         process_frame(encChn, reframed);
                     }
