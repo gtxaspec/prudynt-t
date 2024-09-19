@@ -33,14 +33,14 @@ static std::string generateConfig(unsigned samplingFrequency, unsigned numChanne
 
 AACSink* AACSink::createNew(UsageEnvironment& env, Groupsock* RTPgs,
                             u_int8_t rtpPayloadFormat, u_int32_t rtpTimestampFrequency,
-                            unsigned samplingFrequency, unsigned numChannels)
+                            unsigned numChannels)
 {
-    return new AACSink(env, RTPgs, rtpPayloadFormat, rtpTimestampFrequency, samplingFrequency, numChannels);
+    return new AACSink(env, RTPgs, rtpPayloadFormat, rtpTimestampFrequency, numChannels);
 }
 
 AACSink::AACSink(UsageEnvironment& env, Groupsock* RTPgs,
                  u_int8_t rtpPayloadFormat, u_int32_t rtpTimestampFrequency,
-                 unsigned samplingFrequency, unsigned numChannels)
+                 unsigned numChannels)
     : MPEG4GenericRTPSink(env, RTPgs, rtpPayloadFormat, rtpTimestampFrequency, "audio", "AAC-hbr",
                           config = strdup(generateConfig(rtpTimestampFrequency, numChannels).c_str()),
                           numChannels)
