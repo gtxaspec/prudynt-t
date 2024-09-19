@@ -68,7 +68,7 @@ int AACEncoder::encode(IMPAudioFrame *data, unsigned char *outbuf, int *outLen)
         return -1;
     }
 
-    const int frameSamples = data->len / sizeof(int16_t);
+    const auto frameSamples = data->len / sizeof(int16_t);
     if (frameSamples != inputSamples)
     {
         LOG_WARN("FAAC was provided with " << frameSamples << " samples per frame.");

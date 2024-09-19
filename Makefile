@@ -3,7 +3,7 @@ CXX = ${CROSS_COMPILE}g++
 
 DEBUG=n
 
-CXXFLAGS = $(CFLAGS) -std=c++20
+CXXFLAGS = $(CFLAGS) -std=c++20 -Wall -Wextra -Wno-unused-parameter
 LDFLAGS = -lrt
 
 CFLAGS = -Wall -Wextra -Wno-unused-parameter -O2 -DNO_OPENSSL=1

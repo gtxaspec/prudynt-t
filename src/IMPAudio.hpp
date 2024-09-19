@@ -44,9 +44,9 @@ public:
     int sample_rate;
     IMPAudioFormat format;
 
+    int devId{};
     int inChn{};
     int aeChn{};
-    int devId{};
 
 private:
     int handle = 0;

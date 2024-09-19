@@ -46,12 +46,11 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
 {
     unsigned rtpPayloadFormat = rtpPayloadTypeIfDynamic;
     unsigned rtpTimestampFrequency = global_audio[audioChn]->imp_audio->sample_rate;
-    const char *rtpPayloadFormatName;
+    const char* rtpPayloadFormatName = "L16";
     bool allowMultipleFramesPerPacket = true;
     switch (global_audio[audioChn]->imp_audio->format)
     {
     case IMPAudioFormat::PCM:
-        rtpPayloadFormatName = "L16";
         break;
     case IMPAudioFormat::G711A:
         rtpPayloadFormat = 8;
@@ -72,7 +71,6 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
     case IMPAudioFormat::AAC:
         return AACSink::createNew(
             envir(), rtpGroupsock, rtpPayloadFormat, rtpTimestampFrequency,
-            rtpTimestampFrequency,
             /* numChannels */ 1);
     }
 
