@@ -46,7 +46,7 @@ int IMPAudio::init()
     };
     IMPAudioEncChnAttr encattr = {
         .type = IMPAudioPalyloadType::PT_PCM,
-        .bufSize = 2,
+        .bufSize = 20,
     };
     float frameDuration = 0.040;
 
