@@ -59,17 +59,6 @@
     #define DEFAULT_TEMPER_VALIDATE validateInt50_150
 #endif
 
-struct OsdConfigItem{
-    int *streams;
-    int posX;
-    int posY;
-    int width;
-    int height;
-    const char *text;
-    const char *file;
-    int impRgnHandle;
-};
-
 struct roi{
     int p0_x;
     int p0_y;
@@ -83,8 +72,8 @@ struct ConfigItem {
     T& value;
     T defaultValue;
     std::function<bool(const T&)> validate;
-    bool noSave;
-    const char *procPath;
+    bool noSave = false;
+    const char *procPath = nullptr;
 };
 
 struct _stream_stats {
@@ -294,12 +283,9 @@ class CFG {
 		_motion motion{};
         _websocket websocket{};
 
-        // new osdItems 
-        std::vector<OsdConfigItem> osdConfigItems{};
-
     template <typename T>
     T get(const std::string &name) {
-        T result;
+        T result = T{};
         std::vector<ConfigItem<T>> *items = nullptr;
         if constexpr (std::is_same_v<T, bool>) {
             items = &boolItems;

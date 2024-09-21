@@ -64,8 +64,8 @@ int IMPFramesource::init()
     // IMP_Encoder_SetFisheyeEnableStatus(0, 1);
     // IMP_Encoder_SetFisheyeEnableStatus(1, 1);
 
-    // ret = IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width);
-    //  LOG_ERROR_OR_DEBUG(ret, "IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width)");
+    ret = IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width)");
 
 #endif
 #endif

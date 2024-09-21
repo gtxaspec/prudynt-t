@@ -42,11 +42,13 @@ int IMPAudio::init()
         .bitwidth = AUDIO_BIT_WIDTH_16,
         .soundmode = AUDIO_SOUND_MODE_MONO,
         .frmNum = 30,
-        .chnCnt = 1,
+        .numPerFrm = 0,
+        .chnCnt = 1
     };
     IMPAudioEncChnAttr encattr = {
         .type = IMPAudioPalyloadType::PT_PCM,
         .bufSize = 20,
+        .value = 0
     };
     float frameDuration = 0.040;
 
@@ -137,6 +139,7 @@ int IMPAudio::init()
 
     IMPAudioIChnParam chnParam = {
         .usrFrmDepth = 30, // frame buffer depth
+        .Rev = 0
     };
 
     ret = IMP_AI_SetChnParam(devId, inChn, &chnParam);

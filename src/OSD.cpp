@@ -678,7 +678,7 @@ void OSD::init()
         memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
 
         // Verify OSD logo size vs dimensions
-        if ((osd.logo_width * osd.logo_height * 4) == imageSize)
+        if ((osd.logo_width * osd.logo_height * 4) == (int)imageSize)
         {
             rgnAttr.type = OSD_REG_PIC;
             rgnAttr.fmt = PIX_FMT_BGRA;
