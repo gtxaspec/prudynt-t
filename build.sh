@@ -99,7 +99,7 @@ deps() {
 		./genMakefiles prudynt-static
 	else
 		echo "SHARED LIVE555"
-		cp ../../res/live555-config.prudynt ./config.prudynt
+		patch config.linux-with-shared-libraries ../../res/live555-prudynt.patch --output=./config.prudynt
 		./genMakefiles prudynt
 	fi
 
