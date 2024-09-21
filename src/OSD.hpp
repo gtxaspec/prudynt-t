@@ -73,7 +73,7 @@ private:
 
     _osd &osd;
     int last_updated_second;
-    const char *parent;
+    
 
     OSDItem osdTime{};
     OSDItem osdUser{};
@@ -88,7 +88,8 @@ private:
     bool initialized{0};
     int osdGrp{};
     int encChn{};
-
+    const char *parent;
+    
     char hostname[64];
     char ip[INET_ADDRSTRLEN]{};
 

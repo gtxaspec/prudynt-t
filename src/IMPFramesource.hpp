@@ -25,9 +25,9 @@ public:
     int destroy();
 
 private:
-    int chnNr;
     _stream *stream{};
     _sensor *sensor{};
+    int chnNr;
 };
 
 #endif

@@ -25,14 +25,15 @@ public:
     virtual ~IMPDeviceSource();
 
 private:
+    
     virtual void doGetNextFrame() override;
     static void deliverFrame0(void *clientData);
     void deliverFrame();
-    std::shared_ptr<Stream> stream;
     void deinit();
     int encChn;
-    EventTriggerId eventTriggerId;
+    std::shared_ptr<Stream> stream;
     std::string name;   // for printing
+    EventTriggerId eventTriggerId;
 };
 
 #endif

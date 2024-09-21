@@ -266,12 +266,10 @@ void *Worker::stream_grabber(void *arg)
     LOG_DEBUG("Start stream_grabber thread for stream " << encChn);
 
     int ret;
-    int flags{0};
-    uint32_t bps;
-    uint32_t fps;
-    int64_t nal_ts;
-    uint32_t error_count;
-    unsigned long long ms;
+    uint32_t bps = 0;
+    uint32_t fps = 0;
+    uint32_t error_count = 0;
+    unsigned long long ms = 0;
     struct timeval imp_time_base;
 
     global_video[encChn]->imp_framesource = IMPFramesource::createNew(global_video[encChn]->stream, &cfg->sensor, encChn);

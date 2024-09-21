@@ -157,6 +157,8 @@ void IMPEncoder::initProfile()
         rcAttr->attrRcMode.attrCappedQuality.uMaxPictureSize = stream->bitrate;
         rcAttr->attrRcMode.attrCappedQuality.uMaxPSNR = 42;
         break;
+    case IMP_ENC_RC_MODE_INVALID:
+        break;
     }
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
     if (strcmp(stream->format, "JPEG") == 0)
@@ -262,6 +264,8 @@ void IMPEncoder::initProfile()
             rcAttr->attrRcMode.attrH264Smart.frmQPStep = 3;
             rcAttr->attrRcMode.attrH264Smart.gopQPStep = 15;
             rcAttr->attrRcMode.attrH264Smart.gopRelation = false;
+            break;
+        case ENC_RC_MODE_INV:
             break;
         }
 #if defined(PLATFORM_T30)
