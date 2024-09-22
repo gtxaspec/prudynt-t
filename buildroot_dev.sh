@@ -15,15 +15,15 @@ PROFILE_NAME=$1
 
 make clean
 
-/usr/bin/make -j13 \
+/usr/bin/make -j$(nproc) \
 ARCH= CROSS_COMPILE=$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/bin/mipsel-linux- \
-CFLAGS="-DPLATFORM_$2 -Os -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 -I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include \
--I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include/freetype2 \
+CFLAGS="-DPLATFORM_$2 -Os -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
+-I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include \
 -I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include/liveMedia \
 -I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include/groupsock \
 -I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include/UsageEnvironment \
 -I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include/BasicUsageEnvironment" \
-LDFLAGS=" -L$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/lib \
+LDFLAGS="-z max-page-size=0x1000 -L$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/lib \
 -L$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/target/usr/lib" \
 -C $PWD all
 
@@ -31,4 +31,5 @@ if [[ $DEST_DIR == "" ]]; then
 	echo "DEST_DIR not set"
 else
 	cp bin/prudynt $DEST_DIR
+	echo "Copied to $DEST_DIR"
 fi
