@@ -233,6 +233,7 @@ struct _motion {
     int post_time;
     int cooldown_time;
     int init_time;
+    int min_time;
     int ivs_polling_timeout;
     int sensitivity;
     int skip_frame_count;
