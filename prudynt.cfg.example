@@ -233,6 +233,7 @@ motion: {
 	# post_time: 0;  # Time after motion detection stops to continue recording.
 	cooldown_time: 5;  # Time to wait after a motion event before detecting new motion.
 	# init_time: 5;  # Time for motion detection to initialize at startup.
+	# min_time: 1;  # Minimum time to track motion detection.
 	sensitivity: 1;  # Sensitivity level of motion detection.
 	# skip_frame_count: 5;  # Number of frames to skip for motion detection (to reduce CPU load).
 	# frame_width: 1920;  # Width of the frame used for motion detection.

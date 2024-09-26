@@ -94,7 +94,8 @@ void Motion::detect()
         if (!motionDetected)
         {
             debounce = 0;
-            if (moving && duration_cast<seconds>(currentTime - motionEndTime).count() >= cfg->motion.post_time)
+            auto duration = duration_cast<seconds>(currentTime - motionEndTime).count();
+            if (moving && duration >= cfg->motion.min_time && duration >= cfg->motion.post_time)
             {
                 LOG_INFO("End of Motion");
                 char cmd[128];
