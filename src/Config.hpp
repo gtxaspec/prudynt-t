@@ -258,6 +258,9 @@ struct _websocket {
     const char *name;
     const char *usertoken{""};
 };
+struct _sysinfo {
+    const char *cpu = nullptr;
+};
 
 class CFG {
 	public:
@@ -283,6 +286,7 @@ class CFG {
 		_stream stream2{};
 		_motion motion{};
         _websocket websocket{};
+        _sysinfo sysinfo{};
 
     template <typename T>
     T get(const std::string &name) {
