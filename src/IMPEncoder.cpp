@@ -354,8 +354,19 @@ int IMPEncoder::init()
     else
     {
         IMPEncoderJpegeQl pstJpegeQl;
-        MakeTables(stream->jpeg_quality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
-        pstJpegeQl.user_ql_en = 1;
+        // fix for bad jpeg image quality on T10 based cameras
+        if(strncmp(cfg->sysinfo.cpu, "T10", 3)==0) 
+        {
+            pstJpegeQl.user_ql_en = 0;
+            LOG_DEBUG("JPEG use default quantization table");
+        }
+        else
+        {
+            MakeTables(stream->jpeg_quality, &(pstJpegeQl.qmem_table[0]), &(pstJpegeQl.qmem_table[64]));
+            pstJpegeQl.user_ql_en = 1;
+            LOG_DEBUG("JPEG use custom user quantization table");
+        }
+
         IMP_Encoder_SetJpegeQl(2, &pstJpegeQl);
     }
 #endif

@@ -36,8 +36,8 @@ int IMPSystem::init()
     ret = SU_Base_GetVersion(&suVersion);
     LOG_INFO("SYSUTILS Version: " << suVersion.chr);
 
-    const char *cpuInfo = IMP_System_GetCPUInfo();
-    LOG_INFO("CPU Information: " << cpuInfo);
+    cfg->sysinfo.cpu = IMP_System_GetCPUInfo();
+    LOG_INFO("CPU Information: " << cfg->sysinfo.cpu);
 
     ret = IMP_ISP_Open();
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Open()");
