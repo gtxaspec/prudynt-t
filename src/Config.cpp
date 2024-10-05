@@ -178,7 +178,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
     return {
 #if defined(AUDIO_SUPPORT)
         {"audio.input_bitrate", audio.input_bitrate, 40, [](const int &v) { return v >= 6 && v <= 256; }},
-        {"audio.input_sample_rate", audio.input_sample_rate, 48000, [](const int &v) {
+        {"audio.input_sample_rate", audio.input_sample_rate, 16000, [](const int &v) {
             std::set<int> a = {8000, 16000, 24000, 44100, 48000};
             return a.count(v) == 1;
         }},
