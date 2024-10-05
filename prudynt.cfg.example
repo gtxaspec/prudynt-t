@@ -211,7 +211,7 @@ audio: {
 	# input_enabled: true;  # Enable or disable audio input.
 	# input_format: "OPUS";  # Audio format to use ("OPUS", "AAC", "PCM", "G711A", "G711U", "G726").
 	# input_bitrate: 40;  # Audio encoder bitrate to use in kbps (from 6 to 256).
-	# input_sample_rate: 48000;  # Input audio sampling in Hz (8000, 16000, 24000, 44100, 48000).
+	# input_sample_rate: 16000;  # Input audio sampling in Hz (8000, 16000, 24000, 44100, 48000).
 	# input_high_pass_filter: false;  # Enable or disable high pass filter for audio input.
 	# input_agc_enabled: false;  # Enable or disable AGC for audio input.
 	# input_vol: 80;  # Input volume for audio (-30 to 120).
