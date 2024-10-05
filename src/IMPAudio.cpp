@@ -182,22 +182,14 @@ int IMPAudio::init()
     {
         ret = IMP_AI_EnableNs(&ioattr, cfg->audio.input_noise_suppression);
         LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableNs(&ioattr, " << cfg->audio.input_noise_suppression << ")");
-    }
-    else
-    {
-        //ret = IMP_AI_DisableNs();
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableNs()");
+        enabledNs = true;
     }
 
     if (cfg->audio.input_high_pass_filter)
     {
         ret = IMP_AI_EnableHpf(&ioattr);
         LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableHpf(&ioattr)");
-    }
-    else
-    {
-        //ret = IMP_AI_DisableHpf();
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableHpf()");
+        enabledHpf = true;
     }
 
 #if defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30) || defined(PLATFORM_T31)
@@ -214,6 +206,7 @@ int IMPAudio::init()
         /* Enable automatic gain control on platforms that advertise it. */
         ret = IMP_AI_EnableAgc(&ioattr, agcConfig);
         LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableAgc({" << agcConfig.TargetLevelDbfs << ", " << agcConfig.CompressionGaindB << "})");
+        enabledAgc = true;
     }
 #endif
 #if defined(PLATFORM_T21) || (defined(PLATFORM_T31))
@@ -228,6 +221,27 @@ int IMPAudio::deinit()
 {
     LOG_DEBUG("IMPAudio::deinit()");
     int ret;
+
+    if (enabledNs)
+    {
+        ret = IMP_AI_DisableNs();
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableNs()");
+        enabledNs = false;
+    }
+
+    if (enabledHpf)
+    {
+        ret = IMP_AI_DisableHpf();
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableHpf()");
+        enabledHpf = false;
+    }
+
+    if (enabledAgc)
+    {
+        ret = IMP_AI_DisableAgc();
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_DisableAgc()");
+        enabledAgc = false;
+    }
 
     if (encoder)
     {
