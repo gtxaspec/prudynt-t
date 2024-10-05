@@ -50,6 +50,9 @@ public:
     int aeChn{};
 
 private:
+    bool enabledAgc = false;
+    bool enabledHpf = false;
+    bool enabledNs = false;
     int handle = 0;
     const char *name{};
     _stream *stream{};
