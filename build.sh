@@ -175,10 +175,13 @@ deps() {
 }
 
 if [ $# -eq 0 ]; then
-	echo "Usage: ./build.sh deps <platform> <-static>"
-	echo "Usage: ./build.sh prudynt <platform> <-static>"
-	echo "Usage: ./build.sh full <platform> <-static>"
-	echo "Platform: T20/T21/T23/T30/T31"
+	echo "Standalone Prudynt Build"
+	echo "Usage: ./build.sh deps <platform> [options]"
+	echo "       ./build.sh prudynt <platform> [options]"
+	echo "       ./build.sh full <platform> [options]"
+	echo ""
+	echo "Platforms: T20, T21, T23, T30, T31"
+	echo "Options:   -static (optional, for static builds)"
 	exit 1
 elif [[ "$1" == "deps" ]]; then
 	deps $2 $3
