@@ -251,6 +251,7 @@ enum
     PNT_STREAM_SCALE_ENABLED,
     PNT_STREAM_RTSP_ENDPOINT,
     PNT_STREAM_FORMAT,
+    PNT_STREAM_MODE,
     PNT_STREAM_GOP,
     PNT_STREAM_MAX_GOP,
     PNT_STREAM_FPS,
@@ -261,6 +262,7 @@ enum
     PNT_STREAM_ROTATION,
     PNT_STREAM_SCALE_WIDTH,
     PNT_STREAM_SCALE_HEIGHT,
+    PNT_STREAM_PROFILE,
     PNT_STREAM_STATS,
     PNT_STREAM_OSD
 };
@@ -271,6 +273,7 @@ static const char *const stream_keys[] = {
     "scale_enabled",
     "rtsp_endpoint",
     "format",
+    "mode",
     "gop",
     "max_gop",
     "fps",
@@ -281,6 +284,7 @@ static const char *const stream_keys[] = {
     "rotation",
     "scale_width",
     "scale_height",
+    "profile",
     "stats",
     "osd"};
 
@@ -1247,7 +1251,7 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
-        if (ctx->path_match >= PNT_STREAM_GOP && ctx->path_match <= PNT_STREAM_SCALE_HEIGHT)
+        if (ctx->path_match >= PNT_STREAM_GOP && ctx->path_match <= PNT_STREAM_PROFILE)
         { // integer values
             if (reason == LEJPCB_VAL_NUM_INT)
                 cfg->set<int>(u_ctx->path, atoi(ctx->buf));
@@ -1290,6 +1294,11 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
                     cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
                 add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
                 break;
+            case PNT_STREAM_MODE:
+                if (reason == LEJPCB_VAL_STR_END)
+                    cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
+                add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
+                break;                
             case PNT_STREAM_STATS:
                 if (reason == LEJPCB_VAL_NULL)
                 {
