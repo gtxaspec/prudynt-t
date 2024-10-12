@@ -567,22 +567,12 @@ void handleConfigItem2(Config &lc, ConfigItem<T> &item)
         }
     }
 
-    bool isDefault = false;
-    if constexpr (std::is_same_v<T, const char *>)
-    {
-        isDefault = (strcmp(item.value, item.defaultValue) == 0);
-    }
-    else
-    {
-        isDefault = (item.value == item.defaultValue);
-    }
-
     std::string path(item.path);
     size_t pos = path.find_last_of('.');
     std::string sect = path.substr(0, pos);
     std::string entr = path.substr(pos + 1);
 
-    if (isDifferent && !readFromProc && !isDefault && !item.noSave)
+    if (isDifferent && !readFromProc && !item.noSave)
     {
         ensurePathExists(lc.getRoot(), item.path);
 
@@ -619,17 +609,6 @@ void handleConfigItem2(Config &lc, ConfigItem<T> &item)
         else
         {
             newSetting = item.value;
-        }
-    }
-    else if (isDefault)
-    {
-        if (lc.exists(sect))
-        {
-            Setting &section = lc.lookup(sect);
-            if (section.exists(entr))
-            {
-                section.remove(entr);
-            }
         }
     }
 }
