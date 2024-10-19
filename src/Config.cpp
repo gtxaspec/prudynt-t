@@ -24,7 +24,7 @@ bool validateInt1(const int &v)
 
 bool validateInt2(const int &v)
 {
-    return v >= 0 && v <= 1;
+    return v >= 0 && v <= 2;
 }
 
 bool validateInt32(const int &v)
@@ -304,7 +304,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream2.jpeg_quality", stream2.jpeg_quality, 75, [](const int &v) { return v > 0 && v <= 100; }},
         {"stream2.jpeg_idle_fps", stream2.jpeg_idle_fps, 1, [](const int &v) { return v >= 0 && v <= 30; }},
         {"stream2.fps", stream2.fps, 25, [](const int &v) { return v > 1 && v <= 30; }},
-        {"websocket.loglevel", websocket.loglevel, 4096, [](const int &v) { return v > 0 && v <= 1024; }},
+        {"websocket.loglevel", websocket.loglevel, 4096, [](const int &v) { return v > 0 && v <= 4096; }},
         {"websocket.port", websocket.port, 8089, validateInt65535},
         {"websocket.first_image_delay", websocket.first_image_delay, 100, validateInt65535},
     };
