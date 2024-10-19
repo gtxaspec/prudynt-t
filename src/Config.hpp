@@ -155,7 +155,6 @@ struct _audio {
 #endif      
 struct _osd {            
     int font_size;
-    int font_stroke_size;
     int font_xscale;
     int font_yscale;
     int font_stroke;
