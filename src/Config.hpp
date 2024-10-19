@@ -268,6 +268,7 @@ class CFG {
         std::string filePath{};
 
 		CFG();
+        void load();
         static CFG *createNew();
         bool readConfig();
         bool updateConfig();

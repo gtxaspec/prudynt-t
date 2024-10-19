@@ -7,6 +7,9 @@
 
 using namespace std::chrono;
 
+#define EVENT_SIZE  (sizeof(struct inotify_event))
+#define EVENT_BUF_LEN (1024 * (EVENT_SIZE + 16))
+
 unsigned long long tDiffInMs(struct timeval *startTime)
 {
     struct timeval currentTime;
@@ -642,6 +645,7 @@ void *Worker::audio_grabber(void *arg)
     return 0;
 }
 #endif
+
 void *Worker::update_osd(void *arg)
 {
 
@@ -683,4 +687,79 @@ void *Worker::update_osd(void *arg)
 
     LOG_DEBUG("exit osd update thread.");
     return 0;
+}
+
+void *Worker::watch_config_notify(void *arg) 
+{
+    int inotifyFd = inotify_init();
+    if (inotifyFd < 0)
+    {
+        LOG_ERROR("inotify_init() failed");
+        return 0;
+    }
+
+    int watchDescriptor = inotify_add_watch(inotifyFd, cfg->filePath.c_str(), IN_MODIFY | IN_ALL_EVENTS);
+    if (watchDescriptor == -1)
+    {
+        LOG_ERROR("inotify_add_watch() failed");
+        close(inotifyFd);
+        return 0;
+    }
+
+    char buffer[EVENT_BUF_LEN];
+
+    LOG_DEBUG("Monitoring file for changes: " << cfg->filePath);
+
+    while (true)
+    {
+        int length = read(inotifyFd, buffer, EVENT_BUF_LEN);
+        if (length < 0)
+        {
+            LOG_ERROR("Error reading file change notification.");
+            break;
+        }
+
+        int i = 0;
+        while (i < length)
+        {
+            struct inotify_event *event = (struct inotify_event *) &buffer[i];
+
+            if (event->mask & IN_MODIFY)
+            {
+                cfg->load();
+                LOG_INFO("Config file changed, the config is reloaded from: " << cfg->filePath);
+            }
+
+            i += EVENT_SIZE + event->len;
+        }
+    }
+
+    inotify_rm_watch(inotifyFd, watchDescriptor);
+    close(inotifyFd);
+    return 0;
+}
+
+void *Worker::watch_config_poll(void *arg) 
+{
+    struct stat fileInfo;
+    time_t lastModifiedTime = 0;
+
+    while (true)
+    {
+        if (stat(cfg->filePath.c_str(), &fileInfo) == 0)
+        {
+            if (lastModifiedTime == 0)
+            {
+                lastModifiedTime = fileInfo.st_mtime;
+            }
+            else if (fileInfo.st_mtime != lastModifiedTime)
+            {
+                lastModifiedTime = fileInfo.st_mtime;
+                cfg->load();
+                LOG_INFO("Config file changed, the config is reloaded from: " << cfg->filePath);
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
 }

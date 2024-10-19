@@ -597,6 +597,11 @@ bool CFG::updateConfig()
 
 CFG::CFG()
 {
+    load();
+}
+
+void CFG::load()
+{
     boolItems = getBoolItems();
     charItems = getCharItems();
     intItems = getIntItems();

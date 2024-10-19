@@ -70,6 +70,7 @@ int main(int argc, const char *argv[])
 {
     LOG_INFO("PRUDYNT-T Next-Gen Video Daemon: " << VERSION);
 
+    pthread_t cf_thread;      // monitor config changes
     pthread_t ws_thread;
     pthread_t osd_thread;
     pthread_t rtsp_thread;
@@ -102,6 +103,7 @@ int main(int argc, const char *argv[])
     global_audio[0] = std::make_shared<audio_stream>(1, 0, 0);
 #endif
 
+    pthread_create(&cf_thread, nullptr, Worker::watch_config_poll, nullptr);
     pthread_create(&ws_thread, nullptr, WS::run, &ws);
 
     while (true)
