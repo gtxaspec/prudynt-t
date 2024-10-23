@@ -103,7 +103,7 @@ int main(int argc, const char *argv[])
     global_audio[0] = std::make_shared<audio_stream>(1, 0, 0);
 #endif
 
-    pthread_create(&cf_thread, nullptr, Worker::watch_config_poll, nullptr);
+    // pthread_create(&cf_thread, nullptr, Worker::watch_config_poll, nullptr);
     pthread_create(&ws_thread, nullptr, WS::run, &ws);
 
     while (true)
