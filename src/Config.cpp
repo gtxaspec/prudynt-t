@@ -24,7 +24,7 @@ bool validateInt1(const int &v)
 
 bool validateInt2(const int &v)
 {
-    return v >= 0 && v <= 1;
+    return v >= 0 && v <= 2;
 }
 
 bool validateInt32(const int &v)
@@ -244,7 +244,6 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream0.max_gop", stream0.max_gop, 60, validateIntGe0},
         {"stream0.osd.font_size", stream0.osd.font_size, OSD_AUTO_VALUE, validateIntGe0},
         {"stream0.osd.font_stroke", stream0.osd.font_stroke, 1, validateIntGe0},
-        {"stream0.osd.font_stroke_size", stream0.osd.font_stroke_size, OSD_AUTO_VALUE, validateIntGe0},
         {"stream0.osd.font_xscale", stream0.osd.font_xscale, 100, validateInt50_150},
         {"stream0.osd.font_yscale", stream0.osd.font_yscale, 100, validateInt50_150},
         {"stream0.osd.font_yoffset", stream0.osd.font_yoffset, 3, validateIntGe0},
@@ -278,7 +277,6 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream1.max_gop", stream1.max_gop, 60, validateIntGe0},
         {"stream1.osd.font_size", stream1.osd.font_size, OSD_AUTO_VALUE, validateIntGe0},
         {"stream1.osd.font_stroke", stream1.osd.font_stroke, 1, validateIntGe0},
-        {"stream1.osd.font_stroke_size", stream1.osd.font_stroke_size, OSD_AUTO_VALUE, validateIntGe0},
         {"stream1.osd.font_xscale", stream1.osd.font_xscale, 100, validateInt50_150},
         {"stream1.osd.font_yscale", stream1.osd.font_yscale, 100, validateInt50_150},
         {"stream1.osd.font_yoffset", stream1.osd.font_yoffset, 3, validateIntGe0},
@@ -307,7 +305,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream2.jpeg_quality", stream2.jpeg_quality, 75, [](const int &v) { return v > 0 && v <= 100; }},
         {"stream2.jpeg_idle_fps", stream2.jpeg_idle_fps, 1, [](const int &v) { return v >= 0 && v <= 30; }},
         {"stream2.fps", stream2.fps, 25, [](const int &v) { return v > 1 && v <= 30; }},
-        {"websocket.loglevel", websocket.loglevel, 4096, [](const int &v) { return v > 0 && v <= 1024; }},
+        {"websocket.loglevel", websocket.loglevel, 4096, [](const int &v) { return v > 0 && v <= 4096; }},
         {"websocket.port", websocket.port, 8089, validateInt65535},
         {"websocket.first_image_delay", websocket.first_image_delay, 100, validateInt65535},
     };
@@ -519,118 +517,47 @@ template <typename T>
 void handleConfigItem2(Config &lc, ConfigItem<T> &item)
 {
     T configValue{0};
-    bool readFromConfig = false;
-
-    if constexpr (std::is_same_v<T, const char *> == true)
-    {
-        std::string tempValue;
-        readFromConfig = lc.lookupValue(item.path, tempValue);
-        if (readFromConfig)
-        {
-            configValue = tempValue.c_str();
-        }
-    }
-    else
-    {
-        readFromConfig = lc.lookupValue(item.path, configValue);
-    }
-
-    bool readFromProc = false;
-    if (!readFromConfig && item.procPath != nullptr && item.procPath[0] != '\0')
-    {
-        std::ifstream procFile(item.procPath);
-        if (procFile)
-        {
-            T value;
-            std::string line;
-            if (std::getline(procFile, line))
-            {
-                if (processLine(line, value))
-                {
-                    item.value = value;
-                    readFromProc = true;
-                }
-            }
-        }
-    }
-
-    bool isDifferent = true;
-    if (readFromConfig)
-    {
-        if constexpr (std::is_same_v<T, const char *>)
-        {
-            isDifferent = (strcmp(item.value, configValue) != 0);
-        }
-        else
-        {
-            isDifferent = (item.value != configValue);
-        }
-    }
-
-    bool isDefault = false;
-    if constexpr (std::is_same_v<T, const char *>)
-    {
-        isDefault = (strcmp(item.value, item.defaultValue) == 0);
-    }
-    else
-    {
-        isDefault = (item.value == item.defaultValue);
-    }
 
     std::string path(item.path);
     size_t pos = path.find_last_of('.');
     std::string sect = path.substr(0, pos);
     std::string entr = path.substr(pos + 1);
 
-    if (isDifferent && !readFromProc && !isDefault && !item.noSave)
+    ensurePathExists(lc.getRoot(), item.path);
+
+    Setting &section = lc.lookup(sect);
+    if (section.exists(entr))
     {
-        ensurePathExists(lc.getRoot(), item.path);
-
-        Setting &section = lc.lookup(sect);
-        if (section.exists(entr))
-        {
-            section.remove(entr);
-        }
-
-        Setting::Type type;
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            type = Setting::TypeBoolean;
-        }
-        else if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, const char *>)
-        {
-            type = Setting::TypeString;
-        }
-        else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, unsigned int>)
-        {
-            type = Setting::TypeInt;
-        }
-
-        Setting &newSetting = section.add(entr, type);
-        if constexpr (std::is_same_v<T, unsigned int>)
-        {
-            newSetting = static_cast<long>(item.value);
-            newSetting.setFormat(Setting::FormatHex);
-        }
-        else if constexpr (std::is_same_v<T, const char *>)
-        {
-            newSetting = std::string(item.value);
-        }
-        else
-        {
-            newSetting = item.value;
-        }
+        section.remove(entr);
     }
-    else if (isDefault)
+
+    Setting::Type type;
+    if constexpr (std::is_same_v<T, bool>)
     {
-        if (lc.exists(sect))
-        {
-            Setting &section = lc.lookup(sect);
-            if (section.exists(entr))
-            {
-                section.remove(entr);
-            }
-        }
+        type = Setting::TypeBoolean;
+    }
+    else if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, const char *>)
+    {
+        type = Setting::TypeString;
+    }
+    else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, unsigned int>)
+    {
+        type = Setting::TypeInt;
+    }
+
+    Setting &newSetting = section.add(entr, type);
+    if constexpr (std::is_same_v<T, unsigned int>)
+    {
+        newSetting = static_cast<long>(item.value);
+        newSetting.setFormat(Setting::FormatHex);
+    }
+    else if constexpr (std::is_same_v<T, const char *>)
+    {
+        newSetting = std::string(item.value);
+    }
+    else
+    {
+        newSetting = item.value;
     }
 }
 
@@ -670,6 +597,11 @@ bool CFG::updateConfig()
 };
 
 CFG::CFG()
+{
+    load();
+}
+
+void CFG::load()
 {
     boolItems = getBoolItems();
     charItems = getCharItems();

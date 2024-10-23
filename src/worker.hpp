@@ -8,6 +8,8 @@
 #include "imp/imp_encoder.h"
 #include "globals.hpp"
 #include <sys/file.h>
+#include <sys/inotify.h>
+#include <sys/stat.h>
 
 struct StartHelper
 {
@@ -30,6 +32,8 @@ public:
 	static void *audio_grabber(void *arg);
 	static void *stream_grabber(void *arg);
 	static void *update_osd(void *arg);
+	static void *watch_config_notify(void *arg);
+	static void *watch_config_poll(void *arg);
 	static std::vector<uint8_t> capture_jpeg_image(int encChn);
 };
 
