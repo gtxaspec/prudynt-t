@@ -182,8 +182,7 @@ struct _osd {
     bool time_enabled;
     bool user_text_enabled;
     bool uptime_enabled;
-    bool logo_enabled;
-    bool font_stroke_enabled;            
+    bool logo_enabled;         
     const char *font_path;
     const char *time_format;
     const char *uptime_format;
