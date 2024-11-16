@@ -26,7 +26,6 @@ using namespace std::filesystem;
 /*
     ToDo's
     add new font scales
-    add new font stroke
     add stream buffer sharing
 */
 
@@ -318,7 +317,7 @@ enum
     PNT_OSD_LOGO_TRANSPARENCY,
 
     PNT_OSD_FONT_SIZE,
-    PNT_OSD_FONT_STROKE_SIZE,
+    PNT_OSD_FONT_STROKE,
     PNT_OSD_LOGO_HEIGHT,
     PNT_OSD_LOGO_WIDTH,
     PNT_OSD_POS_TIME_X,
@@ -340,7 +339,6 @@ enum
     PNT_OSD_USER_TEXT_ENABLED,
     PNT_OSD_UPTIME_ENABLED,
     PNT_OSD_LOGO_ENABLED,
-    PNT_OSD_FONT_STROKE_ENABLED,
 
     PNT_OSD_FONT_PATH,
     PNT_OSD_TIME_FORMAT,
@@ -358,7 +356,7 @@ static const char *const osd_keys[] = {
     "logo_transparency",
 
     "font_size",
-    "font_stroke_size",
+    "font_stroke",
     "logo_height",
     "logo_width",
     "pos_time_x",
@@ -380,7 +378,6 @@ static const char *const osd_keys[] = {
     "user_text_enabled",
     "uptime_enabled",
     "logo_enabled",
-    "font_stroke_enabled",
     "font_path",
     "time_format",
     "uptime_format",
@@ -1427,6 +1424,7 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
     }
     else if (reason == LEJPCB_OBJECT_END)
     {
+        u_ctx->flag |= PNT_FLAG_SEPARATOR;
         u_ctx->message.append("}");
         lejp_parser_pop(ctx);
     }
@@ -1508,7 +1506,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
             add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
         }
         // bool
-        else if (ctx->path_match >= PNT_OSD_ENABLED && ctx->path_match <= PNT_OSD_FONT_STROKE_ENABLED)
+        else if (ctx->path_match >= PNT_OSD_ENABLED && ctx->path_match <= PNT_OSD_LOGO_ENABLED)
         {
             if (reason == LEJPCB_VAL_TRUE)
             {
