@@ -1422,6 +1422,7 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
     }
     else if (reason == LEJPCB_OBJECT_END)
     {
+        u_ctx->flag |= PNT_FLAG_SEPARATOR;
         u_ctx->message.append("}");
         lejp_parser_pop(ctx);
     }
