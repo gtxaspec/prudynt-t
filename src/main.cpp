@@ -25,7 +25,7 @@ bool global_restart_audio = false;
 bool global_osd_thread_signal = false;
 bool global_main_thread_signal = false;
 bool global_motion_thread_signal = false;
-char volatile global_rtsp_thread_signal{1};
+std::atomic<char> global_rtsp_thread_signal{1};
 
 std::shared_ptr<jpeg_stream> global_jpeg[NUM_VIDEO_CHANNELS] = {nullptr};
 std::shared_ptr<video_stream> global_video[NUM_VIDEO_CHANNELS] = {nullptr};
@@ -154,7 +154,7 @@ int main(int argc, const char *argv[])
 #endif
 
         // start rtsp server
-        if (global_rtsp_thread_signal != 0 && (global_restart_rtsp || startup))
+        if (global_rtsp_thread_signal.load() != 0 && (global_restart_rtsp || startup))
         {
             int ret = pthread_create(&rtsp_thread, nullptr, RTSP::run, &rtsp);
             LOG_DEBUG_OR_ERROR(ret, "create rtsp thread");
@@ -182,9 +182,9 @@ int main(int argc, const char *argv[])
         if (global_restart_rtsp)
         {
             // stop rtsp thread
-            if (global_rtsp_thread_signal == 0)
+            if (global_rtsp_thread_signal.load == 0)
             {
-                global_rtsp_thread_signal = 1;
+                global_rtsp_thread_signal.store(1);
                 int ret = pthread_join(rtsp_thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join rtsp thread");
             }

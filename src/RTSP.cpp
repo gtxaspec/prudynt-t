@@ -119,7 +119,7 @@ void RTSP::start()
         addSubsession(1, cfg->stream1);
     }
 
-    global_rtsp_thread_signal = 0;
+    global_rtsp_thread_signal.store(0);
     env->taskScheduler().doEventLoop(&global_rtsp_thread_signal);
 
     // Clean up VPS if it was allocated
