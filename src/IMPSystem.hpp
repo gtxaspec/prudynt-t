@@ -17,7 +17,10 @@ public:
 
     IMPSystem()
     {
-        init();
+        if( init() != 0 ) {
+
+            throw std::invalid_argument("error initializing the imp system.");
+        };
     }
 
     ~IMPSystem()
