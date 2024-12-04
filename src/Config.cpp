@@ -183,9 +183,9 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
             return a.count(v) == 1;
         }},
         {"audio.input_vol", audio.input_vol, 80, [](const int &v) { return v >= -30 && v <= 120; }},
-        {"audio.input_gain", audio.input_gain, 25, [](const int &v) { return v >= 0 && v <= 31; }},
+        {"audio.input_gain", audio.input_gain, 25, [](const int &v) { return v >= -1 && v <= 31; }},
 #if defined(LIB_AUDIO_PROCESSING)
-        {"audio.input_alc_gain", audio.input_alc_gain, 0, [](const int &v) { return v >= 0 && v <= 7; }},
+        {"audio.input_alc_gain", audio.input_alc_gain, 0, [](const int &v) { return v >= -1 && v <= 7; }},
         {"audio.input_agc_target_level_dbfs", audio.input_agc_target_level_dbfs, 10, [](const int &v) { return v >= 0 && v <= 31; }},
         {"audio.input_agc_compression_gain_db", audio.input_agc_compression_gain_db, 0, [](const int &v) { return v >= 0 && v <= 90; }},
         {"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }},
@@ -516,8 +516,6 @@ void handleConfigItem(Config &lc, ConfigItem<T> &item)
 template <typename T>
 void handleConfigItem2(Config &lc, ConfigItem<T> &item)
 {
-    T configValue{0};
-
     std::string path(item.path);
     size_t pos = path.find_last_of('.');
     std::string sect = path.substr(0, pos);
