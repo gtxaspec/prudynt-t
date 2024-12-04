@@ -152,7 +152,7 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
             return a.count(std::string(v)) == 1;
         }},
         {"stream0.rtsp_endpoint", stream0.rtsp_endpoint, "ch0", validateCharNotEmpty},
-        {"stream1.rtsp_endpoint", stream1.rtsp_endpoint, "ch1", validateCharNotEmpty},
+        {"stream0.rtsp_info", stream0.rtsp_info, "stream0", validateCharNotEmpty},
         {"stream1.format", stream1.format, "H264", [](const char *v) { return strcmp(v, "H264") == 0 || strcmp(v, "H265") == 0; }},
         {"stream1.osd.font_path", stream1.osd.font_path, "/usr/share/fonts/NotoSansDisplay-Condensed2.ttf", validateCharNotEmpty},
         {"stream1.osd.logo_path", stream1.osd.logo_path, "/usr/share/images/thingino_logo_1.bgra", validateCharNotEmpty},
@@ -163,6 +163,8 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
             std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQP", "CAPPED_VBR", "CAPPED_QUALITY"};
             return a.count(std::string(v)) == 1;
         }},
+        {"stream1.rtsp_endpoint", stream1.rtsp_endpoint, "ch1", validateCharNotEmpty},
+        {"stream1.rtsp_info", stream1.rtsp_info, "stream1", validateCharNotEmpty},
        {"stream2.jpeg_path", stream2.jpeg_path, "/tmp/snapshot.jpg", validateCharNotEmpty},
         {"websocket.name", websocket.name, "wss prudynt", validateCharNotEmpty},
         {"websocket.usertoken", websocket.usertoken, "", [](const char *v) {

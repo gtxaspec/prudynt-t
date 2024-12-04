@@ -249,6 +249,7 @@ enum
     PNT_STREAM_AUDIO_ENABLED,
     PNT_STREAM_SCALE_ENABLED,
     PNT_STREAM_RTSP_ENDPOINT,
+    PNT_STREAM_RTSP_INFO,
     PNT_STREAM_FORMAT,
     PNT_STREAM_MODE,
     PNT_STREAM_GOP,
@@ -271,6 +272,7 @@ static const char *const stream_keys[] = {
     "audio_enabled",
     "scale_enabled",
     "rtsp_endpoint",
+    "rtsp_info",
     "format",
     "mode",
     "gop",
@@ -1277,6 +1279,11 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
                     cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
                 add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
                 break;
+            case PNT_STREAM_RTSP_INFO:
+                if (reason == LEJPCB_VAL_STR_END)
+                    cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
+                add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
+                break;                
             case PNT_STREAM_SCALE_ENABLED:
                 if (reason == LEJPCB_VAL_TRUE)
                 {

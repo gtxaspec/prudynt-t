@@ -212,6 +212,7 @@ struct _stream {
     bool allow_shared;
     const char *mode;
     const char *rtsp_endpoint;
+    const char *rtsp_info;
     const char *format{"JPEG"};
     /* JPEG stream*/
     int jpeg_quality;

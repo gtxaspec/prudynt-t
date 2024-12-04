@@ -72,6 +72,7 @@ stream0: {
 	# enabled: true;  # Enable or disable Stream0.
 	# audio_enabled: true; # Enable audio on the stream.
 	# rtsp_endpoint: "ch0";  # Endpoint name for the RTSP url stream.
+	# rtsp_info: "stream0";  # Endpoint info for the RTSP url stream.
 	# format: "H264";  # Video format for the stream (H264 or H265).
 	# bitrate: 3000;  # Bitrate for the stream (in kbps).
 	# mode: "SMART"; # Rate control mode: ("CBR", "VBR", "FIXQP", ("SMART" on T1x, T2x, T30), ("CAPPED_VBR", "CAPPED_QUALITY" on T31))
@@ -133,6 +134,7 @@ stream1: {
 	# enabled: true;  # Enable or disable Stream1.
 	# audio_enabled: true; # Enable audio on the stream.
 	# rtsp_endpoint: "ch1";  # Endpoint name for the RTSP url stream.
+	# rtsp_info: "stream1";  # Endpoint info for the RTSP url stream.
 	# format: "H264";  # Video format for the stream (H264 or H265).
 	# bitrate: 1000;  # Bitrate for the stream (in kbps).
 	# mode: "SMART"; # Rate control mode: ("CBR", "VBR", "FIXQP", ("SMART" on T1x, T2x, T30), ("CAPPED_VBR", "CAPPED_QUALITY" on T31))
