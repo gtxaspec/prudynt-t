@@ -64,7 +64,7 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
     LOG_DEBUG("Got necessary NAL Units.");
 
     ServerMediaSession *sms = ServerMediaSession::createNew(
-        *env, stream.rtsp_endpoint, "Sub", cfg->rtsp.name);
+        *env, stream.rtsp_endpoint, stream.rtsp_info, cfg->rtsp.name);
     IMPServerMediaSubsession *sub = IMPServerMediaSubsession::createNew(
         *env, (is_h265 ? vps : nullptr), sps, pps, chnNr // Conditional VPS
     );

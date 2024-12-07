@@ -152,7 +152,7 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
             return a.count(std::string(v)) == 1;
         }},
         {"stream0.rtsp_endpoint", stream0.rtsp_endpoint, "ch0", validateCharNotEmpty},
-        {"stream1.rtsp_endpoint", stream1.rtsp_endpoint, "ch1", validateCharNotEmpty},
+        {"stream0.rtsp_info", stream0.rtsp_info, "stream0", validateCharNotEmpty},
         {"stream1.format", stream1.format, "H264", [](const char *v) { return strcmp(v, "H264") == 0 || strcmp(v, "H265") == 0; }},
         {"stream1.osd.font_path", stream1.osd.font_path, "/usr/share/fonts/NotoSansDisplay-Condensed2.ttf", validateCharNotEmpty},
         {"stream1.osd.logo_path", stream1.osd.logo_path, "/usr/share/images/thingino_logo_1.bgra", validateCharNotEmpty},
@@ -163,6 +163,8 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
             std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQP", "CAPPED_VBR", "CAPPED_QUALITY"};
             return a.count(std::string(v)) == 1;
         }},
+        {"stream1.rtsp_endpoint", stream1.rtsp_endpoint, "ch1", validateCharNotEmpty},
+        {"stream1.rtsp_info", stream1.rtsp_info, "stream1", validateCharNotEmpty},
        {"stream2.jpeg_path", stream2.jpeg_path, "/tmp/snapshot.jpg", validateCharNotEmpty},
         {"websocket.name", websocket.name, "wss prudynt", validateCharNotEmpty},
         {"websocket.usertoken", websocket.usertoken, "", [](const char *v) {
@@ -181,9 +183,9 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
             return a.count(v) == 1;
         }},
         {"audio.input_vol", audio.input_vol, 80, [](const int &v) { return v >= -30 && v <= 120; }},
-        {"audio.input_gain", audio.input_gain, 25, [](const int &v) { return v >= 0 && v <= 31; }},
+        {"audio.input_gain", audio.input_gain, 25, [](const int &v) { return v >= -1 && v <= 31; }},
 #if defined(LIB_AUDIO_PROCESSING)
-        {"audio.input_alc_gain", audio.input_alc_gain, 0, [](const int &v) { return v >= 0 && v <= 7; }},
+        {"audio.input_alc_gain", audio.input_alc_gain, 0, [](const int &v) { return v >= -1 && v <= 7; }},
         {"audio.input_agc_target_level_dbfs", audio.input_agc_target_level_dbfs, 10, [](const int &v) { return v >= 0 && v <= 31; }},
         {"audio.input_agc_compression_gain_db", audio.input_agc_compression_gain_db, 0, [](const int &v) { return v >= 0 && v <= 90; }},
         {"audio.input_noise_suppression", audio.input_noise_suppression, 0, [](const int &v) { return v >= 0 && v <= 3; }},
@@ -514,8 +516,6 @@ void handleConfigItem(Config &lc, ConfigItem<T> &item)
 template <typename T>
 void handleConfigItem2(Config &lc, ConfigItem<T> &item)
 {
-    T configValue{0};
-
     std::string path(item.path);
     size_t pos = path.find_last_of('.');
     std::string sect = path.substr(0, pos);

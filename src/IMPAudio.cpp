@@ -159,8 +159,11 @@ int IMPAudio::init()
     ret = IMP_AI_GetVol(devId, inChn, &vol);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_GetVol(" << devId << ", " << inChn << ", &vol)");
 
-    ret = IMP_AI_SetGain(devId, inChn, cfg->audio.input_gain);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetGain(" << devId << ", " << inChn << ", " << cfg->audio.input_gain << ")");
+    if(cfg->audio.input_gain >= 0)
+    {
+        ret = IMP_AI_SetGain(devId, inChn, cfg->audio.input_gain);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetGain(" << devId << ", " << inChn << ", " << cfg->audio.input_gain << ")");
+    }
 
     int gain;
     ret = IMP_AI_GetGain(devId, inChn, &gain);
@@ -210,8 +213,11 @@ int IMPAudio::init()
     }
 #endif
 #if defined(PLATFORM_T21) || (defined(PLATFORM_T31))
-    ret = IMP_AI_SetAlcGain(devId, inChn, cfg->audio.input_alc_gain);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetAlcGain(" << devId << ", " << inChn << ", " << cfg->audio.input_alc_gain << ")");
+    if(cfg->audio.input_alc_gain > 0)
+    {
+        ret = IMP_AI_SetAlcGain(devId, inChn, cfg->audio.input_alc_gain);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetAlcGain(" << devId << ", " << inChn << ", " << cfg->audio.input_alc_gain << ")");
+    }
 #endif        
 #endif //LIB_AUDIO_PROCESSING
     return 0;
