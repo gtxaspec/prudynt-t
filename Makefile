@@ -30,7 +30,7 @@ LIBS = -Wl,-Bdynamic -l:libimp.so -l:libalog.so -l:libsysutils.so -l:libmuslshim
 	-Wl,-Bdynamic
 else ifneq (,$(findstring -DBINARY_DYNAMIC,$(CFLAGS)))
 LIBS = -Wl,-Bdynamic -l:libimp.so -l:libalog.so -l:libaudioProcess.so -l:libsysutils.so -l:libmuslshim.so \
-	-l:libliveMedia -l:libgroupsock -l:libBasicUsageEnvironment -l:libUsageEnvironment.so \
+	-l:libliveMedia.so -l:libgroupsock.so -l:libUsageEnvironment.so -l:libBasicUsageEnvironment.so \
 	-l:libconfig++.so -l:libwebsockets.so -l:libschrift.so -l:libopus.so -l:libfaac.so
 else
 $(error No valid binary type defined in CFLAGS. Please specify -DBINARY_STATIC, -DBINARY_HYBRID, or -DBINARY_DYNAMIC)
