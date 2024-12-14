@@ -3,18 +3,38 @@ CXX = ${CROSS_COMPILE}g++
 
 DEBUG=n
 
-CXXFLAGS = $(CFLAGS) -std=c++20 -Wall -Wextra -Wno-unused-parameter
-LDFLAGS = -lrt
+CXXFLAGS += $(CFLAGS) -std=c++20 -Wall -Wextra -Wno-unused-parameter
+LDFLAGS += -lrt -lpthread
 
-CFLAGS = -Wall -Wextra -Wno-unused-parameter -O2 -DNO_OPENSSL=1
+CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -O2 -DNO_OPENSSL=1
 ifeq ($(KERNEL_VERSION_4),y)
 CFLAGS += -DKERNEL_VERSION_4
 endif
 
-ifneq (,$(findstring -static,$(LDFLAGS)))
-LIBS = -limp -lalog -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lwebsockets -lschrift -lopus -lfaac
+ifneq ($(filter -DBINARY_STATIC -DBINARY_HYBRID -DBINARY_DYNAMIC,$(CFLAGS)),)
 else
-LIBS = -limp -lalog -laudioProcess -lsysutils -lmuslshim -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lconfig++ -lwebsockets -lschrift -lopus -lfaac
+override CFLAGS += -DBINARY_DYNAMIC
+endif
+
+ifneq ($(MAKECMDGOALS),clean)
+ifneq (,$(findstring -DBINARY_STATIC,$(CFLAGS)))
+override LDFLAGS += -static -static-libgcc -static-libstdc++
+LIBS = -l:libimp.a -l:libalog.a -l:libsysutils.a -l:libmuslshim.a \
+	-l:libliveMedia.a -l:libgroupsock.a -l:libBasicUsageEnvironment.a -l:libUsageEnvironment.a \
+	-l:libconfig++.a -l:libwebsockets.a -l:libschrift.a -l:libopus.a -l:libfaac.a
+else ifneq (,$(findstring -DBINARY_HYBRID,$(CFLAGS)))
+override LDFLAGS += -static-libstdc++
+LIBS = -Wl,-Bdynamic -l:libimp.so -l:libalog.so -l:libsysutils.so -l:libmuslshim.so -l:libaudioProcess.so -l:libaudioshim.so -l:libwebsockets.so \
+	-Wl,-Bstatic -l:libliveMedia.a -l:libgroupsock.a -l:libBasicUsageEnvironment.a -l:libUsageEnvironment.a \
+	-l:libconfig++.a -l:libschrift.a -l:libopus.a -l:libfaac.a \
+	-Wl,-Bdynamic
+else ifneq (,$(findstring -DBINARY_DYNAMIC,$(CFLAGS)))
+LIBS = -Wl,-Bdynamic -l:libimp.so -l:libalog.so -l:libaudioProcess.so -l:libsysutils.so -l:libmuslshim.so \
+	-l:libliveMedia -l:libgroupsock -l:libBasicUsageEnvironment -l:libUsageEnvironment.so \
+	-l:libconfig++.so -l:libwebsockets.so -l:libschrift.so -l:libopus.so -l:libfaac.so
+else
+$(error No valid binary type defined in CFLAGS. Please specify -DBINARY_STATIC, -DBINARY_HYBRID, or -DBINARY_DYNAMIC)
+endif
 endif
 
 ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))
@@ -66,7 +86,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(VERSION_FILE)
 
 $(TARGET): $(OBJECTS) $(VERSION_FILE)
 	@mkdir -p $(@D)
-	$(CCACHE) $(CXX) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS) -s -Os
+	$(CCACHE) $(CXX) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS) -s
 
 .PHONY: all clean
 

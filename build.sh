@@ -8,15 +8,24 @@ prudynt(){
 
 	cd $TOP
 	make clean
+
+	if [ "$2" = "-static" ]; then
+		BIN_TYPE="-DBINARY_STATIC"
+	elif [ "$2" = -"hybrid" ]; then
+		BIN_TYPE="-DBINARY_HYBRID"
+	else
+		BIN_TYPE="-DBINARY_DYNAMIC"
+	fi
+
 	/usr/bin/make -j$(nproc) \
 	ARCH= CROSS_COMPILE="${PRUDYNT_CROSS}" \
-	CFLAGS="-DPLATFORM_$1 -Os -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
+	CFLAGS="-DPLATFORM_$1 $BIN_TYPE -O2 -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
 	-I./3rdparty/install/include \
 	-I./3rdparty/install/include/liveMedia \
 	-I./3rdparty/install/include/groupsock \
 	-I./3rdparty/install/include/UsageEnvironment \
 	-I./3rdparty/install/include/BasicUsageEnvironment" \
-	LDFLAGS=" -L./3rdparty/install/lib $2" \
+	LDFLAGS=" -L./3rdparty/install/lib" \
 	-C $PWD all
 	exit 0
 }
@@ -150,10 +159,22 @@ deps() {
 	cd ingenic-musl
 	if [[ "$2" == "-static" ]]; then
 		make CC="${PRUDYNT_CROSS}gcc" -j$(nproc) static
+		make CC="${PRUDYNT_CROSS}gcc" -j$(nproc)
 	else
 		make CC="${PRUDYNT_CROSS}gcc" -j$(nproc)
 	fi
 	cp libmuslshim.* ../install/lib/
+	fi
+	cd $TOP
+
+	echo "import libaudioshim"
+	cd 3rdparty
+	rm -rf libaudioshim
+	if [[ ! -d libaudioshim ]]; then
+	git clone --depth=1 https://github.com/gtxaspec/libaudioshim
+	cd libaudioshim
+		make CC="${PRUDYNT_CROSS}gcc" -j$(nproc)
+	cp libaudioshim.* ../install/lib/
 	fi
 	cd $TOP
 

@@ -136,7 +136,7 @@ make distclean
 time /usr/bin/make V=1 -j$(( $(nproc) + 1 )) \
 	ARCH= \
 	CROSS_COMPILE="$CCACHE_BIN $HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/bin/mipsel-linux-" \
-	CFLAGS="-DPLATFORM_$PLAT $OPT_CMD -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
+	CFLAGS="-DPLATFORM_$PLAT $OPT_CMD -DBINARY_HYBRID -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
 	-I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include \
 	-I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include/libwebsockets \
 	-I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include/liveMedia \
