@@ -37,9 +37,9 @@ bool validateInt50_150(const int &v)
     return v >= 50 && v <= 150;
 }
 
-bool validateInt60(const int &v)
+bool validateInt120(const int &v)
 {
-    return (v >= 0 && v <= 60) || v == IMP_AUTO_VALUE;
+    return (v >= 0 && v <= 120) || v == IMP_AUTO_VALUE;
 }
 
 bool validateInt255(const int &v)
@@ -233,12 +233,12 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"rtsp.out_buffer_size", rtsp.out_buffer_size, 500000, validateIntGe0},
         {"rtsp.port", rtsp.port, 554, validateInt65535},
         {"rtsp.send_buffer_size", rtsp.send_buffer_size, 307200, validateIntGe0},
-        {"sensor.fps", sensor.fps, 25, validateInt60, false, "/proc/jz/sensor/max_fps"},
+        {"sensor.fps", sensor.fps, 25, validateInt120, false, "/proc/jz/sensor/max_fps"},
         {"sensor.height", sensor.height, 1080, validateIntGe0, false, "/proc/jz/sensor/height"},
         {"sensor.width", sensor.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},
         {"stream0.bitrate", stream0.bitrate, 3000, validateIntGe0},
         {"stream0.buffers", stream0.buffers, DEFAULT_BUFFERS_0, validateInt32},
-        {"stream0.fps", stream0.fps, 25, validateInt60},
+        {"stream0.fps", stream0.fps, 25, validateInt120},
         {"stream0.gop", stream0.gop, 20, validateIntGe0},
         {"stream0.height", stream0.height, 1080, validateIntGe0, false, "/proc/jz/sensor/height"},
         {"stream0.max_gop", stream0.max_gop, 60, validateIntGe0},
@@ -271,7 +271,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream0.profile", stream0.profile, 2, validateInt2},
         {"stream1.bitrate", stream1.bitrate, 1000, validateIntGe0},
         {"stream1.buffers", stream1.buffers, DEFAULT_BUFFERS_1, validateInt32},
-        {"stream1.fps", stream1.fps, 25, validateInt60},
+        {"stream1.fps", stream1.fps, 25, validateInt120},
         {"stream1.gop", stream1.gop, 20, validateIntGe0},
         {"stream1.height", stream1.height, 360, validateIntGe0},
         {"stream1.max_gop", stream1.max_gop, 60, validateIntGe0},
