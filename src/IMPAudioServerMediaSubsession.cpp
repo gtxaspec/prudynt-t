@@ -9,23 +9,42 @@
 
 IMPAudioServerMediaSubsession* IMPAudioServerMediaSubsession::createNew(
     UsageEnvironment& env,
-    int audioChn)
+    int audioChn,
+    StreamReplicator* streamReplicator)
 {
-    return new IMPAudioServerMediaSubsession(env, audioChn);
+    return new IMPAudioServerMediaSubsession(env, audioChn, streamReplicator);
 }
 
 IMPAudioServerMediaSubsession::IMPAudioServerMediaSubsession(
     UsageEnvironment& env,
-    int audioChn)
+    int audioChn,
+    StreamReplicator* streamReplicator)
     : OnDemandServerMediaSubsession(env, true),
-      audioChn(audioChn)
+      audioChn(audioChn),
+      streamReplicator(streamReplicator)
 {
+    LOG_INFO("IMPAudioServerMediaSubsession init");
 }
 
 IMPAudioServerMediaSubsession::~IMPAudioServerMediaSubsession()
 {
 }
 
+FramedSource* IMPAudioServerMediaSubsession::createNewStreamSource(
+    unsigned clientSessionId,
+    unsigned& estBitrate)
+{
+    estBitrate = global_audio[audioChn]->imp_audio->bitrate;
+    FramedSource* audioSourceReplica = streamReplicator->createStreamReplica();
+
+    if (audioSourceReplica == nullptr) 
+    {
+        LOG_ERROR("StreamReplicator failed to create a replica");
+    }
+
+    return audioSourceReplica;
+}
+/*
 FramedSource* IMPAudioServerMediaSubsession::createNewStreamSource(
     unsigned clientSessionId,
     unsigned& estBitrate)
@@ -38,6 +57,7 @@ FramedSource* IMPAudioServerMediaSubsession::createNewStreamSource(
 
     return audioSource;
 }
+*/
 
 RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
     Groupsock* rtpGroupsock,

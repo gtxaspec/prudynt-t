@@ -73,7 +73,7 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
 
 #if defined(AUDIO_SUPPORT)
     if (cfg->audio.input_enabled && stream.audio_enabled) {
-        IMPAudioServerMediaSubsession *audioSub = IMPAudioServerMediaSubsession::createNew(*env, 0);
+        IMPAudioServerMediaSubsession *audioSub = IMPAudioServerMediaSubsession::createNew(*env, 0, streamReplicator);
         sms->addSubsession(audioSub);
         LOG_INFO("Audio stream " << chnNr << " added to session");
     }
@@ -108,6 +108,21 @@ void RTSP::start()
         return;
     }
     OutPacketBuffer::maxSize = cfg->rtsp.out_buffer_size;
+
+    if (cfg->audio.input_enabled)
+    {
+
+        IMPDeviceSource<AudioFrame, audio_stream> * audioSource = IMPDeviceSource<AudioFrame, audio_stream>::createNew(*env, 0, global_audio[0], "audio");
+
+        if (global_audio[0]->imp_audio->format == IMPAudioFormat::PCM)
+            audioSource = (IMPDeviceSource<AudioFrame, audio_stream> *)EndianSwap16::createNew(*env, audioSource);    
+
+        streamReplicator = StreamReplicator::createNew(*env, audioSource, false);
+        if (streamReplicator == nullptr)
+        {
+            LOG_ERROR("Error creating StreamReplicator");
+        }
+    }
 
     if (cfg->stream0.enabled)
     {

@@ -21,6 +21,7 @@ private:
     UsageEnvironment *env{};
     TaskScheduler *scheduler{};
     RTSPServer *rtspServer{};
+    StreamReplicator *streamReplicator{};
 };
 
 #endif
