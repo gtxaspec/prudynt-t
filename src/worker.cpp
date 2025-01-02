@@ -525,7 +525,11 @@ static void process_frame(int encChn, IMPAudioFrame &frame)
     {
         if (!global_audio[encChn]->msgChannel->write(af))
         {
+#if defined(USE_AUDIO_STREAM_REPLICATOR)
+            LOG_DDEBUG("audio encChn:" << encChn << ", size:" << af.data.size() << " clogged!");
+#else
             LOG_ERROR("audio encChn:" << encChn << ", size:" << af.data.size() << " clogged!");
+#endif
         }
         else
         {

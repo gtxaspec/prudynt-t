@@ -8,14 +8,12 @@ class IMPAudioServerMediaSubsession : public OnDemandServerMediaSubsession
 public:
     static IMPAudioServerMediaSubsession* createNew(
         UsageEnvironment& env,
-        int audioChn,
-        StreamReplicator* streamReplicator);
+        int audioChn);
 
 protected:
     IMPAudioServerMediaSubsession(
         UsageEnvironment& env,
-        int audioChn,
-        StreamReplicator* streamReplicator);
+        int audioChn);
     virtual ~IMPAudioServerMediaSubsession();
 
     virtual FramedSource* createNewStreamSource(
@@ -28,7 +26,6 @@ protected:
 
 private:
     int audioChn;
-    StreamReplicator* streamReplicator;
 };
 
 #endif // IMPAudioServerMediaSubsession_hpp

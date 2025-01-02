@@ -73,7 +73,7 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
 
 #if defined(AUDIO_SUPPORT)
     if (cfg->audio.input_enabled && stream.audio_enabled) {
-        IMPAudioServerMediaSubsession *audioSub = IMPAudioServerMediaSubsession::createNew(*env, 0, streamReplicator);
+        IMPAudioServerMediaSubsession *audioSub = IMPAudioServerMediaSubsession::createNew(*env, 0);
         sms->addSubsession(audioSub);
         LOG_INFO("Audio stream " << chnNr << " added to session");
     }
@@ -89,7 +89,7 @@ void RTSP::start()
 {
     scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
-
+    
     if (cfg->rtsp.auth_required)
     {
         UserAuthenticationDatabase *auth = new UserAuthenticationDatabase;
@@ -109,20 +109,17 @@ void RTSP::start()
     }
     OutPacketBuffer::maxSize = cfg->rtsp.out_buffer_size;
 
+#if defined(USE_AUDIO_STREAM_REPLICATOR)
     if (cfg->audio.input_enabled)
     {
+        IMPDeviceSource<AudioFrame, audio_stream> * audioSource = IMPDeviceSource<AudioFrame, audio_stream>::createNew(*env, 0, global_audio[audioChn], "audio");
 
-        IMPDeviceSource<AudioFrame, audio_stream> * audioSource = IMPDeviceSource<AudioFrame, audio_stream>::createNew(*env, 0, global_audio[0], "audio");
-
-        if (global_audio[0]->imp_audio->format == IMPAudioFormat::PCM)
+        if (global_audio[audioChn]->imp_audio->format == IMPAudioFormat::PCM)
             audioSource = (IMPDeviceSource<AudioFrame, audio_stream> *)EndianSwap16::createNew(*env, audioSource);    
 
-        streamReplicator = StreamReplicator::createNew(*env, audioSource, false);
-        if (streamReplicator == nullptr)
-        {
-            LOG_ERROR("Error creating StreamReplicator");
-        }
+        global_audio[audioChn]->streamReplicator = StreamReplicator::createNew(*env, audioSource, false);
     }
+#endif
 
     if (cfg->stream0.enabled)
     {

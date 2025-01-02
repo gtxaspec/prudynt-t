@@ -4,6 +4,8 @@
 #include <memory>
 #include <functional>
 #include <atomic>
+#include "liveMedia.hh"
+
 #include "MsgChannel.hpp"
 #include "IMPAudio.hpp"
 #include "IMPEncoder.hpp"

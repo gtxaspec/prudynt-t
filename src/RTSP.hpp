@@ -21,7 +21,7 @@ private:
     UsageEnvironment *env{};
     TaskScheduler *scheduler{};
     RTSPServer *rtspServer{};
-    StreamReplicator *streamReplicator{};
+    int audioChn = 0;
 };
 
 #endif
