@@ -28,8 +28,10 @@ struct AudioFrame
 struct H264NALUnit
 {
 	std::vector<uint8_t> data;
+    /* timestamp fix, can be removed if solved
 	struct timeval time;
 	int64_t imp_ts;
+    */
 };
 
 struct jpeg_stream
@@ -81,6 +83,8 @@ struct audio_stream
     std::mutex onDataCallbackLock; // protects onDataCallback from deallocation
     std::condition_variable should_grab_frames;
     std::binary_semaphore is_activated{0};
+
+    StreamReplicator *streamReplicator = nullptr;
 
     audio_stream(int devId, int aiChn, int aeChn)
         : devId(devId), aiChn(aiChn), aeChn(aeChn), running(false), imp_audio(nullptr),
