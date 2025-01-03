@@ -92,6 +92,6 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
         envir(), rtpGroupsock, rtpPayloadFormat, rtpTimestampFrequency,
         /* sdpMediaTypeString*/ "audio",
         rtpPayloadFormatName,
-        /* numChannels */ 1,
+        /* numChannels */ 2,
         allowMultipleFramesPerPacket);
 }
