@@ -89,7 +89,7 @@ void RTSP::start()
 {
     scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
-
+    
     if (cfg->rtsp.auth_required)
     {
         UserAuthenticationDatabase *auth = new UserAuthenticationDatabase;
@@ -108,6 +108,18 @@ void RTSP::start()
         return;
     }
     OutPacketBuffer::maxSize = cfg->rtsp.out_buffer_size;
+
+#if defined(USE_AUDIO_STREAM_REPLICATOR)
+    if (cfg->audio.input_enabled)
+    {
+        IMPDeviceSource<AudioFrame, audio_stream> * audioSource = IMPDeviceSource<AudioFrame, audio_stream>::createNew(*env, 0, global_audio[audioChn], "audio");
+
+        if (global_audio[audioChn]->imp_audio->format == IMPAudioFormat::PCM)
+            audioSource = (IMPDeviceSource<AudioFrame, audio_stream> *)EndianSwap16::createNew(*env, audioSource);    
+
+        global_audio[audioChn]->streamReplicator = StreamReplicator::createNew(*env, audioSource, false);
+    }
+#endif
 
     if (cfg->stream0.enabled)
     {

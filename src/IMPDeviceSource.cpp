@@ -75,7 +75,10 @@ void IMPDeviceSource<FrameType, Stream>::deliverFrame()
             fFrameSize = nal.data.size();
         }
 
+        /* timestamp fix, can be removed if solved
         fPresentationTime = nal.time;
+        */
+        gettimeofday(&fPresentationTime, NULL);
         
         memcpy(fTo, &nal.data[0], fFrameSize);
 

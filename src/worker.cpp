@@ -273,14 +273,10 @@ void *Worker::stream_grabber(void *arg)
     uint32_t fps = 0;
     uint32_t error_count = 0;
     unsigned long long ms = 0;
-    struct timeval imp_time_base;
 
     global_video[encChn]->imp_framesource = IMPFramesource::createNew(global_video[encChn]->stream, &cfg->sensor, encChn);
     global_video[encChn]->imp_encoder = IMPEncoder::createNew(global_video[encChn]->stream, encChn, encChn, global_video[encChn]->name);
     global_video[encChn]->imp_framesource->enable();
-
-    gettimeofday(&imp_time_base, NULL);
-    IMP_System_RebaseTimeStamp(imp_time_base.tv_sec * (uint64_t)1000000);
 
     // inform main that initialization is complete
     sh->has_started.release();
@@ -319,10 +315,12 @@ void *Worker::stream_grabber(void *arg)
                     continue;
                 }
 
+                /* timestamp fix, can be removed if solved
                 int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
                 struct timeval encoder_time;
                 encoder_time.tv_sec = nal_ts / 1000000;
                 encoder_time.tv_usec = nal_ts % 1000000;
+                */
 
                 for (uint32_t i = 0; i < stream.packCount; ++i)
                 {
@@ -340,8 +338,10 @@ void *Worker::stream_grabber(void *arg)
 #endif
                         H264NALUnit nalu;
 
+                        /* timestamp fix, can be removed if solved
                         nalu.imp_ts = stream.pack[i].timestamp;
                         nalu.time = encoder_time;
+                        */
 
                         // We use start+4 because the encoder inserts 4-byte MPEG
                         //'startcodes' at the beginning of each NAL. Live555 complains
@@ -525,11 +525,15 @@ static void process_frame(int encChn, IMPAudioFrame &frame)
         af.data.insert(af.data.end(), start, end);
     }
 
-    if (!af.data.empty() && global_audio[encChn]->hasDataCallback)
+    if (!af.data.empty() && global_audio[encChn]->hasDataCallback && (global_video[0]->hasDataCallback || global_video[1]->hasDataCallback))
     {
         if (!global_audio[encChn]->msgChannel->write(af))
         {
+#if defined(USE_AUDIO_STREAM_REPLICATOR)
+            LOG_DDEBUG("audio encChn:" << encChn << ", size:" << af.data.size() << " clogged!");
+#else
             LOG_ERROR("audio encChn:" << encChn << ", size:" << af.data.size() << " clogged!");
+#endif
         }
         else
         {
@@ -580,7 +584,7 @@ void *Worker::audio_grabber(void *arg)
     while (global_audio[encChn]->running)
     {
 
-        if (global_audio[encChn]->hasDataCallback && cfg->audio.input_enabled)
+        if (global_audio[encChn]->hasDataCallback && cfg->audio.input_enabled && (global_video[0]->hasDataCallback || global_video[1]->hasDataCallback))
         {
             if (IMP_AI_PollingFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, cfg->general.imp_polling_timeout) == 0)
             {
@@ -626,7 +630,7 @@ void *Worker::audio_grabber(void *arg)
                 LOG_DEBUG(global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << " POLLING TIMEOUT");
             }
         }
-        else
+        else if (cfg->audio.input_enabled)
         {
             std::unique_lock<std::mutex> lock_stream{mutex_main};
             global_audio[encChn]->active = false;
@@ -634,6 +638,10 @@ void *Worker::audio_grabber(void *arg)
                 global_audio[encChn]->should_grab_frames.wait(lock_stream);
 
             global_audio[encChn]->active = true;
+        }
+        else
+        {
+            usleep(25);
         }
     } // while (global_audio[encChn]->running)
 
