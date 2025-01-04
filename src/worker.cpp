@@ -617,7 +617,37 @@ void *Worker::audio_grabber(void *arg)
                 }
                 else
                 {
-                    process_frame(encChn, frame);
+                    if (frame.soundmode == AUDIO_SOUND_MODE_MONO) 
+                    {
+                        IMPAudioFrame stereoFrame = frame; 
+                        stereoFrame.soundmode = AUDIO_SOUND_MODE_STEREO;
+
+                        size_t sample_size = (frame.bitwidth == AUDIO_BIT_WIDTH_16) ? 2 : 1; 
+                        size_t mono_data_size = frame.len;
+                        size_t stereo_data_size = mono_data_size * 2;
+
+                        std::vector<uint8_t> stereo_data(stereo_data_size);
+
+                        uint8_t *mono_data = reinterpret_cast<uint8_t *>(frame.virAddr);
+                        uint8_t *stereo_ptr = stereo_data.data();
+
+                        for (size_t i = 0; i < mono_data_size; i += sample_size) {
+                            std::memcpy(stereo_ptr, mono_data + i, sample_size); // left
+                            stereo_ptr += sample_size;
+                            std::memcpy(stereo_ptr, mono_data + i, sample_size); // right
+                            stereo_ptr += sample_size;
+                        }
+
+                        stereoFrame.virAddr = reinterpret_cast<uint32_t *>(stereo_data.data());
+                        stereoFrame.len = static_cast<int>(stereo_data_size);
+                        
+                        process_frame(encChn, stereoFrame);
+                    }
+                    else
+                    {
+                        process_frame(encChn, frame);
+                    }                    
+                    //process_frame(encChn, frame);
                 }
 
                 if (IMP_AI_ReleaseFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, &frame) < 0)
