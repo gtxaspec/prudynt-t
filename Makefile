@@ -38,17 +38,21 @@ endif
 endif
 
 ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))
-    LIBIMP_INC_DIR = ./include/T31
+	LIBIMP_INC_DIR = ./include/T31
 else ifneq (,$(or $(findstring -DPLATFORM_T20,$(CFLAGS)), $(findstring -DPLATFORM_T10,$(CFLAGS))))
-    LIBIMP_INC_DIR = ./include/T20
+	LIBIMP_INC_DIR = ./include/T20
 else ifneq (,$(findstring -DPLATFORM_T21,$(CFLAGS)))
-    LIBIMP_INC_DIR = ./include/T21
+	LIBIMP_INC_DIR = ./include/T21
 else ifneq (,$(findstring -DPLATFORM_T23,$(CFLAGS)))
-    LIBIMP_INC_DIR = ./include/T23
+	LIBIMP_INC_DIR = ./include/T23
 else ifneq (,$(findstring -DPLATFORM_T30,$(CFLAGS)))
-    LIBIMP_INC_DIR = ./include/T30
+	LIBIMP_INC_DIR = ./include/T30
+else ifneq (,$(findstring -DPLATFORM_T40,$(CFLAGS)))
+	LIBIMP_INC_DIR = ./include/T40
+else ifneq (,$(findstring -DPLATFORM_T41,$(CFLAGS)))
+	LIBIMP_INC_DIR = ./include/T41
 else
-    LIBIMP_INC_DIR = ./include/T31
+	LIBIMP_INC_DIR = ./include/T31
 endif
 
 SRC_DIR = ./src

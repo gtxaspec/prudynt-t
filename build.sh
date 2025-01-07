@@ -201,7 +201,7 @@ if [ $# -eq 0 ]; then
 	echo "       ./build.sh prudynt <platform> [options]"
 	echo "       ./build.sh full <platform> [options]"
 	echo ""
-	echo "Platforms: T20, T21, T23, T30, T31"
+	echo "Platforms: T20, T21, T23, T30, T31, T40, T41"
 	echo "Options:   -static (optional, for static builds)"
 	exit 1
 elif [[ "$1" == "deps" ]]; then
