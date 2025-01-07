@@ -506,8 +506,10 @@ void OSD::init()
     int ret = 0;
     LOG_DEBUG("OSD init for begin");
 
+#if !defined(PLATFORM_T40) && !defined(PLATFORM_T41)
     ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
+#endif
 
     // cfg = _cfg;
     last_updated_second = -1;
