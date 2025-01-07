@@ -143,6 +143,14 @@ deps() {
 			echo "use $1 libs"
 			cp ingenic-lib/$1/lib/1.1.6/uclibc/5.4.0/* $TOP/3rdparty/install/lib
 			;;
+		T40)
+			echo "use $1 libs"
+			cp ingenic-lib/$1/lib/1.2.0/uclibc/* $TOP/3rdparty/install/lib
+			;;
+		T41)
+			echo "use $1 libs"
+			cp ingenic-lib/$1/lib/1.2.0/uclibc/* $TOP/3rdparty/install/lib
+			;;
 		*)
 			echo "Unsupported or unspecified SoC model."
 			;;
