@@ -634,7 +634,8 @@ void *Worker::audio_grabber(void *arg)
                 }
                 else
                 {
-                    if (frame.soundmode == AUDIO_SOUND_MODE_MONO) 
+#if defined(USE_STEREO_SIMULATOR)
+                    if (frame.soundmode == AUDIO_SOUND_MODE_MONO && false) 
                     {
                         IMPAudioFrame stereoFrame = frame; 
                         stereoFrame.soundmode = AUDIO_SOUND_MODE_STEREO;
@@ -663,8 +664,10 @@ void *Worker::audio_grabber(void *arg)
                     else
                     {
                         process_frame(encChn, frame);
-                    }                    
-                    //process_frame(encChn, frame);
+                    }
+#else
+                    process_frame(encChn, frame);
+#endif
                 }
 
                 if (IMP_AI_ReleaseFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, &frame) < 0)

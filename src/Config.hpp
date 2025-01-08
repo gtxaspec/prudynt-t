@@ -16,6 +16,9 @@
 //#define DDEBUG
 //#define DDEBUGWS
 
+// under development
+//#define USE_STEREO_SIMULATOR
+
 //enable audio support
 #define AUDIO_SUPPORT
 //enable audio processing library
