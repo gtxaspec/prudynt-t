@@ -88,6 +88,10 @@ void *Worker::jpeg_grabber(void *arg)
     */
     int targetFps = global_jpeg[jpgChn]->stream->jpeg_idle_fps;
 
+    /* do not use the live config variable
+    */
+    global_jpeg[jpgChn]->streamChn = global_jpeg[jpgChn]->stream->jpeg_channel;
+
     uint32_t bps{0}; // Bytes per second
     uint32_t fps{0}; // frames per second
  
@@ -96,8 +100,19 @@ void *Worker::jpeg_grabber(void *arg)
     gettimeofday(&global_jpeg[jpgChn]->stream->stats.ts, NULL);
     global_jpeg[jpgChn]->stream->stats.ts.tv_sec -= 10;
 
+    if (global_jpeg[jpgChn]->streamChn == 0)
+    {
+        cfg->stream2.width = cfg->stream0.width;
+        cfg->stream2.height = cfg->stream0.height;
+    } 
+    else
+    {
+        cfg->stream2.width = cfg->stream1.width;
+        cfg->stream2.height = cfg->stream1.height;        
+    }
+
     global_jpeg[jpgChn]->imp_encoder = IMPEncoder::createNew(
-        global_jpeg[jpgChn]->stream, sh->encChn, global_jpeg[jpgChn]->stream->jpeg_channel, "stream2");
+        global_jpeg[jpgChn]->stream, sh->encChn, global_jpeg[jpgChn]->streamChn, "stream2");
 
     // inform main that initialization is complete
     sh->has_started.release();
@@ -132,16 +147,16 @@ void *Worker::jpeg_grabber(void *arg)
             if(targetFps && diff_last_image >= ((1000/targetFps)-targetFps/10))
             {   
                 // check if current jpeg channal is running if not start it
-                if(!global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->active) {
+                if(!global_video[global_jpeg[jpgChn]->streamChn]->active) {
                     
                     /* required video channel was not running, we need to start it  
                     * and set run_for_jpeg as a reason.
                     */
                     std::unique_lock<std::mutex> lock_stream{mutex_main};
-                    global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->run_for_jpeg = true;
-                    global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->should_grab_frames.notify_one();
+                    global_video[global_jpeg[jpgChn]->streamChn]->run_for_jpeg = true;
+                    global_video[global_jpeg[jpgChn]->streamChn]->should_grab_frames.notify_one();
                     lock_stream.unlock();
-                    global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->is_activated.acquire();
+                    global_video[global_jpeg[jpgChn]->streamChn]->is_activated.acquire();
                 }
 
                 // subscriber is connected
@@ -234,7 +249,7 @@ void *Worker::jpeg_grabber(void *arg)
 
             std::unique_lock<std::mutex> lock_stream{mutex_main};
             global_jpeg[jpgChn]->active = false;
-            global_video[global_jpeg[jpgChn]->stream->jpeg_channel]->run_for_jpeg = false;
+            global_video[global_jpeg[jpgChn]->streamChn]->run_for_jpeg = false;
             while (!global_jpeg[jpgChn]->request_or_overrun() && !global_restart_video)
                 global_jpeg[jpgChn]->should_grab_frames.wait(lock_stream);
 
@@ -273,10 +288,12 @@ void *Worker::stream_grabber(void *arg)
     uint32_t fps = 0;
     uint32_t error_count = 0;
     unsigned long long ms = 0;
+    bool run_for_jpeg = false;
 
     global_video[encChn]->imp_framesource = IMPFramesource::createNew(global_video[encChn]->stream, &cfg->sensor, encChn);
     global_video[encChn]->imp_encoder = IMPEncoder::createNew(global_video[encChn]->stream, encChn, encChn, global_video[encChn]->name);
     global_video[encChn]->imp_framesource->enable();
+    global_video[encChn]->run_for_jpeg = false;
 
     // inform main that initialization is complete
     sh->has_started.release();
@@ -297,7 +314,7 @@ void *Worker::stream_grabber(void *arg)
         /* bool helper to check if this is the active jpeg channel and a jpeg is requested while 
          * the channel is inactive
          */
-        bool run_for_jpeg = (encChn == global_jpeg[0]->stream->jpeg_channel && global_video[encChn]->run_for_jpeg);
+        run_for_jpeg = (encChn == global_jpeg[0]->streamChn && global_video[encChn]->run_for_jpeg);
 
         /* now we need to verify that 
          * 1. a client is connected (hasDataCallback)

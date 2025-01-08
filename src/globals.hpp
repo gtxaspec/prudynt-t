@@ -37,6 +37,7 @@ struct H264NALUnit
 struct jpeg_stream
 {
     int encChn;
+    int streamChn;
     _stream *stream;
     std::atomic<bool> running; // set to false to make jpeg_grabber thread exit
     std::atomic<bool> active{false};
