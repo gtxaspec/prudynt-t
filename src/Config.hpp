@@ -23,7 +23,7 @@
 #define AUDIO_SUPPORT
 //enable audio processing library
 #define LIB_AUDIO_PROCESSING
-//#define USE_AUDIO_STREAM_REPLICATOR
+#define USE_AUDIO_STREAM_REPLICATOR
 
 //disable tunings (debugging)
 //#define NO_TUNINGS

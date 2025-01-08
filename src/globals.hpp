@@ -121,6 +121,7 @@ struct video_stream
 
 extern std::condition_variable global_cv_worker_restart;
 
+extern bool global_restart;
 extern bool global_restart_rtsp;
 extern bool global_restart_video;
 extern bool global_restart_audio;

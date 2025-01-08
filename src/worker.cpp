@@ -414,6 +414,19 @@ void *Worker::stream_grabber(void *arg)
                                     global_video[encChn]->onDataCallback();
                             }
                         }
+
+                        /* Since the audio stream is permanently in use by the stream replicator, 
+                         * and the audio grabber and encoder standby is also controlled by the video threads
+                         * we need to wakeup the audio thread 
+                        */
+                        if(cfg->audio.input_enabled && !global_audio[0]->active && !global_restart)
+                        {
+                            LOG_DEBUG("NOTIFY AUDIO " << 
+                                !global_audio[0]->active << " " << 
+                                cfg->audio.input_enabled
+                            );                            
+                            global_audio[0]->should_grab_frames.notify_one();
+                        }
                     }
                 }
 
@@ -478,6 +491,9 @@ void *Worker::stream_grabber(void *arg)
 
             global_video[encChn]->active = true;
             global_video[encChn]->is_activated.release();
+            
+            // unlock audio
+            global_audio[0]->should_grab_frames.notify_one();
 
             LOG_DDEBUG("VIDEO UNLOCK" << 
                        " channel:" << encChn);           
@@ -600,8 +616,10 @@ void *Worker::audio_grabber(void *arg)
     global_audio[encChn]->running = true;
     while (global_audio[encChn]->running)
     {
-
-        if (global_audio[encChn]->hasDataCallback && cfg->audio.input_enabled && (global_video[0]->hasDataCallback || global_video[1]->hasDataCallback))
+        if (global_audio[encChn]->hasDataCallback && 
+            cfg->audio.input_enabled && 
+            (global_video[0]->hasDataCallback || global_video[1]->hasDataCallback)
+           )
         {
             if (IMP_AI_PollingFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, cfg->general.imp_polling_timeout) == 0)
             {
@@ -680,18 +698,32 @@ void *Worker::audio_grabber(void *arg)
                 LOG_DEBUG(global_audio[encChn]->devId << ", " << global_audio[encChn]->aiChn << " POLLING TIMEOUT");
             }
         }
-        else if (cfg->audio.input_enabled)
+        else if (cfg->audio.input_enabled && !global_restart)
         {
             std::unique_lock<std::mutex> lock_stream{mutex_main};
             global_audio[encChn]->active = false;
-            while (global_audio[encChn]->onDataCallback == nullptr && !global_restart_audio)
-                global_audio[encChn]->should_grab_frames.wait(lock_stream);
+            LOG_DDEBUG("AUDIO LOCK");
 
+            /* Since the audio stream is permanently in use by the stream replicator, 
+             * we send the audio grabber and encoder to standby when no video is requested.
+            */
+            while (
+                (global_audio[encChn]->onDataCallback == nullptr ||
+                (!global_video[0]->hasDataCallback && !global_video[1]->hasDataCallback)) && 
+                !global_restart_audio
+            )
+            {
+                global_audio[encChn]->should_grab_frames.wait(lock_stream);
+            }
             global_audio[encChn]->active = true;
+            LOG_DDEBUG("AUDIO UNLOCK");
         }
         else
         {
-            usleep(25);
+            /* to prevent clogging on startup or while restarting the threads
+             * we wait for 250ms
+            */
+            usleep(250 * 1000);
         }
     } // while (global_audio[encChn]->running)
 

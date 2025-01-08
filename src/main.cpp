@@ -17,6 +17,7 @@ std::mutex mutex_main;
 std::condition_variable global_cv_worker_restart;
 
 bool startup = true;
+bool global_restart = false;
 
 bool global_restart_rtsp = false;
 bool global_restart_video = false;
@@ -108,6 +109,17 @@ int main(int argc, const char *argv[])
 
     while (true)
     {
+        global_restart = true;
+#if defined(AUDIO_SUPPORT)
+        if (cfg->audio.input_enabled && (global_restart_audio || startup))
+        {
+            StartHelper sh{0};
+            int ret = pthread_create(&global_audio[0]->thread, nullptr, Worker::audio_grabber, static_cast<void *>(&sh));
+            LOG_DEBUG_OR_ERROR(ret, "create audio thread");
+            // wait for initialization done
+            sh.has_started.acquire();
+        }
+#endif        
         if (global_restart_video || startup)
         {
             if (cfg->stream0.enabled)
@@ -142,17 +154,6 @@ int main(int argc, const char *argv[])
             }            
         }
 
-#if defined(AUDIO_SUPPORT)
-        if (cfg->audio.input_enabled && (global_restart_audio || startup))
-        {
-            StartHelper sh{0};
-            int ret = pthread_create(&global_audio[0]->thread, nullptr, Worker::audio_grabber, static_cast<void *>(&sh));
-            LOG_DEBUG_OR_ERROR(ret, "create audio thread");
-            // wait for initialization done
-            sh.has_started.acquire();
-        }
-#endif
-
         // start rtsp server
         if (global_rtsp_thread_signal != 0 && (global_restart_rtsp || startup))
         {
@@ -170,6 +171,7 @@ int main(int argc, const char *argv[])
         std::unique_lock lck(mutex_main);
         
         startup = false;
+        global_restart = false;
         global_restart_video = false;
         global_restart_audio = false;
         global_restart_rtsp = false;        
@@ -177,8 +179,9 @@ int main(int argc, const char *argv[])
         while (!global_restart_rtsp && !global_restart_video && !global_restart_audio)
             global_cv_worker_restart.wait(lck);
         lck.unlock();
-        LOG_DEBUG("wakup main thread");
 
+        global_restart = true;
+        
         if (global_restart_rtsp)
         {
             // stop rtsp thread
@@ -187,7 +190,16 @@ int main(int argc, const char *argv[])
                 global_rtsp_thread_signal = 1;
                 int ret = pthread_join(rtsp_thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join rtsp thread");
-            }
+            }        
+        }
+
+        // stop audio
+        if (global_audio[0]->imp_audio && global_restart_audio)
+        {
+            global_audio[0]->running = false;
+            global_audio[0]->should_grab_frames.notify_one();
+            int ret = pthread_join(global_audio[0]->thread, NULL);
+            LOG_DEBUG_OR_ERROR(ret, "join audio thread");
         }
 
         if (global_restart_video)
@@ -234,15 +246,6 @@ int main(int argc, const char *argv[])
                 int ret = pthread_join(global_video[0]->thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join stream0 thread");
             }
-        }
-
-        // stop audio
-        if (global_audio[0]->imp_audio && global_restart_audio)
-        {
-            global_audio[0]->running = false;
-            global_audio[0]->should_grab_frames.notify_one();
-            int ret = pthread_join(global_audio[0]->thread, NULL);
-            LOG_DEBUG_OR_ERROR(ret, "join audio thread");
         }
     }
 

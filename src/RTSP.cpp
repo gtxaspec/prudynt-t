@@ -112,7 +112,7 @@ void RTSP::start()
 #if defined(USE_AUDIO_STREAM_REPLICATOR)
     if (cfg->audio.input_enabled)
     {
-        IMPDeviceSource<AudioFrame, audio_stream> * audioSource = IMPDeviceSource<AudioFrame, audio_stream>::createNew(*env, 0, global_audio[audioChn], "audio");
+        audioSource = IMPDeviceSource<AudioFrame, audio_stream>::createNew(*env, 0, global_audio[audioChn], "audio");
 
         if (global_audio[audioChn]->imp_audio->format == IMPAudioFormat::PCM)
             audioSource = (IMPDeviceSource<AudioFrame, audio_stream> *)EndianSwap16::createNew(*env, audioSource);    
@@ -133,6 +133,21 @@ void RTSP::start()
 
     global_rtsp_thread_signal = 0;
     env->taskScheduler().doEventLoop(&global_rtsp_thread_signal);
+
+#if defined(USE_AUDIO_STREAM_REPLICATOR)
+    if (cfg->audio.input_enabled)
+    {
+        if(global_audio[audioChn]->streamReplicator != nullptr )
+        {
+            global_audio[audioChn]->streamReplicator->detachInputSource();
+        }
+        if(audioSource != nullptr) 
+        {
+            delete audioSource;
+            audioSource = nullptr;
+        }
+    }
+#endif
 
     // Clean up VPS if it was allocated
     /*
