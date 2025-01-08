@@ -1875,7 +1875,7 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
 
                 if (thread_restart & PNT_THREAD_RTSP)
                 {
-                    restart_flag |= PNT_FLAG_RESTART_RTSP;
+                    restart_flag |= PNT_FLAG_RESTART_RTSP | PNT_FLAG_RESTART_VIDEO | PNT_FLAG_RESTART_AUDIO;
                 }
                 if (thread_restart & PNT_THREAD_VIDEO)
                 {
