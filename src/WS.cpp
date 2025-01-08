@@ -557,7 +557,7 @@ bool get_snapshot(std::vector<unsigned char> &image)
     std::ifstream file(global_jpeg[0]->stream->jpeg_path, std::ios::binary);
     if (!file.is_open())
     {
-        LOG_DDEBUG(strerror(errno));
+        LOG_DDEBUGWS(strerror(errno));
         return false;
     }
 
@@ -2011,7 +2011,7 @@ static void
 send_snapshot(lws_sorted_usec_list_t *sul)
 {
     struct user_ctx *u_ctx = lws_container_of(sul, struct user_ctx, sul);
-    LOG_DDEBUG("process shedule. id:" << u_ctx->id);
+    LOG_DDEBUGWS("process shedule. id:" << u_ctx->id);
     u_ctx->flag |= PNT_FLAG_WS_SEND_PREVIEW;
     lws_callback_on_writable(u_ctx->wsi);
 }
@@ -2033,7 +2033,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
     char content_type[128]{0};
     std::string json_data((char *)in, len);
 
-    //LOG_DDEBUG(reason);
+    //LOG_DDEBUGWS(reason);
 
     // get url and method
     if (reason >= LWS_CALLBACK_HTTP && reason <= LWS_CALLBACK_HTTP_WRITEABLE)
@@ -2046,7 +2046,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
     {
     // ############################ WEBSOCKET ###############################
     case LWS_CALLBACK_ESTABLISHED:
-        LOG_DDEBUG("LWS_CALLBACK_ESTABLISHED id:" << u_ctx->id << ", ip:" << client_ip);
+        LOG_DDEBUGWS("LWS_CALLBACK_ESTABLISHED id:" << u_ctx->id << ", ip:" << client_ip);
 
         // check if security is required and validate token
         url_length = lws_get_urlarg_by_name_safe(wsi, "token", url_token, sizeof(url_token));
@@ -2069,7 +2069,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         break;
 
     case LWS_CALLBACK_RECEIVE:
-        LOG_DDEBUG("LWS_CALLBACK_RECEIVE " << 
+        LOG_DDEBUGWS("LWS_CALLBACK_RECEIVE " << 
             " id:" << u_ctx->id << 
             " ,flag:" << u_ctx->flag << 
             " ,ip:" << client_ip << 
@@ -2088,7 +2088,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         if (!lws_is_final_fragment(wsi))
             return 0;    
 
-        LOG_DDEBUG("u_ctx->rx_message: id:" << u_ctx->id << ", rx:" << u_ctx->rx_message);
+        LOG_DDEBUGWS("u_ctx->rx_message: id:" << u_ctx->id << ", rx:" << u_ctx->rx_message);
 
         // set request pending
         //u_ctx->flag |= PNT_FLAG_WS_REQUEST_PENDING;
@@ -2117,7 +2117,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
             // drop overlapping image requests
             if (u_ctx->flag & PNT_FLAG_WS_PREVIEW_PENDING) {
-                LOG_DDEBUG("drop overlapping image request. id:" << u_ctx->id);
+                LOG_DDEBUGWS("drop overlapping image request. id:" << u_ctx->id);
                 return 0;
             };
 
@@ -2171,11 +2171,11 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                     u_ctx->snapshot.throttle = 1;
                 }
 
-                LOG_DDEBUG("RPS: " << u_ctx->snapshot.rps << " " << u_ctx->snapshot.throttle << " " << dur);
+                LOG_DDEBUGWS("RPS: " << u_ctx->snapshot.rps << " " << u_ctx->snapshot.throttle << " " << dur);
             }
 
             int delay = (LWS_USEC_PER_SEC / (global_jpeg[0]->stream->stats.fps + u_ctx->snapshot.throttle)) + first_request_delay;
-            LOG_DDEBUG("shedule preview image. id:" << u_ctx->id << " delay:" << delay);
+            LOG_DDEBUGWS("shedule preview image. id:" << u_ctx->id << " delay:" << delay);
             lws_sul_schedule(lws_get_context(wsi), 0, &u_ctx->sul, send_snapshot, delay);
 
             // send response for the image request 
@@ -2191,7 +2191,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         break;
 
     case LWS_CALLBACK_SERVER_WRITEABLE:
-        LOG_DDEBUG("LWS_CALLBACK_SERVER_WRITEABLE id:" << u_ctx->id << ", ip:" << client_ip);
+        LOG_DDEBUGWS("LWS_CALLBACK_SERVER_WRITEABLE id:" << u_ctx->id << ", ip:" << client_ip);
 
         // send response message
         if (!u_ctx->tx_message.empty())
@@ -2207,7 +2207,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             std::string item;
 
             while (std::getline(ss, item, ';')) {
-                LOG_DDEBUG("u_ctx->tx_message id:" << u_ctx->id << ", tx:" << item);
+                LOG_DDEBUGWS("u_ctx->tx_message id:" << u_ctx->id << ", tx:" << item);
                 item = std::string(LWS_PRE, '\0') + item;
                 lws_write(wsi, (unsigned char *)item.c_str() + LWS_PRE, item.length() - LWS_PRE, LWS_WRITE_TEXT);
             }
@@ -2218,7 +2218,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         // delayed snapshot request via websocket, sending the image
         if (u_ctx->flag & PNT_FLAG_WS_SEND_PREVIEW)
         {
-            LOG_DDEBUG("send preview image. id:" << u_ctx->id);
+            LOG_DDEBUGWS("send preview image. id:" << u_ctx->id);
             global_jpeg[0]->request();
             std::vector<unsigned char> jpeg_buf;
             if (get_snapshot(jpeg_buf))
@@ -2230,7 +2230,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         break;
 
     case LWS_CALLBACK_CLOSED:
-        LOG_DDEBUG("LWS_CALLBACK_CLOSED id:" << u_ctx->id << ", ip:" << client_ip << ", flag:" << u_ctx->flag);
+        LOG_DDEBUGWS("LWS_CALLBACK_CLOSED id:" << u_ctx->id << ", ip:" << client_ip << ", flag:" << u_ctx->flag);
 
         // cleanup delete possibly existing shedules for this session    
         lws_sul_cancel(&u_ctx->sul);
@@ -2241,7 +2241,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
     // ############################ HTTP ###############################
     case LWS_CALLBACK_HTTP:
-        LOG_DDEBUG("LWS_CALLBACK_HTTP ip:" << client_ip << " url:" << (char *)url_ptr << " method:" << request_method);
+        LOG_DDEBUGWS("LWS_CALLBACK_HTTP ip:" << client_ip << " url:" << (char *)url_ptr << " method:" << request_method);
 
         // check if security is required and validate token
         url_length = lws_get_urlarg_by_name_safe(wsi, "token", url_token, sizeof(url_token));
@@ -2317,12 +2317,12 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         break;
 
     case LWS_CALLBACK_HTTP_BODY:
-        LOG_DDEBUG("LWS_CALLBACK_HTTP_BODY ip:" << client_ip);
+        LOG_DDEBUGWS("LWS_CALLBACK_HTTP_BODY ip:" << client_ip);
         u_ctx->rx_message.append(json_data);
         break;
 
     case LWS_CALLBACK_HTTP_BODY_COMPLETION: //LWS_CALLBACK_HTTP_BODY:
-        LOG_DDEBUG("LWS_CALLBACK_HTTP_BODY ip:" << client_ip << ", data:" << u_ctx->rx_message);
+        LOG_DDEBUGWS("LWS_CALLBACK_HTTP_BODY ip:" << client_ip << ", data:" << u_ctx->rx_message);
 
         if (u_ctx->flag & PNT_FLAG_HTTP_RECEIVED_MESSAGE)
         {
@@ -2350,7 +2350,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         break;
 
     case LWS_CALLBACK_HTTP_WRITEABLE:
-        LOG_DDEBUG("LWS_CALLBACK_HTTP_WRITEABLE ip:" << client_ip << " " << (int)u_ctx->flag);
+        LOG_DDEBUGWS("LWS_CALLBACK_HTTP_WRITEABLE ip:" << client_ip << " " << (int)u_ctx->flag);
 
         {
             uint8_t header[LWS_PRE + 1024];
@@ -2386,10 +2386,10 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             if (u_ctx->flag & PNT_FLAG_HTTP_SEND_MESSAGE)
             {
                 u_ctx->flag &= ~PNT_FLAG_HTTP_SEND_MESSAGE;
-                LOG_DDEBUG("/json " << u_ctx->flag);
+                LOG_DDEBUGWS("/json " << u_ctx->flag);
                 if (!u_ctx->message.empty())
                 {
-                    LOG_DDEBUG("TO " << client_ip << ":  " << u_ctx->message);
+                    LOG_DDEBUGWS("TO " << client_ip << ":  " << u_ctx->message);
 
                     // Prepare the HTTP headers
                     if (lws_add_http_common_headers(wsi, HTTP_STATUS_OK, "application/json", u_ctx->message.length(), &p, end) ||
@@ -2421,7 +2421,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         break;
 
     case LWS_CALLBACK_HTTP_DROP_PROTOCOL:
-        LOG_DDEBUG("LWS_CALLBACK_HTTP_DROP_PROTOCOL ip:" << client_ip << ", id:" << u_ctx->id);
+        LOG_DDEBUGWS("LWS_CALLBACK_HTTP_DROP_PROTOCOL ip:" << client_ip << ", id:" << u_ctx->id);
         u_ctx->~user_ctx();
         break;
 

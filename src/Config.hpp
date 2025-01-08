@@ -14,6 +14,7 @@
 
 //Some more debug output not usefull for users (Developer Debug)
 //#define DDEBUG
+//#define DDEBUGWS
 
 //enable audio support
 #define AUDIO_SUPPORT
