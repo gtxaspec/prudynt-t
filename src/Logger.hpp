@@ -21,6 +21,12 @@
 #define LOG_DDEBUG(str) ((void)0)
 #endif
 
+#if defined(DDEBUGWS)
+#define LOG_DDEBUGWS(str) Logger::log(Logger::DEBUG, FILENAME, LogMsg() << str)
+#else
+#define LOG_DDEBUGWS(str) ((void)0)
+#endif
+
 #if defined(ENABLE_LOG_DEBUG)
 #define LOG_DEBUG(str) Logger::log(Logger::DEBUG, FILENAME, LogMsg() << str)
 #define LOG_DEBUG_OR_ERROR(condition, str) \
