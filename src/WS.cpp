@@ -475,12 +475,12 @@ struct snapshot_info
 
 struct user_ctx
 {
-    std::string id;   // session id
-    struct lws *wsi;  // libwebsockets handle
-    std::string root; // json root path
-    std::string path; // json sub path
-    int value;        // to use a number in the JSON parser e.g. encChn (encoder channel)
-    int flag;         // bitmask info store e.g. JSON separator (“,”) or thread restart
+    char id[SESSION_ID_LENGTH + 1]; // +1 for null terminator
+    struct lws *wsi;                // libwebsockets handle
+    char root[ROOT_MAX_LENGTH];     // json root path (replaced std::string)
+    std::string path;               // json sub path
+    int value;                      // to use a number in the JSON parser e.g. encChn (encoder channel)
+int flag;                           // bitmask info store e.g. JSON separator (","") or thread restart
     roi region;
     int midx;
     int vidx;
@@ -491,31 +491,35 @@ struct user_ctx
     lws_sorted_usec_list_t sul; // lws Soft Timer
     struct snapshot_info snapshot;
 
-    user_ctx(const std::string& session_id, lws *wsi_handle)
-        : id(session_id), wsi(wsi_handle), root(), path(), value(0), flag(0),
+    user_ctx(const char* session_id, lws *wsi_handle)
+        : wsi(wsi_handle), value(0), flag(0),
           region(), midx(0), vidx(0), post_data_size(0), rx_message(), tx_message(),
           message(), sul(), snapshot()
-    {}  
+    {
+        strncpy(id, session_id, SESSION_ID_LENGTH);
+        id[SESSION_ID_LENGTH] = '\0';
+        root[0] = '\0';  // Initialize root as empty string
+    }
 };
 
-std::string generateToken(int length)
+const char* generateToken(int length) 
 {
     static const char characters[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    static const int maxIndex = sizeof(characters) - 1;
+    static const int maxIndex = sizeof(characters) - 1;  
+    static char tokenBuffer[WEBSOCKET_TOKEN_LENGTH + 1];
 
     std::random_device rd;
     std::mt19937 generator(rd());
     std::uniform_int_distribution<> distribution(0, maxIndex);
 
-    std::string randomString;
-    randomString.reserve(length);
-
-    for (int i = 0; i < length; i++)
+    // Generate random characters
+    for (int i = 0; i < length; i++) 
     {
-        randomString += characters[distribution(generator)];
+        tokenBuffer[i] = characters[distribution(generator)];
     }
+    tokenBuffer[length] = '\0';  // Ensure null termination
 
-    return randomString;
+    return tokenBuffer;
 }
 
 int restart_threads_by_signal(int &flag)
@@ -614,13 +618,25 @@ void add_json_key(std::string &message, bool separator, const char *key, const c
         message, "%s\"%s\":%s", separator ? "," : "", key, opener);
 }
 
+// Helper function to safely combine path components
+void combine_path(std::string& result, const char* root, const char* path) {
+    result = root;
+    result += ".";
+    result += path;
+}
+
+// For stream comparisons, replace direct string comparisons with strcmp
+bool is_stream(const char* root, const char* stream_name) {
+    return strcmp(root, stream_name) == 0;
+}
+
 signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
 {
     struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
 
     if ((reason & LEJP_FLAG_CB_IS_VALUE) && ctx->path_match)
     {
-        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+        combine_path(u_ctx->path, u_ctx->root, ctx->path);
 
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), general_keys[ctx->path_match - 1]);
 
@@ -668,7 +684,7 @@ signed char WS::rtsp_callback(struct lejp_ctx *ctx, char reason)
 
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+        combine_path(u_ctx->path, u_ctx->root, ctx->path);
 
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), rtsp_keys[ctx->path_match - 1]);
 
@@ -746,7 +762,7 @@ signed char WS::sensor_callback(struct lejp_ctx *ctx, char reason)
 
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+        combine_path(u_ctx->path, u_ctx->root, ctx->path);
 
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), sensor_keys[ctx->path_match - 1]);
 
@@ -792,7 +808,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
 #if !defined(NO_TUNINGS)
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+        combine_path(u_ctx->path, u_ctx->root, ctx->path);
 
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), image_keys[ctx->path_match - 1]);
 
@@ -1083,7 +1099,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
 
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+        combine_path(u_ctx->path, u_ctx->root, ctx->path);
 
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), audio_keys[ctx->path_match - 1]);
 
@@ -1245,7 +1261,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
 signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
 {
     struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
-    u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+    combine_path(u_ctx->path, u_ctx->root, ctx->path);
 
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
@@ -1311,12 +1327,12 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
                 {
                     uint8_t fps = 0;
                     uint32_t bps = 0;
-                    if (u_ctx->root == "stream0")
+                    if (is_stream(u_ctx->root, "stream0"))
                     {
                         fps = cfg->stream0.stats.fps;
                         bps = cfg->stream0.stats.bps;
                     }
-                    else if (u_ctx->root == "stream1")
+                    else if (is_stream(u_ctx->root, "stream1"))
                     {
                         fps = cfg->stream1.stats.fps;
                         bps = cfg->stream1.stats.bps;
@@ -1356,7 +1372,7 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
 
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+        combine_path(u_ctx->path, u_ctx->root, ctx->path);
 
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), stream2_keys[ctx->path_match - 1]);
 
@@ -1416,7 +1432,7 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
             {
                 uint8_t fps = 0;
                 uint32_t bps = 0;
-                if (u_ctx->root == "stream2")
+                if (is_stream(u_ctx->root, "stream2"))
                 {
                     fps = cfg->stream2.stats.fps;
                     bps = cfg->stream2.stats.bps;
@@ -1446,7 +1462,9 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
 
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        u_ctx->path = u_ctx->root + ".osd." + std::string(ctx->path);
+        u_ctx->path = u_ctx->root;
+        u_ctx->path += ".osd.";
+        u_ctx->path += ctx->path;
 
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), osd_keys[ctx->path_match - 1]);
 
@@ -1623,7 +1641,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
 signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
 {
     struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
-    u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+    combine_path(u_ctx->path, u_ctx->root, ctx->path);
 
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
@@ -1702,7 +1720,7 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
 signed char WS::motion_roi_callback(struct lejp_ctx *ctx, char reason)
 {
     struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
-    u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+    combine_path(u_ctx->path, u_ctx->root, ctx->path);
 
     if ((reason & LEJP_FLAG_CB_IS_VALUE) && (reason == LEJPCB_VAL_NULL))
     {
@@ -1816,7 +1834,7 @@ signed char WS::info_callback(struct lejp_ctx *ctx, char reason)
 
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+        combine_path(u_ctx->path, u_ctx->root, ctx->path);
         
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), info_keys[ctx->path_match - 1]);
 
@@ -1859,7 +1877,7 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
 
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
-        u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
+        combine_path(u_ctx->path, u_ctx->root, ctx->path);
 
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), action_keys[ctx->path_match - 1]);
 
@@ -1930,7 +1948,8 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
     {
         struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
         u_ctx->path.clear();
-        u_ctx->root = ctx->path;
+        strncpy(u_ctx->root, ctx->path, sizeof(u_ctx->root) - 1);  // Copy path safely
+        u_ctx->root[sizeof(u_ctx->root) - 1] = '\0';  // Ensure null termination
 
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), root_keys[ctx->path_match - 1], "{");
 
@@ -1995,16 +2014,21 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
     return 0;
 }
 
-std::string generateSessionID()
+const char* generateSessionID() 
 {
+    static char idBuffer[SESSION_ID_LENGTH + 1];
     std::random_device rd;
-    std::mt19937_64 eng(rd());
-    std::uniform_int_distribution<uint64_t> distr;
-    uint64_t randomValue = distr(eng);
-    auto timeStamp = std::time(nullptr);
-    std::stringstream ss;
-    ss << std::hex << randomValue << timeStamp;
-    return ss.str();
+    std::mt19937 eng(rd());
+    std::uniform_int_distribution<uint32_t> distr;
+    
+    uint32_t randomValue = distr(eng);
+    uint32_t timeStamp = (uint32_t)std::time(nullptr);
+    
+    // Format: 8 chars from random + 8 chars from timestamp
+    snprintf(idBuffer, sizeof(idBuffer), "%08x%08x", 
+             randomValue, timeStamp);
+    
+    return idBuffer;
 }
 
 static void
@@ -2050,6 +2074,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
         // check if security is required and validate token
         url_length = lws_get_urlarg_by_name_safe(wsi, "token", url_token, sizeof(url_token));
+        LOG_DEBUG("url_token: " << url_token);
         if (strcmp(token, url_token) == 0 || (strcmp(cfg->websocket.usertoken, "") != 0 && strcmp(cfg->websocket.usertoken, url_token) == 0))
         {
             /* initialize new u_ctx session structure.
@@ -2439,12 +2464,13 @@ void WS::start()
     // create websocket authentication token and write it into /run/
     // only websocket connect with token parameter accepted
     // ws://<ip>:<port>/?token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    strncpy(token, strdup(generateToken(WEBSOCKET_TOKEN_LENGTH).c_str()), WEBSOCKET_TOKEN_LENGTH);
+    std::string generatedToken = generateToken(WEBSOCKET_TOKEN_LENGTH);
+    memset(token, 0, sizeof(token));  // Clear the token buffer first
+    memcpy(token, generatedToken.c_str(), std::min(generatedToken.length(), (size_t)WEBSOCKET_TOKEN_LENGTH));
     std::ofstream outFile("/run/prudynt_websocket_token");
     outFile << token;
     outFile.close();
-
-    LOG_DEBUG("WS TOKEN::" << token);
+    LOG_DEBUG("Generated token length: " << generatedToken.length() << ", Token: '" << token << "'");
 
     lws_set_log_level(cfg->websocket.loglevel, lwsl_emit_stderr);
 
