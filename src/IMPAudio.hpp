@@ -48,6 +48,7 @@ public:
     int devId{};
     int inChn{};
     int aeChn{};
+    int outChnCnt = 1;
 
 private:
     bool enabledAgc = false;

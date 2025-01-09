@@ -518,7 +518,7 @@ void *Worker::stream_grabber(void *arg)
     return 0;
 }
 #if defined(AUDIO_SUPPORT)
-static void process_frame(int encChn, IMPAudioFrame &frame)
+static void process_audio_frame(int encChn, IMPAudioFrame &frame)
 {
     int64_t audio_ts = frame.timeStamp;
     struct timeval encoder_time;
@@ -574,12 +574,43 @@ static void process_frame(int encChn, IMPAudioFrame &frame)
             if (global_audio[encChn]->onDataCallback)
                 global_audio[encChn]->onDataCallback();
         }
-        // LOG_DEBUG("audio:" <<  global_audio[encChn]->aiChn << " " << af.time.tv_sec << "." << af.time.tv_usec << " " << af.data.size());
     }
 
     if (global_audio[encChn]->imp_audio->format != IMPAudioFormat::PCM && IMP_AENC_ReleaseStream(global_audio[encChn]->aeChn, &stream) < 0)
     {
         LOG_ERROR("IMP_AENC_ReleaseStream(" << global_audio[encChn]->devId << ", " << global_audio[encChn]->aeChn << ", &stream) failed");
+    }
+}
+
+static void process_frame(int encChn, IMPAudioFrame &frame)
+{
+    if (global_audio[encChn]->imp_audio->outChnCnt == 2 && frame.soundmode == AUDIO_SOUND_MODE_MONO) 
+    {
+        size_t sample_size = frame.bitwidth / 8;
+        size_t num_samples = frame.len / sample_size;
+        size_t stereo_size = frame.len * 2;
+        uint8_t* stereo_buffer = new uint8_t[stereo_size];
+        
+        for (size_t i = 0; i < num_samples; i++)
+        {
+            uint8_t* mono_sample = ((uint8_t*)frame.virAddr) + (i * sample_size);
+            uint8_t* stereo_left = stereo_buffer + (i * sample_size * 2);
+            uint8_t* stereo_right = stereo_left + sample_size;
+            memcpy(stereo_left, mono_sample, sample_size);
+            memcpy(stereo_right, mono_sample, sample_size);
+        }
+        
+        IMPAudioFrame stereo_frame = frame;
+        stereo_frame.virAddr = (uint32_t*)stereo_buffer;
+        stereo_frame.len = stereo_size;
+        stereo_frame.soundmode = AUDIO_SOUND_MODE_STEREO;
+        
+        process_audio_frame(encChn, stereo_frame);
+        delete[] stereo_buffer;
+    }
+    else
+    {
+        process_audio_frame(encChn, frame);
     }
 }
 
@@ -652,40 +683,7 @@ void *Worker::audio_grabber(void *arg)
                 }
                 else
                 {
-#if defined(USE_STEREO_SIMULATOR)
-                    if (frame.soundmode == AUDIO_SOUND_MODE_MONO && false) 
-                    {
-                        IMPAudioFrame stereoFrame = frame; 
-                        stereoFrame.soundmode = AUDIO_SOUND_MODE_STEREO;
-
-                        size_t sample_size = (frame.bitwidth == AUDIO_BIT_WIDTH_16) ? 2 : 1; 
-                        size_t mono_data_size = frame.len;
-                        size_t stereo_data_size = mono_data_size * 2;
-
-                        std::vector<uint8_t> stereo_data(stereo_data_size);
-
-                        uint8_t *mono_data = reinterpret_cast<uint8_t *>(frame.virAddr);
-                        uint8_t *stereo_ptr = stereo_data.data();
-
-                        for (size_t i = 0; i < mono_data_size; i += sample_size) {
-                            std::memcpy(stereo_ptr, mono_data + i, sample_size); // left
-                            stereo_ptr += sample_size;
-                            std::memcpy(stereo_ptr, mono_data + i, sample_size); // right
-                            stereo_ptr += sample_size;
-                        }
-
-                        stereoFrame.virAddr = reinterpret_cast<uint32_t *>(stereo_data.data());
-                        stereoFrame.len = static_cast<int>(stereo_data_size);
-                        
-                        process_frame(encChn, stereoFrame);
-                    }
-                    else
-                    {
-                        process_frame(encChn, frame);
-                    }
-#else
                     process_frame(encChn, frame);
-#endif
                 }
 
                 if (IMP_AI_ReleaseFrame(global_audio[encChn]->devId, global_audio[encChn]->aiChn, &frame) < 0)

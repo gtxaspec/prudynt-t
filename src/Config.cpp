@@ -87,6 +87,7 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
     return {
 #if defined(AUDIO_SUPPORT)
         {"audio.input_enabled", audio.input_enabled, true, validateBool},
+        {"audio.force_stereo", audio.force_stereo, false, validateBool},
 #if defined(LIB_AUDIO_PROCESSING)
         {"audio.input_high_pass_filter", audio.input_high_pass_filter, false, validateBool},
         {"audio.input_agc_enabled", audio.input_agc_enabled, false, validateBool},

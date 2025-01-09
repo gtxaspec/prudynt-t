@@ -52,23 +52,27 @@ int IMPAudio::init()
     };
     float frameDuration = 0.040;
 
-    // compute PCM bitrate in kbps
-    bitrate = (int) ioattr.bitwidth * (int) ioattr.samplerate / 1000;
+    // Berechne PCM Bitrate basierend auf outChnCnt
+    bitrate = (int)ioattr.bitwidth * (int)ioattr.samplerate * outChnCnt / 1000;
+
+    // output channel count is 2 if stereo is enabled
+    outChnCnt = cfg->audio.force_stereo ? 2 : 1;
 
     if (strcmp(cfg->audio.input_format, "OPUS") == 0)
     {
         format = IMPAudioFormat::OPUS;
         bitrate = cfg->audio.input_bitrate;
-        encoder = Opus::createNew(ioattr.samplerate, ioattr.chnCnt);
+        encoder = Opus::createNew(ioattr.samplerate, outChnCnt);
     }
     else if (strcmp(cfg->audio.input_format, "AAC") == 0)
     {
         format = IMPAudioFormat::AAC;
         bitrate = cfg->audio.input_bitrate;
-        encoder = AACEncoder::createNew(ioattr.samplerate, ioattr.chnCnt);
+        encoder = AACEncoder::createNew(ioattr.samplerate, outChnCnt);
     }
     else if (strcmp(cfg->audio.input_format, "G711A") == 0)
     {
+        outChnCnt = 1; // G711A is mono
         format = IMPAudioFormat::G711A;
         encattr.type = IMPAudioPalyloadType::PT_G711A;
         ioattr.samplerate = AUDIO_SAMPLE_RATE_8000;
@@ -76,6 +80,7 @@ int IMPAudio::init()
     }
     else if (strcmp(cfg->audio.input_format, "G711U") == 0)
     {
+        outChnCnt = 1; // G711U is mono
         format = IMPAudioFormat::G711U;
         encattr.type = IMPAudioPalyloadType::PT_G711U;
         ioattr.samplerate = AUDIO_SAMPLE_RATE_8000;
@@ -83,6 +88,7 @@ int IMPAudio::init()
     }
     else if (strcmp(cfg->audio.input_format, "G726") == 0)
     {
+        outChnCnt = 1; // G726 is mono
         format = IMPAudioFormat::G726;
         encattr.type = IMPAudioPalyloadType::PT_G726;
         ioattr.samplerate = AUDIO_SAMPLE_RATE_8000;
