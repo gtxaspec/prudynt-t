@@ -154,7 +154,8 @@ struct _audio {
     bool input_high_pass_filter;
     bool input_agc_enabled;
     int input_agc_target_level_dbfs;
-    int input_agc_compression_gain_db;    
+    int input_agc_compression_gain_db;
+    bool force_stereo;
 #endif
 };
 #endif      

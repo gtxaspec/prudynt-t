@@ -60,6 +60,7 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
     unsigned rtpTimestampFrequency = global_audio[audioChn]->imp_audio->sample_rate;
     const char* rtpPayloadFormatName = "L16";
     bool allowMultipleFramesPerPacket = true;
+    int outChnCnt = cfg->audio.force_stereo ? 2 : 1;
     switch (global_audio[audioChn]->imp_audio->format)
     {
     case IMPAudioFormat::PCM:
@@ -83,7 +84,7 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
     case IMPAudioFormat::AAC:
         return AACSink::createNew(
             envir(), rtpGroupsock, rtpPayloadFormat, rtpTimestampFrequency,
-            /* numChannels */ 1);
+            /* numChannels */ outChnCnt);
     }
 
     LOG_ERROR("createNewRTPSink: " << rtpPayloadFormatName << ", " << rtpTimestampFrequency);
@@ -92,6 +93,6 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
         envir(), rtpGroupsock, rtpPayloadFormat, rtpTimestampFrequency,
         /* sdpMediaTypeString*/ "audio",
         rtpPayloadFormatName,
-        /* numChannels */ 2,
+        /* numChannels */ outChnCnt,
         allowMultipleFramesPerPacket);
 }
