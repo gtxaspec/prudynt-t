@@ -11,6 +11,8 @@
 #include <imp/imp_common.h>
 
 #define WEBSOCKET_TOKEN_LENGTH 32
+#define SESSION_ID_LENGTH 16
+#define ROOT_MAX_LENGTH 16
 
 // WebSocket
 class WS
