@@ -737,6 +737,13 @@ typedef enum {
 	IMPISP_FLIP_MODE_BUTT,          /**< 用于判断参数的有效性，参数大小必须小于这个值 */
 } IMPISPHVFLIP;
 
+
+typedef struct {
+	IMPISPHVFLIP sensor_mode;   /**< Flip mode corresponding to sensor */
+	IMPISPHVFLIP isp_mode[3];	/**< Flip mode for each ISP channel */
+} IMPISPHVFLIPAttr;
+
+
 /**
  * @fn int32_t IMP_ISP_Tuning_SetHVFLIP(IMPVI_NUM num, IMPISPHVFLIP *hvflip)
  *

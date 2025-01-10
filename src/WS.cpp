@@ -785,294 +785,110 @@ signed char WS::sensor_callback(struct lejp_ctx *ctx, char reason)
     return 0;
 }
 
-signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
-{
+signed char WS::image_callback(struct lejp_ctx *ctx, char reason) {
     struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
+    const IMPVI_NUM vinum = IMPVI_MAIN;
+    int ret = 0;
 
-#if !defined(NO_TUNINGS)
-    if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
-    {
+    if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match) {
         u_ctx->path = u_ctx->root + "." + std::string(ctx->path);
-
-        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), image_keys[ctx->path_match - 1]);
-
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR),
+                    image_keys[ctx->path_match - 1]);
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
 
-        if (ctx->path_match == PNT_IMAGE_DEFOG_STRENGTH)
-        {
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-            if (reason == LEJPCB_VAL_NUM_INT)
-            {
-                if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                {
-                    uint8_t t = static_cast<uint8_t>(cfg->get<int>(u_ctx->path));
-                    IMP_ISP_Tuning_SetDefog_Strength(reinterpret_cast<uint8_t *>(&t));
-                }
-            }
-            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-#else
-            add_json_null(u_ctx->message);
-#endif
-        }
-        else if (ctx->path_match >= PNT_IMAGE_CORE_WB_MODE && ctx->path_match <= PNT_IMAGE_WB_BGAIN)
-        {
-            if (reason == LEJPCB_VAL_NUM_INT)
-            {
-                if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                {
-                    IMPISPWB wb;
-                    memset(&wb, 0, sizeof(IMPISPWB));
-                    int ret = IMP_ISP_Tuning_GetWB(&wb);
-                    if (ret == 0)
-                    {
-                        wb.mode = (isp_core_wb_mode)cfg->image.core_wb_mode;
-                        wb.rgain = cfg->image.wb_rgain;
-                        wb.bgain = cfg->image.wb_bgain;
-                        ret = IMP_ISP_Tuning_SetWB(&wb);
-                    }
-                }
-            }
-            add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-        }
-        else
-        {
-            switch (ctx->path_match)
-            {
-            case PNT_IMAGE_BRIGHTNESS:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetBrightness(cfg->get<int>(u_ctx->path));
-                    }
-                }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-                break;
-            case PNT_IMAGE_CONTRAST:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetContrast(cfg->get<int>(u_ctx->path));
-                    }
-                }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-                break;
-            case PNT_IMAGE_HUE:
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetBcshHue(cfg->get<int>(u_ctx->path));
-                    }
-                }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-#else
-                add_json_null(u_ctx->message);
-#endif
-                break;
-            case PNT_IMAGE_SATURATION:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetSaturation(cfg->get<int>(u_ctx->path));
-                    }
-                }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-                break;
-            case PNT_IMAGE_SHARPNESS:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetSharpness(cfg->get<int>(u_ctx->path));
-                    }
-                }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-                break;               
-            case PNT_IMAGE_SINTER_STRENGTH:
-#if !defined(PLATFORM_T21)             
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetSinterStrength(cfg->get<int>(u_ctx->path));
-                    }
-                }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-#else
-                add_json_null(u_ctx->message);                
-#endif
-                break;
-            case PNT_IMAGE_TEMPER_STRENGTH:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetTemperStrength(cfg->get<int>(u_ctx->path));
-                    }
-                }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-                break;
-            case PNT_IMAGE_VFLIP:
-                if (reason == LEJPCB_VAL_TRUE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, true))
-                    {
-                        IMP_ISP_Tuning_SetISPVflip(IMPISP_TUNING_OPS_MODE_ENABLE);
-                    }
-                }
-                else if (reason == LEJPCB_VAL_FALSE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, false))
-                    {
-                        IMP_ISP_Tuning_SetISPVflip(IMPISP_TUNING_OPS_MODE_DISABLE);
-                    }
-                }
-                add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
-                break;
-            case PNT_IMAGE_HFLIP:
-                if (reason == LEJPCB_VAL_TRUE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, true))
-                    {
-                        IMP_ISP_Tuning_SetISPHflip(IMPISP_TUNING_OPS_MODE_ENABLE);
-                    }
-                }
-                else if (reason == LEJPCB_VAL_FALSE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, false))
-                    {
-                        IMP_ISP_Tuning_SetISPHflip(IMPISP_TUNING_OPS_MODE_DISABLE);
-                    }
-                }
-                add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
-                break;
-            case PNT_IMAGE_ANTIFLICKER:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetAntiFlickerAttr((IMPISPAntiflickerAttr)cfg->get<int>(u_ctx->path));
-                    }
-                }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-                break;
-            case PNT_IMAGE_RUNNING_MODE:
-                {
-                    if (reason == LEJPCB_VAL_NUM_INT)
-                    {
-                        if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                        {
-                            IMP_ISP_Tuning_SetISPRunningMode((IMPISPRunningMode)cfg->get<int>(u_ctx->path));
-                        }
-                    }
+        if (reason == LEJPCB_VAL_NUM_INT ||
+            reason == LEJPCB_VAL_TRUE ||
+            reason == LEJPCB_VAL_FALSE) {
 
-                    IMPISPRunningMode running_mode;
-                    IMP_ISP_Tuning_GetISPRunningMode(&running_mode);
+            switch (ctx->path_match) {
+                case PNT_IMAGE_BRIGHTNESS: {
+                    unsigned char value = (unsigned char)cfg->get<int>(u_ctx->path);
+                    ret = IMP_ISP_Tuning_SetBrightness(vinum, &value);
                     add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
+                    break;
                 }
-                break;
-            case PNT_IMAGE_AE_COMPENSATION:
-#if !defined(PLATFORM_T21)
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetAeComp(cfg->get<int>(u_ctx->path));
-                    }
+
+                case PNT_IMAGE_CONTRAST: {
+                    unsigned char value = (unsigned char)cfg->get<int>(u_ctx->path);
+                    ret = IMP_ISP_Tuning_SetContrast(vinum, &value);
+                    add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
+                    break;
                 }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-#else
-                add_json_null(u_ctx->message);
-#endif
-                break;
-            case PNT_IMAGE_DPC_STRENGTH:
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetDPC_Strength(cfg->get<int>(u_ctx->path));
-                    }
+
+                case PNT_IMAGE_SATURATION: {
+                    unsigned char value = (unsigned char)cfg->get<int>(u_ctx->path);
+                    ret = IMP_ISP_Tuning_SetSaturation(vinum, &value);
+                    add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
+                    break;
                 }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-#else
-                add_json_null(u_ctx->message);
-#endif
-                break;
-            case PNT_IMAGE_DRC_STRENGTH:
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetDRC_Strength(cfg->get<int>(u_ctx->path));
-                    }
+
+                case PNT_IMAGE_SHARPNESS: {
+                    unsigned char value = (unsigned char)cfg->get<int>(u_ctx->path);
+                    ret = IMP_ISP_Tuning_SetSharpness(vinum, &value);
+                    add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
+                    break;
                 }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-#else
-                add_json_null(u_ctx->message);
-#endif
-                break;
-            case PNT_IMAGE_HIGHLIGHT_DEPRESS:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetHiLightDepress(cfg->get<int>(u_ctx->path));
-                    }
+
+                case PNT_IMAGE_VFLIP:
+                case PNT_IMAGE_HFLIP: {
+                        bool newHFlip = (ctx->path_match == PNT_IMAGE_HFLIP) ?
+                            (reason == LEJPCB_VAL_TRUE) : cfg->get<bool>("/image/hflip");
+                        bool newVFlip = (ctx->path_match == PNT_IMAGE_VFLIP) ?
+                            (reason == LEJPCB_VAL_TRUE) : cfg->get<bool>("/image/vflip");
+
+                        IMPISPHVFLIP flip_mode;
+                        if (newHFlip && newVFlip) {
+                            flip_mode = IMPISP_FLIP_HV_MODE;
+                        } else if (newHFlip) {
+                            flip_mode = IMPISP_FLIP_H_MODE;
+                        } else if (newVFlip) {
+                            flip_mode = IMPISP_FLIP_V_MODE;
+                        } else {
+                            flip_mode = IMPISP_FLIP_NORMAL_MODE;
+                        }
+                        ret = IMP_ISP_Tuning_SetHVFLIP(vinum, &flip_mode);
+
+                        bool *target = (ctx->path_match == PNT_IMAGE_HFLIP) ? &newHFlip : &newVFlip;
+                        cfg->set<bool>(u_ctx->path, *target);
+                        add_json_bool(u_ctx->message, *target);
+                        break;
                 }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-                break;
-            case PNT_IMAGE_BACKLIGHT_COMPENSTATION:
-#if !defined(PLATFORM_T10) && !defined(PLATFORM_T20) && !defined(PLATFORM_T21) && !defined(PLATFORM_T23) && !defined(PLATFORM_T30)
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetBacklightComp(cfg->get<int>(u_ctx->path));
-                    }
+
+                case PNT_IMAGE_RUNNING_MODE: {
+                    IMPISPRunningMode mode = (IMPISPRunningMode)cfg->get<int>(u_ctx->path);
+                    ret = IMP_ISP_Tuning_SetISPRunningMode(vinum, &mode);
+                    add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
+                    break;
                 }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-#else
-                add_json_null(u_ctx->message);
-#endif
-                break;
-            case PNT_IMAGE_MAX_AGAIN:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetMaxAgain(cfg->get<int>(u_ctx->path));
-                    }
+
+                case PNT_IMAGE_ANTIFLICKER: {
+                    IMPISPAntiflickerAttr attr;
+                    attr.freq = 50;
+                    attr.mode = (IMPISPAntiflickerMode)cfg->get<int>(u_ctx->path);
+                    ret = IMP_ISP_Tuning_SetAntiFlickerAttr(vinum, &attr);
+                    add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
+                    break;
                 }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-                break;
-            case PNT_IMAGE_MAX_DGAIN:
-                if (reason == LEJPCB_VAL_NUM_INT)
-                {
-                    if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
-                    {
-                        IMP_ISP_Tuning_SetMaxDgain(cfg->get<int>(u_ctx->path));
-                    }
+
+                default: {
+                    // For unsupported parameters on T40
+                    add_json_null(u_ctx->message);
+                    break;
                 }
-                add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-                break;
-            default:
-                u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
-                break;                 
+            }
+
+            // Common error handling
+            if (ret < 0) {
+                LOG_ERROR("Failed to set image parameter: " << ctx->path);
             }
         }
     }
-    else if (reason == LEJPCB_OBJECT_END)
-    {
+    else if (reason == LEJPCB_OBJECT_END) {
+        u_ctx->flag |= PNT_FLAG_SEPARATOR;
         u_ctx->message.append("}");
         lejp_parser_pop(ctx);
     }
-#endif
+
     return 0;
 }
 
