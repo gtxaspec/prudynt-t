@@ -2054,9 +2054,6 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
     // security token ?token=
     char url_token[128]{0};
     char content_type[128]{0};
-    std::string json_data((char *)in, len);
-
-    //LOG_DDEBUGWS(reason);
 
     // get url and method
     if (reason >= LWS_CALLBACK_HTTP && reason <= LWS_CALLBACK_HTTP_WRITEABLE)
@@ -2107,7 +2104,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         if (lws_is_first_fragment(wsi))
             u_ctx->rx_message.clear();
 
-        u_ctx->rx_message.append(json_data);
+        u_ctx->rx_message.append((char *)in, len);
 
         if (!lws_is_final_fragment(wsi))
             return 0;    
@@ -2342,7 +2339,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
     case LWS_CALLBACK_HTTP_BODY:
         LOG_DDEBUGWS("LWS_CALLBACK_HTTP_BODY ip:" << client_ip);
-        u_ctx->rx_message.append(json_data);
+        u_ctx->rx_message.append((char *)in, len);
         break;
 
     case LWS_CALLBACK_HTTP_BODY_COMPLETION: //LWS_CALLBACK_HTTP_BODY:
