@@ -6,16 +6,17 @@ GIT_HASH=$(git rev-parse --short HEAD)
 GIT_TIME=$(git show -s --format=%ci)
 BACKTITLE="$GIT_REPO - $GIT_BRANCH+$GIT_HASH, $GIT_TIME"
 UI=dialog
-DIALOG_COMMON=($UI --keep-tite --colors --backtitle "$BACKTITLE" --cancel-label "Exit" --title "$GIT_REPO Buildroot Compile")
+DIALOG_COMMON=($UI --keep-tite --colors --backtitle "$BACKTITLE" --cancel-label "Exit" --title "prudynt Buildroot Compilation")
 
 show_help() {
 	cat << EOF
 Buildroot Prudynt Build
-Usage: ./build.sh [-d] [-c] <profile_name>
-Example: ./build.sh wyze_cp2
+Usage: ./build.sh [-d] [-c] [-b <binary_mode>] <profile_name>
+Example: ./build.sh -b dynamic wyze_cp2
 
--d	Enable debug mode (-O0 -g)
+-d    Enable debug mode (-O0 -g)
 -c    Disable ccache
+-b    Binary mode (dynamic, static, or hybrid)
 
 Note: Set the DEST_DIR environment variable to specify the directory where the Prudynt binary will be copied after the build.
 EOF
@@ -38,6 +39,35 @@ use_ccache() {
 	fi
 }
 
+select_binary_mode() {
+	while true; do
+		local selected_mode=$("${DIALOG_COMMON[@]}" --help-button --menu "Select binary mode:" 12 50 3 \
+			1 "Dynamic (Default)" \
+			2 "Static" \
+			3 "Hybrid" 2>&1 >/dev/tty)
+
+		if [[ "$selected_mode" =~ HELP ]]; then
+			"${DIALOG_COMMON[@]}" --msgbox "Binary Mode Selection:
+
+Dynamic: Dynamically linked binary
+Static: Statically linked binary
+Hybrid: Hybrid linking mode" 10 50
+			continue
+		fi
+
+		if [ -z "$selected_mode" ]; then
+			exit 1
+		fi
+
+		case "$selected_mode" in
+			1) BINARY_MODE="dynamic" ;;
+			2) BINARY_MODE="static" ;;
+			3) BINARY_MODE="hybrid" ;;
+		esac
+		break
+	done
+}
+
 select_profile() {
 	local profiles=($(ls -d "$HOME_DIR/output"/*/ 2>/dev/null | xargs -r -n 1 basename))
 
@@ -51,22 +81,24 @@ select_profile() {
 		profile_menu+=($((i + 1)) "${profiles[i]}")
 	done
 
-	[ $DEBUG_MODE -eq 1 ] && DEBUG_MODE_TXT="\n\Zb\Z1DEBUG\Zn Mode enabled!\n"
-	[ $USE_CCACHE -eq 0 ] && USE_CCACHE_TXT="\n\Zb\Z1ccache\Zn disabled!\n"
+	[ $DEBUG_MODE -eq 1 ] && DEBUG_MODE_TXT="\n\Zb\Z1DEBUG\Zn Mode enabled!"
+	[ $USE_CCACHE -eq 0 ] && USE_CCACHE_TXT="\n\Zb\Z1ccache\Zn disabled!"
 	[ -n "$DEST_DIR" ] && DEST_DIR_TXT="\nCompiled binary will be copied to: \Zb\Z1$DEST_DIR\Zn"
+	BINARY_MODE_TXT="\nBinary Mode: \Zb\Z1${BINARY_MODE^^}\Zn"
 
 	while true; do
-		local selected_tag=$("${DIALOG_COMMON[@]}" --help-button --menu "Please select a buildroot profile:$USE_CCACHE_TXT$DEBUG_MODE_TXT$DEST_DIR_TXT" 15 50 10 "${profile_menu[@]}" 2>&1 >/dev/tty)
+		local selected_tag=$("${DIALOG_COMMON[@]}" --help-button --menu "Please select a buildroot profile:$USE_CCACHE_TXT$DEBUG_MODE_TXT$BINARY_MODE_TXT$DEST_DIR_TXT" 15 50 10 "${profile_menu[@]}" 2>&1 >/dev/tty)
 
 		if [[ "$selected_tag" =~ HELP ]]; then
 			"${DIALOG_COMMON[@]}" --msgbox "Buildroot Prudynt Build
-Usage: ./build.sh [-d] [-c] <profile_name>
-Example: ./build.sh wyze_cp2
+Usage: ./build.sh [-d] [-c] [-b <binary_mode>] <profile_name>
+Example: ./build.sh -b dynamic wyze_cp2
 
 -d    Enable debug mode (-O0 -g)
 -c    Disable ccache
+-b    Binary mode (dynamic, static, or hybrid)
 
-Note: Set the DEST_DIR environment variable to specify the directory where the Prudynt binary will be copied after the build." 14 60
+Note: Set the DEST_DIR environment variable to specify the directory where the Prudynt binary will be copied after the build." 15 60
 			continue
 		fi
 
@@ -95,6 +127,7 @@ validate_profile() {
 DEBUG_MODE=0
 USE_CCACHE=1
 OPT_CMD="-Os"
+BINARY_MODE="dynamic"
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -110,6 +143,14 @@ while [[ $# -gt 0 ]]; do
 			USE_CCACHE=0
 			shift
 			;;
+		-b)
+			BINARY_MODE=$2
+			if [[ ! "$BINARY_MODE" =~ ^(dynamic|static|hybrid)$ ]]; then
+				echo "Invalid binary mode. Must be dynamic, static, or hybrid."
+				exit 1
+			fi
+			shift 2
+			;;
 		*)
 			PROFILE_NAME=$1
 			shift
@@ -120,6 +161,7 @@ done
 if [ -z "$PROFILE_NAME" ]; then
 	require_dialog
 	[ ! -d "$HOME_DIR/output" ] && echo -e "Output directory does not exist in $HOME.\nPlease complete a full build first." && exit 1
+	select_binary_mode
 	select_profile
 fi
 
@@ -132,11 +174,12 @@ fi
 CONFIG_FILE="$HOME_DIR/output/$PROFILE_NAME/.config"
 PLAT=$(sed -n 's/BR2_SOC_FAMILY_INGENIC_\([^=]*\)=.*/\1/p' "$CONFIG_FILE")
 
+rm -rf 3rdparty
 make distclean
 time /usr/bin/make V=1 -j$(( $(nproc) + 1 )) \
 	ARCH= \
 	CROSS_COMPILE="$CCACHE_BIN $HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/bin/mipsel-linux-" \
-	CFLAGS="-DPLATFORM_$PLAT $OPT_CMD -DBINARY_HYBRID -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
+	CFLAGS="-DPLATFORM_$PLAT $OPT_CMD -DBINARY_${BINARY_MODE^^} -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
 	-I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include \
 	-I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include/libwebsockets \
 	-I$HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/mipsel-buildroot-linux-musl/sysroot/usr/include/liveMedia \
