@@ -645,6 +645,7 @@ void *Worker::audio_grabber(void *arg)
      */
     global_audio[encChn]->active = true;
     global_audio[encChn]->running = true;
+    
     while (global_audio[encChn]->running)
     {
         if (global_audio[encChn]->hasDataCallback && 
@@ -665,7 +666,7 @@ void *Worker::audio_grabber(void *arg)
                     reframer->addFrame(reinterpret_cast<uint8_t*>(frame.virAddr), frame.timeStamp);
                     while (reframer->hasMoreFrames())
                     {
-                        size_t frameLen = 1024 * sizeof(uint16_t);
+                        size_t frameLen = 1024 * sizeof(uint16_t) * global_audio[encChn]->imp_audio->outChnCnt;
                         std::vector<uint8_t> frameData(frameLen, 0);
                         int64_t audio_ts;
                         reframer->getReframedFrame(frameData.data(), audio_ts);
