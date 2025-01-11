@@ -1,18 +1,130 @@
 #include "IMPSystem.hpp"
 #include "Config.hpp"
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/types.h>
 
 #define MODULE "IMP_SYSTEM"
+
+/* first sensor */
+#define FIRST_SNESOR_NAME 			"gc4653"			//sensor name (match with snesor driver name)
+#define	FIRST_I2C_ADDR				0x29				//sensor i2c address
+#define	FIRST_I2C_ADAPTER_ID		1					//sensor controller number used (0/1/2/3)
+#define FIRST_SENSOR_WIDTH			2560				//sensor width
+#define FIRST_SENSOR_HEIGHT			1440				//sensor height
+#define	FIRST_RST_GPIO				GPIO_PC(27)			//sensor reset gpio
+#define	FIRST_PWDN_GPIO				-1					//sensor pwdn gpio
+#define	FIRST_POWER_GPIO			-1					//sensor power gpio
+#define	FIRST_SENSOR_ID				0					//sensor index
+#define	FIRST_VIDEO_INTERFACE		IMPISP_SENSOR_VI_MIPI_CSI0 	//sensor interface type (dvp/csi0/csi1)
+#define	FIRST_MCLK					IMPISP_SENSOR_MCLK1		//sensor clk source (mclk0/mclk1/mclk2)
+#define	FIRST_DEFAULT_BOOT			0					//sensor default mode(0/1/2/3/4)
+#define DUALSENSOR_MODE				IMPISP_DUALSENSOR_DUAL_ALLCACHED_MODE	//dualsensor mode ()
+
+// Define our static sensor configuration
+static IMPSensorInfo Def_Sensor_Info = {
+    .name = "gc4653",
+    .cbus_type = TX_SENSOR_CONTROL_INTERFACE_I2C,
+    .i2c = {
+        .type = "gc4653",
+        .addr = 0x29,
+        .i2c_adapter_id = 1
+    },
+    .rst_gpio = GPIO_PC(27),    // This should match your hardware
+    .pwdn_gpio = -1,            // Set to appropriate GPIO if you have PWDN connected
+    .power_gpio = -1,           // Set to appropriate GPIO if you have POWER control
+    .sensor_id = FIRST_SENSOR_ID,
+    .video_interface = FIRST_VIDEO_INTERFACE,
+    .mclk = FIRST_MCLK,
+    .default_boot = FIRST_DEFAULT_BOOT
+};
+static IMPSensorInfo sensor_info[3];  // Array for up to 3 sensors
+
+static IMPISPCameraInputMode mode = {
+    .sensor_num = IMPISP_TOTAL_ONE,
+    .dual_mode = DUALSENSOR_MODE,
+    .dual_mode_switch = {
+        .en = IMPISP_TUNING_OPS_MODE_DISABLE,  // Use proper enum instead of 0
+    },
+    .joint_mode = IMPISP_NOT_JOINT,
+};
+
+static bool sensor_bypass[3] = {0, 0, 1};
+
+// You'll also need the channel config structure
+extern struct chn_conf chn[];  // This should be defined in your equivalent of sample-common.h
+
 
 IMPSensorInfo IMPSystem::create_sensor_info(const char *sensor_name)
 {
     IMPSensorInfo out;
     memset(&out, 0, sizeof(IMPSensorInfo));
-    LOG_INFO("Sensor: " << cfg->sensor.model);
-    strcpy(out.name, cfg->sensor.model);
+
+    // Name and bus settings
+    strncpy(out.name, "gc4653", sizeof(out.name) - 1);
     out.cbus_type = TX_SENSOR_CONTROL_INTERFACE_I2C;
-    strcpy(out.i2c.type, cfg->sensor.model);
-    out.i2c.addr = cfg->sensor.i2c_address;
+
+    // I2C settings
+    strncpy(out.i2c.type, "gc4653", sizeof(out.i2c.type) - 1);
+    out.i2c.addr = 0x29;
+    out.i2c.i2c_adapter_id = 1;  // Added this to use I2C1 instead of I2C0
+
+    // GPIO settings
+    out.rst_gpio = GPIO_PC(27);
+    out.pwdn_gpio = -1;
+    out.power_gpio = -1;
+
+    // Sensor identification
+    out.sensor_id = 0;
+
+    // Interface settings
+    out.video_interface = IMPISP_SENSOR_VI_MIPI_CSI0;  // Using CSI0 MIPI interface
+    out.mclk = IMPISP_SENSOR_MCLK0;                    // Using primary MCLK source
+
+    // Boot settings
+    out.default_boot = 0;
+
     return out;
+}
+
+int IMPSystem::setupSensorGPIO() {
+    int ret;
+
+    // Configure reset GPIO (PC27)
+    // First export the GPIO if not already exported
+    int fd = open("/sys/class/gpio/export", O_WRONLY);
+    if (fd >= 0) {
+        write(fd, "91", 2); // PC27 is GPIO 91 (you may need to adjust this number based on your platform)
+        close(fd);
+    }
+
+    // Set direction to out
+    fd = open("/sys/class/gpio/gpio91/direction", O_WRONLY);
+    if (fd < 0) {
+        IMP_LOG_ERR(TAG, "Failed to open GPIO direction file\n");
+        return -1;
+    }
+    write(fd, "out", 3);
+    close(fd);
+
+    // Toggle reset
+    fd = open("/sys/class/gpio/gpio91/value", O_WRONLY);
+    if (fd < 0) {
+        IMP_LOG_ERR(TAG, "Failed to open GPIO value file\n");
+        return -1;
+    }
+
+    // Reset sequence
+    write(fd, "0", 1);  // Assert reset
+    usleep(10000);      // Hold for 10ms
+    write(fd, "1", 1);  // Release reset
+    usleep(10000);      // Wait for 10ms
+
+    close(fd);
+
+    return 0;
 }
 
 IMPSystem *IMPSystem::createNew()
@@ -22,208 +134,99 @@ IMPSystem *IMPSystem::createNew()
 
 int IMPSystem::init()
 {
-    LOG_DEBUG("IMPSystem::init()");
     int ret = 0;
 
-#if !(defined(PLATFORM_T40) || defined(PLATFORM_T41))
-    ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
-#endif
+    // Initialize OSD memory pool
+    IMP_ISP_Tuning_SetOsdPoolSize(512*1024);
 
-    IMPVersion impVersion;
-    ret = IMP_System_GetVersion(&impVersion);
-    LOG_INFO("LIBIMP Version " << impVersion.aVersion);
-
-    SUVersion suVersion;
-    ret = SU_Base_GetVersion(&suVersion);
-    LOG_INFO("SYSUTILS Version: " << suVersion.chr);
-
-    cfg->sysinfo.cpu = IMP_System_GetCPUInfo();
-    LOG_INFO("CPU Information: " << cfg->sysinfo.cpu);
+    // Initialize sensor info with the same pattern as sample
+    memset(&sensor_info, 0, sizeof(sensor_info));
+    if(mode.sensor_num == IMPISP_TOTAL_ONE) {
+        memcpy(&sensor_info[0], &Def_Sensor_Info, sizeof(IMPSensorInfo));
+    }
 
     ret = IMP_ISP_Open();
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Open()");
+    if(ret < 0) {
+        IMP_LOG_ERR(TAG, "failed to open ISP\n");
+        return -1;
+    }
 
-    /* sensor */
-    sinfo = create_sensor_info(cfg->sensor.model);
-#if defined(PLATFORM_T40) || defined(PLATFORM_T41)
-    ret = IMP_ISP_AddSensor(IMPVI_MAIN, &sinfo);
-    ret = IMP_ISP_EnableSensor(IMPVI_MAIN, &sinfo);
-#else
-    ret = IMP_ISP_AddSensor(&sinfo);
-#endif
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_AddSensor(&sinfo)");
+    // Handle bypass mode for each sensor (from sample)
+    for(int i = 0; i < mode.sensor_num; i++) {
+        IMPVI_NUM vinum = (i == 0) ? IMPVI_MAIN : (i == 1) ? IMPVI_SEC : IMPVI_THR;
 
-#if defined(PLATFORM_T40) || defined(PLATFORM_T41)
-    ret = IMP_ISP_EnableSensor(IMPVI_MAIN, &sinfo);
-#else
-    ret = IMP_ISP_EnableSensor();
-#endif
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_EnableSensor()");
+        if(!sensor_bypass[i]) {
+            continue;
+        }
 
-    /* system */
+        // Set ISP bypass mode
+        IMPISPTuningOpsMode bypass_en = IMPISP_TUNING_OPS_MODE_ENABLE;
+        ret = IMP_ISP_Tuning_SetISPBypass(vinum, &bypass_en);
+        if (ret < 0) {
+            IMP_LOG_ERR(TAG, "IMP_ISP_Tuning_SetISPBypass(%d) failed\n", i);
+            return -1;
+        }
+    }
+
+    // Set camera input mode if needed
+    if(mode.sensor_num > IMPISP_TOTAL_ONE) {
+        ret = IMP_ISP_SetCameraInputMode(&mode);
+        if(ret < 0) {
+            IMP_LOG_ERR(TAG, "failed to set camera input mode!\n");
+            return -1;
+        }
+    }
+
+    ret = IMP_ISP_AddSensor(IMPVI_MAIN, &sensor_info[0]);
+    if(ret < 0) {
+        IMP_LOG_ERR(TAG, "failed to AddSensor\n");
+        return -1;
+    }
+
+    ret = IMP_ISP_EnableSensor(IMPVI_MAIN, &sensor_info[0]);
+    if(ret < 0) {
+        IMP_LOG_ERR(TAG, "failed to EnableSensor\n");
+        return -1;
+    }
+
     ret = IMP_System_Init();
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Init()");
+    if(ret < 0) {
+        IMP_LOG_ERR(TAG, "IMP_System_Init failed\n");
+        return -1;
+    }
 
     ret = IMP_ISP_EnableTuning();
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_EnableTuning()");
-
-#if !defined(NO_TUNINGS)
-    ret = IMP_ISP_Tuning_SetContrast(cfg->image.contrast);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetContrast(" << cfg->image.contrast << ")");
-
-    ret = IMP_ISP_Tuning_SetSharpness(cfg->image.sharpness);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSharpness(" << cfg->image.sharpness << ")");
-
-    ret = IMP_ISP_Tuning_SetSaturation(cfg->image.saturation);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
-
-    ret = IMP_ISP_Tuning_SetBrightness(cfg->image.brightness);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBrightness(" << cfg->image.brightness << ")");
-
-    ret = IMP_ISP_Tuning_SetContrast(cfg->image.contrast);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetContrast(" << cfg->image.contrast << ")");
-
-    ret = IMP_ISP_Tuning_SetSharpness(cfg->image.sharpness);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSharpness(" << cfg->image.sharpness << ")");
-
-    ret = IMP_ISP_Tuning_SetSaturation(cfg->image.saturation);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSaturation(" << cfg->image.saturation << ")");
-
-    ret = IMP_ISP_Tuning_SetBrightness(cfg->image.brightness);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBrightness(" << cfg->image.brightness << ")");
-
-#if !defined(PLATFORM_T21)
-    ret = IMP_ISP_Tuning_SetSinterStrength(cfg->image.sinter_strength);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetSinterStrength(" << cfg->image.sinter_strength << ")");
-#endif
-
-    ret = IMP_ISP_Tuning_SetTemperStrength(cfg->image.temper_strength);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetTemperStrength(" << cfg->image.temper_strength << ")");
-
-    ret = IMP_ISP_Tuning_SetISPHflip((IMPISPTuningOpsMode)cfg->image.hflip);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPHflip(" << cfg->image.hflip << ")");
-
-    ret = IMP_ISP_Tuning_SetISPVflip((IMPISPTuningOpsMode)cfg->image.vflip);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPVflip(" << cfg->image.vflip << ")");
-
-    ret = IMP_ISP_Tuning_SetISPRunningMode((IMPISPRunningMode)cfg->image.running_mode);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPRunningMode(" << cfg->image.running_mode << ")");
-
-    ret = IMP_ISP_Tuning_SetISPBypass(IMPISP_TUNING_OPS_MODE_ENABLE);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPBypass(" << IMPISP_TUNING_OPS_MODE_ENABLE << ")");
-
-    IMPISPAntiflickerAttr flickerAttr;
-    memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
-    ret = IMP_ISP_Tuning_SetAntiFlickerAttr((IMPISPAntiflickerAttr)cfg->image.anti_flicker);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetAntiFlickerAttr(" << cfg->image.anti_flicker << ")");
-
-#if !defined(PLATFORM_T21)
-    ret = IMP_ISP_Tuning_SetAeComp(cfg->image.ae_compensation);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetAeComp(" << cfg->image.ae_compensation << ")");
-#endif
-
-    ret = IMP_ISP_Tuning_SetMaxAgain(cfg->image.max_again);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetMaxAgain(" << cfg->image.max_again << ")");
-
-    ret = IMP_ISP_Tuning_SetMaxDgain(cfg->image.max_dgain);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetMaxDgain(" << cfg->image.max_dgain << ")");
-
-    IMPISPWB wb;
-    memset(&wb, 0, sizeof(IMPISPWB));
-    wb.mode = (isp_core_wb_mode)cfg->image.core_wb_mode;
-    wb.rgain = cfg->image.wb_rgain;
-    wb.bgain = cfg->image.wb_bgain;
-    ret = IMP_ISP_Tuning_SetWB(&wb);
-    if (ret != 0)
-    {
-        LOG_ERROR("Unable to set white balance. Mode: " << cfg->image.core_wb_mode << ", rgain: "
-                                                        << cfg->image.wb_rgain << ", bgain: " << cfg->image.wb_bgain);
-    }
-    else
-    {
-        LOG_DEBUG("Set white balance. Mode: " << cfg->image.core_wb_mode << ", rgain: "
-                                              << cfg->image.wb_rgain << ", bgain: " << cfg->image.wb_bgain);
+    if(ret < 0) {
+        IMP_LOG_ERR(TAG, "IMP_ISP_EnableTuning failed\n");
+        return -1;
     }
 
-#if defined(PLATFORM_T23) || defined(PLATFORM_T31)
-    ret = IMP_ISP_Tuning_SetBcshHue(cfg->image.hue);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBcshHue(" << cfg->image.hue << ")");
-
-    uint8_t _defog_strength = static_cast<uint8_t>(cfg->image.defog_strength);
-    ret = IMP_ISP_Tuning_SetDefog_Strength(reinterpret_cast<uint8_t *>(&_defog_strength));
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDefog_Strength(" << cfg->image.defog_strength << ")");
-
-    ret = IMP_ISP_Tuning_SetDPC_Strength(cfg->image.dpc_strength);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDPC_Strength(" << cfg->image.dpc_strength << ")");
-#endif
-#if defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T31)
-    ret = IMP_ISP_Tuning_SetDRC_Strength(cfg->image.drc_strength);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << cfg->image.drc_strength << ")");
-#endif
-
-#if defined(PLATFORM_T23) || defined(PLATFORM_T31)
-    if (cfg->image.backlight_compensation > 0)
-    {
-        ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBacklightComp(" << cfg->image.backlight_compensation << ")");
-    }
-    else if (cfg->image.highlight_depress > 0)
-    {
-        ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
-    }
-#elif defined(PLATFORM_T21) || defined(PLATFORM_T30)
-    ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
-#endif
-
-    LOG_DEBUG("ISP Tuning Defaults set");
-
-    ret = IMP_ISP_Tuning_SetSensorFPS(cfg->sensor.fps, 1);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetSensorFPS(" << cfg->sensor.fps << ", 1)");
-
-#if defined(PLATFORM_T21)
-    //T20 T21 only set FPS if it is read after set.
-    uint32_t fps_num, fps_den;
-    ret = IMP_ISP_Tuning_GetSensorFPS(&fps_num, &fps_den);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_GetSensorFPS(" << fps_num << ", " << fps_den << ")");
-#endif
-
-    // Set the ISP to DAY on launch
-    ret = IMP_ISP_Tuning_SetISPRunningMode(IMPISP_RUNNING_MODE_DAY);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetISPRunningMode(" << IMPISP_RUNNING_MODE_DAY << ")");
-#endif // #if !defined(NO_TUNINGS)
-
-    return ret;
+    return 0;
 }
 
-int IMPSystem::destroy()
-{
+int IMPSystem::destroy() {
     int ret;
+    IMPVI_NUM vinum = IMPVI_MAIN;
 
-    ret = IMP_System_Exit();
-    LOG_DEBUG_OR_ERROR(ret, "IMP_System_Exit()");
+    ret = IMP_ISP_DisableSensor(vinum);
+    if(ret < 0) {
+        IMP_LOG_ERR(TAG, "Failed to disable sensor\n");
+    }
 
-#if defined(PLATFORM_T40) || defined(PLATFORM_T41)
-    ret = IMP_ISP_DisableSensor(IMPVI_MAIN);
-#else
-    ret = IMP_ISP_DisableSensor();
-#endif
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_DisableSensor()");
-
-#if defined(PLATFORM_T40) || defined(PLATFORM_T41)
-    ret = IMP_ISP_DelSensor(IMPVI_MAIN, &sinfo);
-#else
-    ret = IMP_ISP_DelSensor(&sinfo);
-#endif
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_DelSensor()");
+    ret = IMP_ISP_DelSensor(vinum, &sensor_info[0]);  // Using the correct sensor info array
+    if(ret < 0) {
+        IMP_LOG_ERR(TAG, "Failed to delete sensor\n");
+    }
 
     ret = IMP_ISP_DisableTuning();
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_DisableTuning()");
+    if(ret < 0) {
+        IMP_LOG_ERR(TAG, "Failed to disable tuning\n");
+    }
 
     ret = IMP_ISP_Close();
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Close()");
+    if(ret < 0) {
+        IMP_LOG_ERR(TAG, "Failed to close ISP\n");
+    }
 
     return 0;
 }
