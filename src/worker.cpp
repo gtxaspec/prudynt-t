@@ -414,19 +414,20 @@ void *Worker::stream_grabber(void *arg)
                                     global_video[encChn]->onDataCallback();
                             }
                         }
-
+#if defined(USE_AUDIO_STREAM_REPLICATOR)
                         /* Since the audio stream is permanently in use by the stream replicator, 
                          * and the audio grabber and encoder standby is also controlled by the video threads
                          * we need to wakeup the audio thread 
                         */
                         if(cfg->audio.input_enabled && !global_audio[0]->active && !global_restart)
                         {
-                            LOG_DEBUG("NOTIFY AUDIO " << 
+                            LOG_DDEBUG("NOTIFY AUDIO " << 
                                 !global_audio[0]->active << " " << 
                                 cfg->audio.input_enabled
                             );                            
                             global_audio[0]->should_grab_frames.notify_one();
                         }
+#endif
                     }
                 }
 
