@@ -25,8 +25,10 @@ int IMPSystem::init()
     LOG_DEBUG("IMPSystem::init()");
     int ret = 0;
 
+#if !(defined(PLATFORM_T40) || defined(PLATFORM_T41))
     ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
+#endif
 
     IMPVersion impVersion;
     ret = IMP_System_GetVersion(&impVersion);
@@ -44,10 +46,19 @@ int IMPSystem::init()
 
     /* sensor */
     sinfo = create_sensor_info(cfg->sensor.model);
+#if defined(PLATFORM_T40) || defined(PLATFORM_T41)
+    ret = IMP_ISP_AddSensor(IMPVI_MAIN, &sinfo);
+    ret = IMP_ISP_EnableSensor(IMPVI_MAIN, &sinfo);
+#else
     ret = IMP_ISP_AddSensor(&sinfo);
+#endif
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_AddSensor(&sinfo)");
 
+#if defined(PLATFORM_T40) || defined(PLATFORM_T41)
+    ret = IMP_ISP_EnableSensor(IMPVI_MAIN, &sinfo);
+#else
     ret = IMP_ISP_EnableSensor();
+#endif
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_EnableSensor()");
 
     /* system */
@@ -166,7 +177,6 @@ int IMPSystem::init()
     ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
 #endif
-#endif // #if !defined(NO_TUNINGS)
 
     LOG_DEBUG("ISP Tuning Defaults set");
 
@@ -183,6 +193,7 @@ int IMPSystem::init()
     // Set the ISP to DAY on launch
     ret = IMP_ISP_Tuning_SetISPRunningMode(IMPISP_RUNNING_MODE_DAY);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetISPRunningMode(" << IMPISP_RUNNING_MODE_DAY << ")");
+#endif // #if !defined(NO_TUNINGS)
 
     return ret;
 }
@@ -194,10 +205,18 @@ int IMPSystem::destroy()
     ret = IMP_System_Exit();
     LOG_DEBUG_OR_ERROR(ret, "IMP_System_Exit()");
 
+#if defined(PLATFORM_T40) || defined(PLATFORM_T41)
+    ret = IMP_ISP_DisableSensor(IMPVI_MAIN);
+#else
     ret = IMP_ISP_DisableSensor();
+#endif
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_DisableSensor()");
 
+#if defined(PLATFORM_T40) || defined(PLATFORM_T41)
+    ret = IMP_ISP_DelSensor(IMPVI_MAIN, &sinfo);
+#else
     ret = IMP_ISP_DelSensor(&sinfo);
+#endif
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_DelSensor()");
 
     ret = IMP_ISP_DisableTuning();

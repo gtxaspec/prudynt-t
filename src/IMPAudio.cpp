@@ -201,7 +201,7 @@ int IMPAudio::init()
         enabledHpf = true;
     }
 
-#if defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30) || defined(PLATFORM_T31)
+#if defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30) || defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
     if(cfg->audio.input_agc_enabled) {
         IMPAudioAgcConfig agcConfig = {
             /**< Gain level, with a range of [0, 31]. This represents the target

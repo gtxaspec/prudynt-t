@@ -35,7 +35,7 @@
 #define THREAD_SLEEP 100000
 #define GET_STREAM_BLOCKING false
 
-#if defined(PLATFORM_T31)
+#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
     #define DEFAULT_ENC_MODE_0 "FIXQP"
     #define DEFAULT_ENC_MODE_1 "CAPPED_QUALITY"
     #define DEFAULT_BUFFERS_0 4
