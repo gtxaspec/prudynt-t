@@ -350,7 +350,7 @@ int IMPEncoder::init()
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&fs, &enc)");
         }
     }
-#if (defined(PLATFORM_T31) && defined(PLATFORM_T40) && defined(PLATFORM_T41))
+#if !(defined(PLATFORM_T31) || !defined(PLATFORM_T40) || !defined(PLATFORM_T41))
     else
     {
         IMPEncoderJpegeQl pstJpegeQl;
