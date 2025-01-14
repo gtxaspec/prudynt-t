@@ -300,6 +300,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream1.osd.uptime_transparency", stream1.osd.uptime_transparency, 255, validateInt255},
         {"stream1.osd.user_text_transparency", stream1.osd.user_text_transparency, 255, validateInt255},
         {"stream1.osd.user_text_rotation", stream1.osd.user_text_rotation, 0, validateInt360},
+        {"stream1.rotation", stream1.rotation, 0, validateInt2},
         {"stream1.width", stream1.width, 640, validateIntGe0},
         {"stream1.profile", stream1.profile, 2, validateInt2},
         {"stream2.jpeg_channel", stream2.jpeg_channel, 0, validateIntGe0},

@@ -48,15 +48,25 @@ int IMPFramesource::init()
     chnAttr.crop.width = sensor->width;
     chnAttr.crop.height = sensor->height;
     chnAttr.scaler.enable = scale;
-    chnAttr.scaler.outwidth = stream->width;
-    chnAttr.scaler.outheight = stream->height;
-    chnAttr.picWidth = stream->width;
-    chnAttr.picHeight = stream->height;
+    if (stream->rotation != 0) {
+        chnAttr.scaler.outwidth = stream->height;
+        chnAttr.scaler.outheight = stream->width;
+        chnAttr.picWidth = stream->height;
+        chnAttr.picHeight = stream->width;
+// Breaks OSD
+//        chnAttr.picWidth = stream->width;
+//        chnAttr.picHeight = stream->height;
+    } else {
+        chnAttr.scaler.outwidth = stream->width;
+        chnAttr.scaler.outheight = stream->height;
+        chnAttr.picWidth = stream->width;
+        chnAttr.picHeight = stream->height;
+    }
 
 #if !defined(KERNEL_VERSION_4)
 #if defined(PLATFORM_T31)
 
-    int rotation = stream->rotation;
+    int rot_rotation = stream->rotation;
     int rot_height = stream->height;
     int rot_width = stream->width;
 
@@ -64,8 +74,10 @@ int IMPFramesource::init()
     // IMP_Encoder_SetFisheyeEnableStatus(0, 1);
     // IMP_Encoder_SetFisheyeEnableStatus(1, 1);
 
-    ret = IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width)");
+    if (stream->rotation != 0) {
+       ret = IMP_FrameSource_SetChnRotate(chnNr, rot_rotation, rot_height, rot_width);
+       LOG_DEBUG_OR_ERROR(ret, "IMP_FrameSource_SetChnRotate(0, rotation, rot_height, rot_width)");
+    }
 
 #endif
 #endif
