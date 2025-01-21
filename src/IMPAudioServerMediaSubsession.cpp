@@ -87,7 +87,7 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
             /* numChannels */ outChnCnt);
     }
 
-    LOG_ERROR("createNewRTPSink: " << rtpPayloadFormatName << ", " << rtpTimestampFrequency);
+    LOG_DEBUG("createNewRTPSink: " << rtpPayloadFormatName << ", " << rtpTimestampFrequency);
 
     return SimpleRTPSink::createNew(
         envir(), rtpGroupsock, rtpPayloadFormat, rtpTimestampFrequency,
