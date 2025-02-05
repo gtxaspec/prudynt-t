@@ -384,7 +384,7 @@ bool CFG::readConfig()
     }
     catch (const FileIOException &)
     {
-        fs::path etcPath = "/etc/prudynt.cfg";
+        fs::path etcPath = "/etc/config/prudynt.cfg";
         filePath = etcPath;
         try
         {
@@ -393,7 +393,7 @@ bool CFG::readConfig()
         }
         catch (...)
         {
-            LOG_WARN("Failed to load prudynt configuration file from /etc.");
+            LOG_WARN("Failed to load prudynt configuration file from /etc/config.");
             return false; // Exit if configuration file is missing
         }
     }
