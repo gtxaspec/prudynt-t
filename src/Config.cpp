@@ -384,7 +384,7 @@ bool CFG::readConfig()
     }
     catch (const FileIOException &)
     {
-        fs::path etcPath = "/etc/config/prudynt.cfg";
+        fs::path etcPath = "/etc/prudynt.cfg";
         filePath = etcPath;
         try
         {
