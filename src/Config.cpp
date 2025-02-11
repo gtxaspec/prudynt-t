@@ -234,6 +234,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"rtsp.out_buffer_size", rtsp.out_buffer_size, 500000, validateIntGe0},
         {"rtsp.port", rtsp.port, 554, validateInt65535},
         {"rtsp.send_buffer_size", rtsp.send_buffer_size, 307200, validateIntGe0},
+        {"rtsp.session_reclaim", rtsp.session_reclaim, 65, validateIntGe0},
         {"sensor.fps", sensor.fps, 25, validateInt120, false, "/proc/jz/sensor/max_fps"},
         {"sensor.height", sensor.height, 1080, validateIntGe0, false, "/proc/jz/sensor/height"},
         {"sensor.width", sensor.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},

@@ -24,6 +24,7 @@ rtsp: {
 	# est_bitrate: 5000;  # Estimated bitrate for RTSP streaming (in kbps).
 	# out_buffer_size: 500000;  # Output buffer size for RTSP streaming (in bytes).
 	# send_buffer_size: 307200;  # Send buffer size for RTSP streaming (in bytes).
+	# session_reclaim: 65;  #  State for each client will get reclaimed if no activity from the client is detected in at least "session_reclaim" seconds.
 	# auth_required: true;  # Enable RTSP authentication (true/false).
 	# username: "thingino";  # Username for RTSP authentication.
 	# password: "thingino";  # Password for RTSP authentication.
