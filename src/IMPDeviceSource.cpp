@@ -14,7 +14,7 @@ IMPDeviceSource<FrameType, Stream> *IMPDeviceSource<FrameType, Stream>::createNe
 
 template<typename FrameType, typename Stream>
 IMPDeviceSource<FrameType, Stream>::IMPDeviceSource(UsageEnvironment &env, int encChn, std::shared_ptr<Stream> stream, const char *name)
-    : FramedSource(env), encChn(encChn), stream{stream}, name{name}, eventTriggerId(0)     
+    : FramedSource(env), encChn(encChn), stream{stream}, name{name}, eventTriggerId(0), firstFrame(true)     
 {
     std::lock_guard lock_stream {mutex_main};
     std::lock_guard lock_callback {stream->onDataCallbackLock};
@@ -65,20 +65,37 @@ void IMPDeviceSource<FrameType, Stream>::deliverFrame()
     FrameType nal;
     if (stream->msgChannel->read(&nal))
     {
+        // Check if the NAL unit is too large for the buffer
         if (nal.data.size() > fMaxSize)
         {
-            fFrameSize = fMaxSize;
-            fNumTruncatedBytes = nal.data.size() - fMaxSize;
+            // If we're truncating the data, it's better to discard the frame entirely
+            // to avoid corrupted video rather than sending a partial frame
+            LOG_DEBUG("Frame size " << nal.data.size() << " exceeds buffer size " << fMaxSize << 
+                      ". Dropping frame to avoid corruption.");
+            fFrameSize = 0;
+            
+            // Signal that we've processed the frame without actually delivering it
+            // This is better than delivering a corrupted frame
+            FramedSource::afterGetting(this);
+            return;
         }
         else
         {
             fFrameSize = nal.data.size();
         }
 
-        /* timestamp fix, can be removed if solved
-        fPresentationTime = nal.time;
-        */
-        gettimeofday(&fPresentationTime, NULL);
+        // Use timestamps that are guaranteed to increment
+        if (firstFrame) {
+            // Start with a small non-zero timestamp to avoid mpv "Invalid video timestamp" errors
+            struct timeval first_frame_time;
+            first_frame_time.tv_sec = 0;
+            first_frame_time.tv_usec = 1000; // Start at 1ms instead of 0
+            fPresentationTime = first_frame_time;
+            firstFrame = false;
+        } else {
+            // For subsequent frames, use the encoder-provided timestamp
+            fPresentationTime = nal.time;
+        }
         
         memcpy(fTo, &nal.data[0], fFrameSize);
 

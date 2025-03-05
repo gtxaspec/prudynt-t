@@ -26,9 +26,10 @@ void AudioReframer::addFrame(const uint8_t* frameData, int64_t timestamp)
     size_t inputFrameSize = inputSamplesPerFrame * sizeof(uint16_t);
     buffer.push(frameData, inputFrameSize);
 
-    if (samplesAccumulated == 0)
-    {
-        currentTimestamp = timestamp; // Initialize timestamp with the first frame
+    // For the first frame, initialize the timestamps to start at zero
+    // This helps ensure audio and video are synchronized from the beginning
+    if (samplesAccumulated == 0) {
+        currentTimestamp = 0; // Start at zero
     }
 
     samplesAccumulated += inputSamplesPerFrame;
@@ -49,8 +50,14 @@ void AudioReframer::getReframedFrame(uint8_t* frameData, int64_t& timestamp)
     buffer.fetch(frameData, outputFrameSize);
     samplesAccumulated -= outputSamplesPerFrame;
 
+    // Return a clean timestamp that is a multiple of frame duration
+    // This ensures consistent intervals between audio frames
     timestamp = currentTimestamp;
-    currentTimestamp += (outputSamplesPerFrame * 1000) / inputSampleRate;
+
+    // Calculate next timestamp in microseconds
+    // We use a strict frame duration calculation to make timestamps very predictable
+    int64_t frameDuration = (outputSamplesPerFrame * 1000000) / inputSampleRate;
+    currentTimestamp += frameDuration;
 }
 
 bool AudioReframer::hasMoreFrames() const

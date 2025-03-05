@@ -34,6 +34,8 @@ private:
     std::shared_ptr<Stream> stream;
     std::string name;   // for printing
     EventTriggerId eventTriggerId;
+    // For synchronization tracking
+    bool firstFrame;
 };
 
 #endif
