@@ -23,6 +23,11 @@ private:
     int64_t currentTimestamp;
     size_t samplesAccumulated;
 
+    // For timestamp normalization and drift prevention
+    int64_t base_timestamp;
+    bool timestamp_initialized;
+    unsigned int resetCounter;
+
     RingBuffer buffer;
 };
 
