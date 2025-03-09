@@ -57,7 +57,7 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
     FramedSource* inputSource)
 {
     unsigned rtpPayloadFormat = rtpPayloadTypeIfDynamic;
-    unsigned rtpTimestampFrequency = global_audio[audioChn]->imp_audio->sample_rate;
+    unsigned rtpTimestampFrequency = 90000;
     const char* rtpPayloadFormatName = "L16";
     bool allowMultipleFramesPerPacket = true;
     int outChnCnt = cfg->audio.force_stereo ? 2 : 1;
