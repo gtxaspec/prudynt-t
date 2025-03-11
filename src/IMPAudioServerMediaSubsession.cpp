@@ -80,6 +80,7 @@ RTPSink* IMPAudioServerMediaSubsession::createNewRTPSink(
         rtpTimestampFrequency = 48000;
         rtpPayloadFormatName = "OPUS";
         allowMultipleFramesPerPacket = false;
+        outChnCnt = 2;
         break;
     case IMPAudioFormat::AAC:
         return AACSink::createNew(
