@@ -1,8 +1,6 @@
 CC = ${CROSS_COMPILE}gcc
 CXX = ${CROSS_COMPILE}g++
 
-DEBUG=n
-
 CXXFLAGS += $(CFLAGS) -std=c++20 -Wall -Wextra -Wno-unused-parameter
 LDFLAGS += -lrt -lpthread
 
@@ -74,6 +72,8 @@ endif
 LIBWEBSOCKETS = ./3rdparty/install/include/
 VERSION_FILE  = $(LIBIMP_INC_DIR)/version.hpp
 
+STRIP_FLAG := $(if $(filter 0,$(DEBUG_STRIP)),,"-s")
+
 $(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
 	@if ! grep -q "$(commit_tag)" version.h > /dev/null 2>&1; then \
 		echo "Updating version.h to $(commit_tag)"; \
@@ -84,13 +84,13 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(VERSION_FILE)
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -c $< -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(VERSION_FILE) 
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(VERSION_FILE)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -c $< -o $@
 
 $(TARGET): $(OBJECTS) $(VERSION_FILE)
 	@mkdir -p $(@D)
-	$(CCACHE) $(CXX) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS) -s
+	$(CCACHE) $(CXX) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS) $(STRIP_FLAG)
 
 .PHONY: all clean
 
