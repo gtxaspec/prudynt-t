@@ -137,6 +137,7 @@ while [[ $# -gt 0 ]]; do
 		-d)
 			DEBUG_MODE=1
 			OPT_CMD="-O0 -g"
+			DEBUG_STRIP_FLAG="DEBUG_STRIP=0"
 			shift
 			;;
 		-c)
@@ -176,7 +177,7 @@ PLAT=$(sed -n 's/BR2_SOC_FAMILY_INGENIC_\([^=]*\)=.*/\1/p' "$CONFIG_FILE")
 
 rm -rf 3rdparty
 make distclean
-time /usr/bin/make V=1 -j$(( $(nproc) + 1 )) \
+time /usr/bin/make V=1 -j$(( $(nproc) + 1 )) $DEBUG_STRIP_FLAG \
 	ARCH= \
 	CROSS_COMPILE="$CCACHE_BIN $HOME_DIR/output/$PROFILE_NAME/per-package/prudynt-t/host/bin/mipsel-linux-" \
 	CFLAGS="-DPLATFORM_$PLAT $OPT_CMD -DBINARY_${BINARY_MODE^^} -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
