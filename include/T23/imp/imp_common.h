@@ -21,73 +21,74 @@ extern "C"
 
 /**
  * @file
- * SDK-T15公共数据结构头文件
+ * SDK-T15 Public data structure header file
  */
 
 /**
- * IMP 设备ID枚举定义.
+ * IMP Device ID enumeration definition
  */
 typedef enum {
-	DEV_ID_FS,			/**< 视频源 */
-	DEV_ID_ENC,			/**< 编码器 */
-	DEV_ID_DEC,			/**< 解码器 */
-	DEV_ID_IVS,			/**< 算法 */
-	DEV_ID_OSD,			/**< 图像叠加 */
-	DEV_ID_FG1DIRECT,	/**< FB FG1Direct */
+	DEV_ID_FS,			/**< Video Source */
+	DEV_ID_ENC,			/**< Encoder */
+	DEV_ID_DEC,			/**< Decoder */
+	DEV_ID_IVS,			/**< Algorithm */
+	DEV_ID_OSD,			/**< Image Overlay */
+	DEV_ID_FG1DIRECT,		/**< FB FG1Direct */
 	DEV_ID_RESERVED_START,
 	DEV_ID_RESERVED_END = 23,
 	NR_MAX_DEVICES,
 } IMPDeviceID;
 
 /**
- * IMPCell枚举定义.
+ * IMPCell enumeration definition
  */
 typedef struct {
-	IMPDeviceID	deviceID;		/**< 设备ID */
-	int			groupID;		/**< 组ID */
-	int			outputID;		/**< 输出ID */
+	IMPDeviceID	deviceID;		/**< Device ID */
+	int			groupID;		/**< Group ID */
+	int			outputID;		/**< output ID */
 } IMPCell;
 
 /**
- * IMP帧图像信息定义.
+ * IMP frame image information definition
  */
 typedef struct {
-	int index;                /**< 帧序号 */
-	int pool_idx;             /**< 帧所在的Pool的ID */
+	int index;               /**< frame index */
+	int pool_idx;            /**< frame Pool's ID */
 
-	uint32_t width;           /**< 帧宽 */
-	uint32_t height;          /**< 帧高 */
-	uint32_t pixfmt;          /**< 帧的图像格式 */
-	uint32_t size;            /**< 帧所占用空间大小 */
+	uint32_t width;          /**< frame's width */
+	uint32_t height;         /**< frame's height */
+	uint32_t pixfmt;         /**< frame's image format */
+	uint32_t size;           /**< frame's occupied space */
 
-	uint32_t phyAddr;         /**< 帧的物理地址 */
-	uint32_t virAddr;         /**< 帧的虚拟地址 */
-	uint32_t direct_phyAddr;  /**< 帧的直通地址 */
+	uint32_t phyAddr;        /**< frame's physical address */
+	uint32_t virAddr;        /**< frame's virtual address */
+	uint32_t direct_phyAddr; /**< frame's direct address */
 
-	int64_t timeStamp;        /**< 帧的时间戳 */
-	uint32_t priv[0];         /**< 私有数据 */
+	int64_t timeStamp;       /**< frame time stamp*/
+	int64_t timeStamp_ivdc;  /**< ivdc frame dq time stamp*/
+	uint32_t priv[0];        /**< private data */
 } IMPFrameInfo;
 
 /**
- * IMP帧时间参数.
+ * IMP Frame time parameter.
  */
 typedef struct {
-	uint64_t ts;						/**< 时间 */
-	uint64_t minus;						/**< 下限 */
-	uint64_t plus;						/**< 上限 */
+	uint64_t ts;						/**< time */
+	uint64_t minus;						/**< time to min */
+	uint64_t plus;						/**< max to time */
 } IMPFrameTimestamp;
 
 /**
- * 编解码协议类型
+ * Encoding and decoding protocol type
  */
 typedef enum {
-	PT_JPEG,					/**< JPEG图像协议类型 */
-	PT_H264,					/**< H264视频协议类型 */
-	PT_H265,					/**< H265视频协议类型 */
+	PT_JPEG,					/**< JPEG image protocol type */
+	PT_H264,					/**< H264 video protocol type*/
+	PT_H265,					/**< H265 video protocol type*/
 } IMPPayloadType;
 
 /**
- * IMP图像格式定义.
+ * IMP image format definition.
  */
 typedef enum {
 	PIX_FMT_YUV420P,   /**< planar YUV 4:2:0, 12bpp, (1 Cr & Cb sample per 2x2 Y samples) */
@@ -140,34 +141,34 @@ typedef enum {
 } IMPPixelFormat;
 
 /**
- * IMP点坐标信息.
+ * IMP point coordinate information
  */
 typedef struct {
-	int		x;			/**<横坐标  */
-	int		y;			/**<纵坐标  */
+	int		x;			/**< X-axis  */
+	int		y;			/**< Y-axis  */
 } IMPPoint;
 
 /**
- * IMP 矩形区域信息.
+ * IMP Rectangle area information
  *
- * 如下图所示，当p0(100,100)作为起始点，要使width和height为100时，则p1为(199,199)
- * width = abs(p1.x-p0.x)+1   height = abs(p1.y-p0.y)+1  点数等于距离+1
- * p0(100,100) _____100______
+ * According to the image down there, if P0(100,100) is the start point, and we'd like that the width and height are both 100，then P1(199,199)
+ * width = abs(P1.x-P0.x)+1   height = abs(P1.y-P0.y)+1, Point coordinates are both equal to distance +1.
+ * P0(100,100) _____100______
  *            |              |
  *            |              |
  *         100|              |
  *            |              |
  *            |______________|
- *                           p1(199,199)
+ *                           P1(199,199)
  *
  */
 typedef struct {
-	IMPPoint		p0;		/**<左上角点坐标信息  */
-	IMPPoint		p1;		/**<右下角点坐标信息  */
+	IMPPoint		p0;		/**<Upper left corner coordinate information  */
+	IMPPoint		p1;		/**<Lower right corner coordinate information */
 } IMPRect;
 
 typedef struct {
-	IMPPoint		p0;		/**<横线：直线的左端点 竖线：直线的右端点 */
+	IMPPoint		p0;		/**<Horizontal line: Left end point of a straight line Vertical line: Right end of a straight line */
 }IMPLine;
 
 static inline int calc_pic_size(int width, int height, IMPPixelFormat imp_pixfmt)
@@ -181,7 +182,6 @@ static inline int calc_pic_size(int width, int height, IMPPixelFormat imp_pixfmt
 		BPP(PIX_FMT_UYVY422, 2, 1);
 		BPP(PIX_FMT_RGB565BE, 2, 1);
 		BPP(PIX_FMT_BGR0, 4, 1);
-		BPP(PIX_FMT_BGR24, 3, 1);
 	default: break;
 	}
 #undef BPP

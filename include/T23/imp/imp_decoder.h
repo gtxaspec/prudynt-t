@@ -19,181 +19,183 @@ extern "C"
 
 /**
  * @file
- * IMP解码器头文件
+ * IMP Decoder header file
  */
 
 /**
  * @defgroup IMP_Decoder
  * @ingroup imp
- * @brief 视频解码模块，当前只支持JPEG解码
+ * @brief Video Decoder modules, only support JEPG decode for now.
  * @{
  */
 
 /**
- * 定义解码器属性
+ * Attribute of Decoder
  */
 typedef struct {
-	IMPPayloadType		decType;		/**< 解码帧原数据协议类型 */
-	uint32_t			maxWidth;		/**< 解码帧最大的宽度 */
-	uint32_t			maxHeight;		/**< 解码帧最大的高度 */
-	IMPPixelFormat		pixelFormat;	/**< 解码帧目标数据协议类型 */
-	uint32_t			nrKeepStream;	/**< 解码器缓存帧个数 */
-	uint32_t			frmRateNum;		/**< 在一秒钟内的时间单元的数量, 以时间单元为单位。即帧率的分子 */
-	uint32_t			frmRateDen;		/**< 在一帧内的时间单元的数量, 以时间单元为单位。即帧率的分母 */
+	IMPPayloadType		decType;		/**< Stream payload type */
+	uint32_t			maxWidth;		/**< Max width of frame */
+	uint32_t			maxHeight;		/**< Max hight of frame */
+	IMPPixelFormat		pixelFormat;	/**< Pixel format of Output frame */
+	uint32_t			nrKeepStream;	/**< Number of frames in Decoder FIFO */
+	uint32_t			frmRateNum;		/**< The number of time units within a second, time unitis its unit. The numerator of framerate */
+	uint32_t			frmRateDen;		/**< The number of time units in a frame, time unit is its unit. The denominator of framerate */
 } IMPDecoderAttr;
 
 /**
- * 定义解码Channel属性
+ * Attribute of Decoder Channel
  */
 typedef struct {
-	IMPDecoderAttr		decAttr;		/**< 解码器属性 */
+	IMPDecoderAttr		decAttr;		/**< Decoder attribute */
 } IMPDecoderCHNAttr;
 
 /**
- * 定义解码帧数据属性
+ * Attribute of decode frame
  */
 typedef struct {
-	int					i_payload;		/**< 解码帧的数据长度 */
-	uint8_t				*p_payload;		/**< 解码帧的数据指针 */
-	int64_t				timeStamp;		/**< 解码帧的时间戳 */
+	int					i_payload;		/**< Length of decode frame */
+	uint8_t				*p_payload;		/**< Pointer to decode frame */
+	int64_t				timeStamp;		/**< Timestamp of decode frame */
 } IMPDecoderNal;
 
 /**
- * 定义解码器码流属性
+ * Attribute of decode stream
  */
 typedef struct {
-	IMPDecoderNal	decoderNal; /**< 解码帧数据结构体 */
+	IMPDecoderNal	decoderNal; /**< decode stream data structure */
 } IMPDecoderStream;
 
 /**
  * @fn int IMP_Decoder_CreateChn(int decChn, const IMPDecoderCHNAttr *attr)
  *
- * 创建解码Channel
+ * Create Decoder channel.
  *
- * @param[in] decChn 解码Channel号,取值范围: [0, @ref NR_MAX_DEC_CHN - 1]
- * @param[in] attr 解码Channel属性指针
+ * @param[in] decChn Channel Num. Value range: [0, @ref NR_MAX_DEC_CHN - 1]
+ * @param[in] attr Pointer to Decoder Channel attribute
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0 Success
+ * @retval OtherValues Failure
  *
- * @remark 无。
- * @attention 无。
+ * @remarks None.
+ * @attention None.
  */
 int IMP_Decoder_CreateChn(int decChn, const IMPDecoderCHNAttr *attr);
 
 /**
  * @fn int IMP_Decoder_DestroyChn(int decChn)
  *
- * 销毁解码Channel
+ * Destroy Decoder channel.
  *
- * @param[in] decChn 解码Channel号,取值范围: [0, @ref NR_MAX_DEC_CHN - 1]
+ * @param[in] decChn Channel Num. Value range: [0, @ref NR_MAX_DEC_CHN - 1]
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0 Success
+ * @retval OtherValues Failure
  *
- * @remark 无。
- * @attention 无。
+ * @remarks None.
+ * @attention None.
  */
 int IMP_Decoder_DestroyChn(int decChn);
 
 /**
  * @fn int IMP_Decoder_StartRecvPic(int decChn)
  *
- * 开启解码Channel接收图像
+ * Decoder channel start recieve pictures.
  *
- * @param[in] decChn 解码Channel号,取值范围: [0, @ref NR_MAX_DEC_CHN - 1]
+ * @param[in] decChn Channel Num. Value range: [0, @ref NR_MAX_DEC_CHN - 1]
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0 Success
+ * @retval OtherValues Failure
  *
- * @remark 开启解码Channel接收图像后才能开始解码
+ * @remarks First Open decoding Channel to receive the image then start decoding.
  *
- * @attention 如果Channel未创建，则返回失败
+ * @attention Failed if the channel isn't created.
  */
 int IMP_Decoder_StartRecvPic(int decChn);
 
 /**
  * @fn int IMP_Decoder_StopRecvPic(int decChn)
  *
- * 停止解码Channel接收图像
+ * Decoder channel stop recieve pictures.
  *
- * @param[in] decChn 解码Channel号,取值范围: [0, @ref NR_MAX_DEC_CHN - 1]
+ * @param[in] decChn Channel Num. Value range: [0, @ref NR_MAX_DEC_CHN - 1]
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0 Success
+ * @retval OtherValues Failure
  *
- * @remark 停止解码Channel接收图像
+ * @remarks Stop decoding the Channel to receive image.
  *
- * @attention 如果Channel未创建，则返回失败
+ * @attention Failed if the channel isn't created.
  */
 int IMP_Decoder_StopRecvPic(int decChn);
 
 /**
  * @fn int IMP_Decoder_SendStreamTimeout(int decChn, IMPDecoderStream *stream, uint32_t timeoutMsec)
  *
- * 发送需解码数据
+ * Send frame to Decoder channel.
  *
- * @param[in] decChn 解码Channel号,取值范围: [0, @ref NR_MAX_DEC_CHN - 1]
- * @param[in] stream 需解码的数据流结构体指针
- * @param[in] timeoutMsec 解码超时时间 单位ms
+ * @param[in] decChn Channel Num. Value range: [0, @ref NR_MAX_DEC_CHN - 1]
+ * @param[in] stream Pointer to the Data stream structure to be decoded
+ * @param[in] timeoutMsec Decode timeout value(msec).
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0 Success
+ * @retval OtherValues Failure
  *
- * @remark 无。
+ * @remarks None.
  *
- * @attention 如果Channel未创建，则返回失败
+ * @attention Failed if the channel isn't created.
  */
 int IMP_Decoder_SendStreamTimeout(int decChn, IMPDecoderStream *stream, uint32_t timeoutMsec);
 
 /**
  * @fn int IMP_Decoder_PollingFrame(int decChn, uint32_t timeoutMsec)
  *
- * Polling 解码码流缓存
+ * Polling Decoder channel, return when decoding finished or timeout.
  *
- * @param[in] decChn 解码Channel号,取值范围: [0, @ref NR_MAX_DEC_CHN - 1]
- * @param[in] timeoutMsec 超时时间 单位ms
+ * @param[in] decChn Channel Num. Value range: [0, @ref NR_MAX_DEC_CHN - 1]
+ * @param[in] stream Pointer to stream to be decoded.
+ * @param[in] timeoutMsec Wait timeout value(msec).
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0 Success
+ * @retval OtherValues Failure
  *
- * @remark 无。
+ * @remarks None.
  *
- * @attention 如果Channel未创建，则返回失败
+ * @attention Failed if the channel isn't created.
  */
 int IMP_Decoder_PollingFrame(int decChn, uint32_t timeoutMsec);
 
 /**
  * @fn int IMP_Decoder_GetFrame(int decChn, IMPFrameInfo **frame)
  *
- * 获取解码码流
+ * Get the decoded output frame.
  *
- * @param[in] decChn 解码Channel号,取值范围: [0, @ref NR_MAX_DEC_CHN - 1]
- * @param[out] frame 解码码流结构体指针
+ * @param[in] decChn Channel Num. Value range: [0, @ref NR_MAX_DEC_CHN - 1]
+ * @param[out] frame Pointer to output frame's pointer
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0 Success
+ * @retval OtherValues Failure
  *
- * @remark 无。
+ * @remarks None.
  *
- * @attention 解码码流buffer由解码器内部申请，该函数只需要传入结构体指针即可。
+ * @attention The memory of output buffer is malloced in Decoder, So the input argument is a pointer of a pointer(pointer's address).
+ * @attention The decoding stream buffer is applied by the decoder, and the current function only needs to be introduced into the structure body pointer.
  */
 int IMP_Decoder_GetFrame(int decChn, IMPFrameInfo **frame);
 
 /**
  * @fn int IMP_Decoder_ReleaseFrame(int decChn, IMPFrameInfo *frame)
  *
- * 释放码流缓存
+ * Release the decoded output frame.
  *
- * @param[in] decChn 解码Channel号,取值范围: [0, @ref NR_MAX_DEC_CHN - 1]
- * @param[in] frame 解码码流结构体指针
+ * @param[in] decChn Channel Num. Value range: [0, @ref NR_MAX_DEC_CHN - 1]
+ * @param[in] frame Pointer to output frame
  *
- * @retval 0 成功
- * @retval 非0 失败
+ * @retval 0 Success
+ * @retval OtherValues Failure
  *
- * @remark 无。
+ * @remarks None.
  *
- * @attention 无。
+ * @attention None.
  */
 int IMP_Decoder_ReleaseFrame(int decChn, IMPFrameInfo *frame);
 

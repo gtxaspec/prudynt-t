@@ -14,68 +14,67 @@ extern "C"
 #endif
 #endif /* __cplusplus */
 
-#define IMP_IVS_MOVE_MAX_ROI_CNT	52
+#define IMP_IVS_MOVE_MAX_ROI_CNT		52
 
 #include <imp/imp_ivs.h>
 
 /**
  * @file
- * IMP IVS 移动侦测模块
+ * IMP IVS Motion detection module
  */
-
 /**
  * @defgroup MoveDetection
  * @ingroup IMP_IVS
- * @brief 移动侦测接口
+ * @brief motion detection interface
  * @{
- */
+*/
+
 
 /**
- * 基本移动侦测算法的输入结构体
+ * Base Motion detection algorithm input parameter structure
  */
 typedef struct {
-	int             skipFrameCnt;                       /*< 隔帧检测的个数 */
-	int             referenceNum;                      /*<指定相对于当前帧的第-referenceNum帧为参考帧*/
-	int             sadMode;                           /*< SAD模式,0表示8*8*/
-	int             sense;                             /*<灵敏度,0-3,值越大灵敏度越大*/
-	IMPFrameInfo    frameInfo;                         /**< 帧尺寸信息,只需要配置width和height */
+	int             skipFrameCnt;                      /*< motion detected interval frame numbers */
+	int             referenceNum;                      /*specified the referenceNum frame relative to current frame as reference frame*/
+	int             sadMode;                           /*<SAD mode, 0 signify 8**/
+	int             sense;                             /*Sensitivity of motion detection:range:0-3, The bigger the value, the more sensitive*/
+	IMPFrameInfo    frameInfo;                         /**< frame information, only need to assign width and height */
 
 } IMP_IVS_BaseMoveParam;
 
 /*
- * 基本移动侦测算法的输出结构体
+ * Base Motion detection algorithm output parameter structure
  */
 typedef struct {
 	int ret;
 	uint8_t* data;
 	int datalen;
-	int64_t timeStamp;	/**< 帧的时间戳 */
+	int64_t timeStamp;
 } IMP_IVS_BaseMoveOutput;
 
 /**
- * 创建移动侦测接口资源
+ * Create motion detection interface
  *
  * @fn IMPIVSInterface *IMP_IVS_CreateBaseMoveInterface(IMP_IVS_BaseMoveParam *param);
  *
- * @param[in] param 移动侦测算法的输入结构体参数
+ * @param[in] param motion detection algorithm input parameter structure
  *
- * @retval 非NULL 成功,返回移动侦测算法接口指针句柄
- * @retval NULL 失败
+ * @retval not NULL success, returns the motion detection interface handler pointer
+ * @retval NULL failed
  *
- * @attention 无
+ * @attention null
  */
+
 IMPIVSInterface *IMP_IVS_CreateBaseMoveInterface(IMP_IVS_BaseMoveParam *param);
 
 /**
- * 销毁移动侦测接口资源
+ * Destroy move detection interface
  *
  * @fn void IMP_IVS_DestroyBaseMoveInterface(IMPIVSInterface *moveInterface);
  *
- * @param[in] moveInterface 移动侦测算法接口指针句柄
+ * @param[in] moveInterface motion detection interface handler pointer
  *
- * @retval 无返回值
- *
- * @attention 无
+ * @retval no return
  */
 void IMP_IVS_DestroyBaseMoveInterface(IMPIVSInterface *moveInterface);
 
