@@ -72,6 +72,8 @@ int IMP::framesource_init() {
 
 #if !defined(KERNEL_VERSION_4)
 #if defined(PLATFORM_T31)
+    LOG_DEBUG("DISABLED IMP_FrameSource_SetChnRotate() for IMP 1.1.5");
+/*
     // Set rotate before FS creation
     // IMP_Encoder_SetFisheyeEnableStatus(0, 1);
 
@@ -81,6 +83,7 @@ int IMP::framesource_init() {
         return ret;
     }
     LOG_DEBUG("IMP_FrameSource_SetChnRotate == " + std::to_string(rotation));
+    */
 #endif
 #endif
 

@@ -2,6 +2,7 @@
 #include <cstring>
 #include <ctime>
 #include <fstream>
+#include <unistd.h>
 
 #define MODULE "ENCODER"
 

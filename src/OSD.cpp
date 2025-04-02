@@ -3,6 +3,7 @@
 #include "OSD.hpp"
 #include "Config.hpp"
 #include "Logger.hpp"
+#include "make_unique.hpp"
 
 #include <fstream>
 #include <memory>

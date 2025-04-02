@@ -1,17 +1,22 @@
-#include <filesystem>
+//#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <functional>
 #include <libconfig.h++>
+#include <sstream>
+#include <type_traits>
 
 #include "Config.hpp"
 #include "Logger.hpp"
 
+#include <unistd.h>  // For readlink
+#include <limits.h>  // For PATH_MAX
+
 #define MODULE "CONFIG"
 
-namespace fs = std::filesystem;
+//namespace fs = std::filesystem;
 Config* Config::instance = nullptr;
 
 // Define a structure for configuration items
@@ -25,6 +30,7 @@ struct ConfigItem {
     std::string procPath;
 };
 
+/*
 // Utility function to handle configuration lookup, default assignment, and validation
 template<typename T>
 void handleConfigItem(libconfig::Config &lc, ConfigItem<T> &item, std::vector<std::string> &missingConfigs) {
@@ -71,24 +77,101 @@ void handleConfigItem(libconfig::Config &lc, ConfigItem<T> &item, std::vector<st
         item.value = item.defaultValue; // Revert to default if validation fails
     }
 }
+*/
+// Helper functions for reading different types
+template<typename T>
+bool readValueFromLine(const std::string& line, T& value) {
+    std::istringstream iss(line);
+    iss >> value;
+    return static_cast<bool>(iss);
+}
+
+template<>
+bool readValueFromLine<std::string>(const std::string& line, std::string& value) {
+    value = line;
+    return true;
+}
+
+template<>
+bool readValueFromLine<unsigned int>(const std::string& line, unsigned int& value) {
+    std::istringstream iss(line);
+    if (line.find("0x") == 0) { // Check if the line starts with "0x"
+        iss >> std::hex >> value; // Read as hexadecimal
+    } else {
+        iss >> value; // Read as decimal
+    }
+    return static_cast<bool>(iss);
+}
+
+template<typename T>
+void handleConfigItem(libconfig::Config& lc, ConfigItem<T>& item, std::vector<std::string>& missingConfigs) {
+    bool readFromConfig = lc.lookupValue(item.path, item.value);
+    bool readFromProc = false;
+
+    if (!readFromConfig && !item.procPath.empty()) { // If not read from config and procPath is set
+        // Attempt to read from the proc filesystem
+        std::ifstream procFile(item.procPath);
+        if (procFile) {
+            T value;
+            std::string line;
+            if (std::getline(procFile, line)) {
+                readFromProc = readValueFromLine(line, value);
+            }
+            if (readFromProc) {
+                item.value = value; // Assign the value read from proc
+            }
+        }
+    }
+
+    if (!readFromConfig && !readFromProc) {
+        item.value = item.defaultValue; // Assign default value if not found anywhere
+        missingConfigs.push_back(item.path); // Record missing config
+        LOG_WARN("Missing configuration for " + item.path + ", using default.");
+    } else if (!item.validate(item.value)) {
+        LOG_ERROR(item.errorMessage); // Log validation error
+        item.value = item.defaultValue; // Revert to default if validation fails
+    }
+}
+
+std::string getExecutablePath() {
+    char result[PATH_MAX];
+    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+    if (count == -1) {
+        LOG_ERROR ( "Error reading /proc/self/exe: " + errno );
+        exit(EXIT_FAILURE);
+    }
+    return std::string(result, count);
+}
+
+std::string getParentPath(const std::string& path) {
+    size_t pos = path.find_last_of('/');
+    if (pos == std::string::npos) {
+        return "";
+    }
+    return path.substr(0, pos);
+}
 
 Config::Config() {
     libconfig::Config lc;
 
     // Construct the path to the configuration file in the same directory as the program binary
-    fs::path binaryPath = fs::read_symlink("/proc/self/exe").parent_path();
-    fs::path cfgFilePath = binaryPath / "prudynt.cfg";
+    //fs::path binaryPath = fs::read_symlink("/proc/self/exe").parent_path();
+    //fs::path cfgFilePath = binaryPath / "prudynt.cfg";
+    std::string exePath = getExecutablePath();
+    std::string parentPath = getParentPath(exePath);
+    std::string cfgFilePath = parentPath + "/prudynt.cfg";
 
     // Try to load the configuration file from the specified paths
     try {
         lc.readFile(cfgFilePath.c_str());
-        LOG_INFO("Loaded configuration from " + cfgFilePath.string());
+        LOG_INFO("Loaded configuration from " + cfgFilePath);
     } catch (const libconfig::FileIOException &) {
         LOG_DEBUG("Failed to load prudynt configuration file from binary directory. Trying /etc...");
-        fs::path etcPath = "/etc/prudynt.cfg";
+        //fs::path etcPath = "/etc/prudynt.cfg";
+        std::string etcPath = "/etc/prudynt.cfg";
         try {
             lc.readFile(etcPath.c_str());
-            LOG_INFO("Loaded configuration from " + etcPath.string());
+            LOG_INFO("Loaded configuration from " + etcPath);
         } catch (...) {
             LOG_WARN("Failed to load prudynt configuration file from /etc.");
             return; // Exit if configuration file is missing

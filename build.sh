@@ -10,7 +10,7 @@ prudynt(){
 	make clean
 	/usr/bin/make -j13 \
 	ARCH= CROSS_COMPILE="${PRUDYNT_CROSS}" \
-	CFLAGS="-DPLATFORM_$1 -Os -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
+	CFLAGS="-DPLATFORM_$1 -Os -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 -D_GLIBCXX_USE_NANOSLEEP -D_GLIBCXX_USE_SCHED_YIELD \
 	-I./3rdparty/install/include \
 	-I./3rdparty/install/include/freetype2 \
 	-I./3rdparty/install/include/liveMedia \
@@ -110,7 +110,8 @@ deps() {
 			;;
 		T31)
 			echo "use $1 libs"
-			cp ingenic-lib/$1/lib/1.1.6/uclibc/5.4.0/* $TOP/3rdparty/install/lib
+			#cp ingenic-lib/$1/lib/1.1.6/uclibc/5.4.0/* $TOP/3rdparty/install/lib
+			cp ingenic-lib/$1/lib/1.1.5/uclibc/4.7.2/* $TOP/3rdparty/install/lib
 			;;
 		*)
 			echo "Unsupported or unspecified SoC model."
