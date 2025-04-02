@@ -35,7 +35,7 @@ deps() {
 	tar xf freetype-2.13.2.tar.xz
 	mv freetype-2.13.2 freetype
 	cd freetype
-	CC="${PRUDYNT_CROSS}gcc" ./configure --host mipsel-linux-gnu --prefix="$TOP/3rdparty/install/" --without-harfbuzz --disable-largefile --disable-mmap --without-png --without-brotli --without-zlib
+	CC="${PRUDYNT_CROSS}gcc" ./configure --host mipsel-linux-gnu --prefix="$TOP/3rdparty/install/" --without-harfbuzz --disable-largefile --disable-mmap --without-png --without-brotli --without-zlib --without-bzip2
 	make -j$(nproc)
 	make install
 	cd ../../
