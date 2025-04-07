@@ -225,6 +225,8 @@ audio: {
 	# input_agc_compression_gain_db: 0;  # AGC compression gain in dB for audio input (0 to 90).
 	# input_noise_suppression: 0;  # Noise suppression for audio input (0 to 3).
 	# force_stereo: false; # Enable stereo audio, best supported under PCM and OPUS.  AAC may have errors.
+	# output_enabled: false; # Enable or disable two-way audio output, also known as backchannel audio.
+	# output_sample_rate: 16000; # Output audio sampling in Hz (8000, 16000, 24000, 44100, 48000).  Must match IAD.
 };
 
 # Motion Settings
