@@ -1,4 +1,5 @@
 #include "worker.hpp"
+#include "BackchannelProcessor.hpp"
 #include "Motion.hpp"
 #include "AudioReframer.hpp"
 #include <cmath>
@@ -852,4 +853,23 @@ void *Worker::watch_config_poll(void *arg)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
+}
+
+void *Worker::backchannel_processor(void *arg)
+{
+    LOG_INFO("Backchannel processor thread starting...");
+
+    StartHelper *sh = static_cast<StartHelper *>(arg);
+    global_backchannel->imp_backchannel = IMPBackchannel::createNew();
+
+    BackchannelProcessor processor;
+    sh->has_started.release();
+    processor.run();
+
+    global_backchannel->imp_backchannel->deinit();
+    delete global_backchannel->imp_backchannel;
+    global_backchannel->imp_backchannel = nullptr;
+
+    LOG_INFO("Backchannel processor thread finished.");
+    return nullptr;
 }

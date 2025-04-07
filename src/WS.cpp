@@ -224,7 +224,9 @@ enum
     PNT_AUDIO_INPUT_AGC_COMPRESSION_GAIN_DB,
     PNT_AUDIO_INPUT_BITRATE,
     PNT_AUDIO_INPUT_FORMAT,
-    PNT_AUDIO_INPUT_SAMPLE_RATE
+    PNT_AUDIO_INPUT_SAMPLE_RATE,
+    PNT_AUDIO_OUTPUT_ENABLED,
+    PNT_AUDIO_OUTPUT_SAMPLE_RATE
 };
 
 static const char *const audio_keys[] = {
@@ -239,7 +241,9 @@ static const char *const audio_keys[] = {
     "input_agc_compression_gain_db",
     "input_bitrate",
     "input_format",
-    "input_sample_rate"};
+    "input_sample_rate",
+    "output_enabled",
+    "output_sample_rate"};
 #endif
 
 /* STREAM */
@@ -1131,7 +1135,8 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
         // integer values
         else if (ctx->path_match == PNT_AUDIO_INPUT_NOISE_SUPPRESSION || 
                  ctx->path_match == PNT_AUDIO_INPUT_SAMPLE_RATE ||
-                 ctx->path_match == PNT_AUDIO_INPUT_BITRATE )
+                 ctx->path_match == PNT_AUDIO_INPUT_BITRATE ||
+                 ctx->path_match == PNT_AUDIO_OUTPUT_SAMPLE_RATE )
         {
             if (reason == LEJPCB_VAL_NUM_INT)
             {
@@ -1185,6 +1190,25 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
         {
             switch (ctx->path_match)
             {
+            case PNT_AUDIO_OUTPUT_ENABLED:
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    if (cfg->set<bool>(u_ctx->path, true))
+                    {
+                        global_restart_audio = true;
+                        global_restart_rtsp = true;
+                    }
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    if (cfg->set<bool>(u_ctx->path, false))
+                    {
+                        global_restart_audio = true;
+                        global_restart_rtsp = true;
+                    }
+                }
+                add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
+                break;
             case PNT_AUDIO_INPUT_ENABLED:
                 if (reason == LEJPCB_VAL_TRUE)
                 {
