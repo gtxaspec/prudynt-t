@@ -91,11 +91,8 @@ deps() {
 
 	echo "Build live555"
 	cd 3rdparty
-	rm -rf live555
-	if [[ ! -f live555-latest.tar.gz ]]; then
-		wget 'http://www.live555.com/liveMedia/public/live555-latest.tar.gz';
-	fi
-	tar xf live555-latest.tar.gz
+	rm -rf live
+	git clone https://github.com/themactep/live555.git live
 	cd live
 
 	if [[ -f Makefile ]]; then
