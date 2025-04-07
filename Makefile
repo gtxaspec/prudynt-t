@@ -69,8 +69,8 @@ ifndef commit_tag
 commit_tag=$(shell git rev-parse --short HEAD)
 endif
 
-LIBWEBSOCKETS = ./3rdparty/install/include/
 VERSION_FILE  = $(LIBIMP_INC_DIR)/version.hpp
+THIRDPARTY_INC_DIR = ./3rdparty/install/include
 
 STRIP_FLAG := $(if $(filter 0,$(DEBUG_STRIP)),,"-s")
 
@@ -82,11 +82,11 @@ $(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(VERSION_FILE)
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBIMP_INC_DIR)/imp -I$(LIBIMP_INC_DIR)/sysutils -I$(LIBWEBSOCKETS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBIMP_INC_DIR)/imp -I$(LIBIMP_INC_DIR)/sysutils -isystem $(THIRDPARTY_INC_DIR) -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(VERSION_FILE)
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBIMP_INC_DIR)/imp -I$(LIBIMP_INC_DIR)/sysutils -I$(LIBWEBSOCKETS) -c $< -o $@
+	$(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBIMP_INC_DIR)/imp -I$(LIBIMP_INC_DIR)/sysutils -isystem $(THIRDPARTY_INC_DIR) -c $< -o $@
 
 $(TARGET): $(OBJECTS) $(VERSION_FILE)
 	@mkdir -p $(@D)
