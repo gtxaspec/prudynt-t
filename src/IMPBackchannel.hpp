@@ -32,15 +32,17 @@
  *      output.
  *
  *  The IMPBackchannel class is responsible for:
- *   - Registering and managing audio decoders (e.g., AAC) with the IMP
+ *   - Registering and managing audio decoders (e.g., Opus) with the IMP
  *     audio SDK.
  *   - Creating and destroying the IMP audio channels used for decoding.
  */
 
+#include "Config.hpp"
+
 // Define the list of backchannel formats and their properties
 // X(EnumName, NameString, PayloadType, Frequency, MimeType)
 #define X_FOREACH_BACKCHANNEL_FORMAT(X) \
-    /* PCMU must come first as it is a mandatory ONVIF Profile-T format. */ \
+    X(AAC, "MPEG4-GENERIC", 97, cfg->audio.output_sample_rate, "audio/mpeg4-generic") \
     X(PCMU, "PCMU", 0, 8000, "audio/PCMU") \
     X(PCMA, "PCMA", 8, 8000, "audio/PCMA") \
     /* Add new formats here */
@@ -57,6 +59,57 @@ public:
     ~IMPBackchannel() { deinit(); };
     int init();
     void deinit();
+
+    static const char *getFormatName(IMPBackchannelFormat format)
+    {
+#define RETURN_NAME(EnumName, NameString, PayloadType, Frequency, MimeType) \
+    { \
+        if (IMPBackchannelFormat::EnumName == format) \
+            return NameString; \
+    }
+        X_FOREACH_BACKCHANNEL_FORMAT(RETURN_NAME)
+#undef RETURN_NAME
+        return "UNKNOWN";
+    }
+
+    static int getFormatPayloadType(IMPBackchannelFormat format)
+    {
+#define RETURN_PAYLOADTYPE(EnumName, NameString, PayloadType, Frequency, MimeType) \
+    { \
+        if (IMPBackchannelFormat::EnumName == format) \
+            return PayloadType; \
+    }
+        X_FOREACH_BACKCHANNEL_FORMAT(RETURN_PAYLOADTYPE)
+#undef RETURN_PAYLOADTYPE
+        return 96;
+    }
+
+    static int getFormatFrequency(IMPBackchannelFormat format)
+    {
+#define RETURN_FREQUENCY(EnumName, NameString, PayloadType, Frequency, MimeType) \
+    { \
+        if (IMPBackchannelFormat::EnumName == format) \
+            return Frequency; \
+    }
+        X_FOREACH_BACKCHANNEL_FORMAT(RETURN_FREQUENCY)
+#undef RETURN_FREQUENCY
+        return 0;
+    }
+
+    static const char *getFormatMimeType(IMPBackchannelFormat format)
+    {
+#define RETURN_MIME_TYPE(EnumName, NameString, PayloadType, Frequency, MimeType) \
+    { \
+        if (IMPBackchannelFormat::EnumName == format) \
+            return MimeType; \
+    }
+        X_FOREACH_BACKCHANNEL_FORMAT(RETURN_MIME_TYPE)
+#undef RETURN_MIME_TYPE
+        return "audio/unknown";
+    }
+
+private:
+    int aacDecoderHandle{-1};
 };
 
 #endif // IMP_BACKCHANNEL_HPP

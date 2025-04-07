@@ -51,30 +51,32 @@ char const *BackchannelServerMediaSubsession::sdpLines(int /*addressFamily*/)
         if (fSDPLines == nullptr)
             return nullptr;
 
-        const char *formatName;
-        int payloadType;
-        unsigned frequency;
+        const char *formatName = IMPBackchannel::getFormatName(fFormat);
+        unsigned payloadType = IMPBackchannel::getFormatPayloadType(fFormat);
+        unsigned frequency = IMPBackchannel::getFormatFrequency(fFormat);
 
-#define APPLY_SDP_IF(EnumName, NameString, PayloadType, Frequency, MimeType) \
-    if (fFormat == IMPBackchannelFormat::EnumName) \
-    { \
-        formatName = NameString; \
-        payloadType = PayloadType; \
-        frequency = Frequency; \
-    }
+        LOG_DEBUG("Generating SDP for " << formatName << " (Payload Type: " << payloadType << ")");
 
-        X_FOREACH_BACKCHANNEL_FORMAT(APPLY_SDP_IF)
-#undef APPLY_SDP_IF
-
-        LOG_DEBUG("Generating SDP for format " << formatName << " (Payload Type: " << payloadType
-                                               << ")");
+        std::string fmtpLine = "";
+        if (fFormat == IMPBackchannelFormat::AAC)
+        {
+            char fmtpBuf[150];
+            snprintf(
+                fmtpBuf,
+                sizeof(fmtpBuf),
+                "a=fmtp:%d streamtype=5;profile-level-id=1;mode=AAC-hbr;samplerate=%u;channels=1;sizelength=13;indexlength=3;indexdeltalength=3\r\n",
+                payloadType,
+                frequency);
+            fmtpLine = fmtpBuf;
+        }
 
         snprintf(fSDPLines,
                  sdpLinesSize,
                  "m=audio 0 RTP/AVP %d\r\n"
                  "c=IN IP4 0.0.0.0\r\n"
                  "b=AS:%u\r\n"
-                 "a=rtpmap:%d %s/%u/%d\r\n"
+                 "a=rtpmap:%d %s/%u/1\r\n"
+                 "%s"
                  "a=control:%s\r\n"
                  "a=sendonly\r\n",
                  payloadType,
@@ -82,7 +84,7 @@ char const *BackchannelServerMediaSubsession::sdpLines(int /*addressFamily*/)
                  payloadType,
                  formatName,
                  frequency,
-                 1,
+                 fmtpLine.c_str(),
                  trackId());
 
         fSDPLines[sdpLinesSize - 1] = '\0'; // Ensure null termination
@@ -107,25 +109,11 @@ MediaSink *BackchannelServerMediaSubsession::createNewStreamDestination(unsigned
 RTPSource *BackchannelServerMediaSubsession::createNewRTPSource(
     Groupsock *rtpGroupsock, unsigned char /*rtpPayloadTypeIfDynamic*/, MediaSink * /*outputSink*/)
 {
-    const char *mimeType;
-    int payloadType;
-    unsigned frequency;
-
-#define APPLY_SOURCE_IF(EnumName, NameString, PayloadType, Frequency, MimeType) \
-    if (fFormat == IMPBackchannelFormat::EnumName) \
-    { \
-        mimeType = MimeType; \
-        payloadType = PayloadType; \
-        frequency = Frequency; \
-    }
-    X_FOREACH_BACKCHANNEL_FORMAT(APPLY_SOURCE_IF)
-#undef APPLY_SOURCE_IF
-
     return SimpleRTPSource::createNew(envir(),
                                       rtpGroupsock,
-                                      payloadType,
-                                      frequency,
-                                      mimeType,
+                                      IMPBackchannel::getFormatPayloadType(fFormat),
+                                      IMPBackchannel::getFormatFrequency(fFormat),
+                                      IMPBackchannel::getFormatMimeType(fFormat),
                                       0,      // numChannels - currently always 0
                                       False); // allowMultipleFramesPerPacket
 }
@@ -389,6 +377,10 @@ void BackchannelServerMediaSubsession::getRTPSinkandRTCP(void *streamToken,
 
 int BackchannelServerMediaSubsession::estimatedBitrate()
 {
+    if (fFormat == IMPBackchannelFormat::AAC)
+    {
+        return cfg->audio.output_sample_rate / 667;
+    }
     return 64;
 }
 
