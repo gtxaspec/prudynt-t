@@ -1,5 +1,6 @@
 #include "BackchannelProcessor.hpp"
 
+#include "IMPBackchannel.hpp"
 #include "Logger.hpp"
 #include "globals.hpp"
 
@@ -20,30 +21,6 @@ BackchannelProcessor::BackchannelProcessor()
 BackchannelProcessor::~BackchannelProcessor()
 {
     closePipe();
-}
-
-static int getFrequency(IMPBackchannelFormat format)
-{
-#define RETURN_FREQUENCY(EnumName, NameString, PayloadType, Frequency, MimeType) \
-    { \
-        if (IMPBackchannelFormat::EnumName == format) \
-            return Frequency; \
-    }
-    X_FOREACH_BACKCHANNEL_FORMAT(RETURN_FREQUENCY)
-#undef RETURN_FREQUENCY
-    return 8000;
-}
-
-static const char *getFormatName(IMPBackchannelFormat format)
-{
-#define RETURN_NAME(EnumName, NameString, PayloadType, Frequency, MimeType) \
-    { \
-        if (IMPBackchannelFormat::EnumName == format) \
-            return NameString; \
-    }
-    X_FOREACH_BACKCHANNEL_FORMAT(RETURN_NAME)
-#undef RETURN_NAME
-    return "UNKNOWN";
 }
 
 std::vector<int16_t> BackchannelProcessor::resampleLinear(const std::vector<int16_t> &input_pcm,
@@ -280,7 +257,7 @@ bool BackchannelProcessor::processFrame(const BackchannelFrame &frame)
     }
 
     // Resample only if necessary
-    int input_rate = getFrequency(frame.format);
+    int input_rate = IMPBackchannel::getFormatFrequency(frame.format);
     int target_rate = cfg->audio.output_sample_rate;
     const std::vector<int16_t> *buffer_to_write = &decoded_pcm;
     std::vector<int16_t> resampled_pcm;
@@ -367,7 +344,8 @@ void BackchannelProcessor::run()
             // No current session, this frame's sender becomes the current one
             currentSessionId = frame.clientSessionId;
             LOG_INFO("New current session " << currentSessionId << " playing "
-                                            << getFormatName(frame.format) << ". Opening pipe.");
+                                            << IMPBackchannel::getFormatName(frame.format)
+                                            << ". Opening pipe.");
             if (!initPipe())
             {
                 LOG_ERROR("Failed to open pipe for new session " << currentSessionId
