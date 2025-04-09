@@ -36,6 +36,15 @@ deps() {
 	mkdir -p 3rdparty/install/include
 	CROSS_COMPILE=${PRUDYNT_CROSS}
 
+	echo "Build libhelix-aac"
+	cd 3rdparty
+	if [[ "$2" == "-static" ]]; then
+		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libhelixaac_deps.sh -static
+	else
+		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libhelixaac_deps.sh
+	fi
+	cd ../
+
 	echo "Build libwebsockets"
 	cd 3rdparty
 	if [[ "$2" == "-static" ]]; then
