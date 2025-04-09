@@ -10,6 +10,7 @@
 #include "IMPAudio.hpp"
 #include "IMPEncoder.hpp"
 #include "IMPFramesource.hpp"
+#include "IMPBackchannel.hpp"
 
 #define MSG_CHANNEL_SIZE 20
 #define NUM_AUDIO_CHANNELS 1
@@ -32,6 +33,13 @@ struct H264NALUnit
 	struct timeval time;
 	int64_t imp_ts;
     */
+};
+
+struct BackchannelFrame
+{
+    std::vector<uint8_t> payload;
+    IMPBackchannelFormat format;
+    unsigned int clientSessionId;
 };
 
 struct jpeg_stream
@@ -119,6 +127,23 @@ struct video_stream
           hasDataCallback{false} {}
 };
 
+struct backchannel_stream
+{
+    std::shared_ptr<MsgChannel<BackchannelFrame>> inputQueue;
+    IMPBackchannel* imp_backchannel;
+    bool running;
+    pthread_t thread;
+    std::mutex mutex;
+    std::condition_variable should_grab_frames;
+    std::atomic<unsigned int> is_sending{0};
+
+    backchannel_stream()
+        : inputQueue(std::make_shared<MsgChannel<BackchannelFrame>>(MSG_CHANNEL_SIZE)),
+        imp_backchannel(nullptr),
+        running(false) {}
+};
+
+
 extern std::condition_variable global_cv_worker_restart;
 
 extern bool global_restart;
@@ -134,5 +159,6 @@ extern std::atomic<char> global_rtsp_thread_signal;
 extern std::shared_ptr<jpeg_stream> global_jpeg[NUM_VIDEO_CHANNELS];
 extern std::shared_ptr<audio_stream> global_audio[NUM_AUDIO_CHANNELS];
 extern std::shared_ptr<video_stream> global_video[NUM_VIDEO_CHANNELS];
+extern std::shared_ptr<backchannel_stream> global_backchannel;
 
 #endif // GLOBALS_HPP

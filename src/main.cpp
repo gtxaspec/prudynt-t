@@ -11,6 +11,7 @@
 #include "globals.hpp"
 #include "IMPSystem.hpp"
 #include "Motion.hpp"
+#include "IMPBackchannel.hpp"
 using namespace std::chrono;
 
 std::mutex mutex_main;
@@ -32,6 +33,7 @@ std::shared_ptr<jpeg_stream> global_jpeg[NUM_VIDEO_CHANNELS] = {nullptr};
 std::shared_ptr<video_stream> global_video[NUM_VIDEO_CHANNELS] = {nullptr};
 #if defined(AUDIO_SUPPORT)
 std::shared_ptr<audio_stream> global_audio[NUM_AUDIO_CHANNELS] = {nullptr};
+std::shared_ptr<backchannel_stream> global_backchannel = nullptr;
 #endif
 
 std::shared_ptr<CFG> cfg = std::make_shared<CFG>();
@@ -76,6 +78,7 @@ int main(int argc, const char *argv[])
     pthread_t osd_thread;
     pthread_t rtsp_thread;
     pthread_t motion_thread;
+    pthread_t backchannel_thread;
 
     if (Logger::init(cfg->general.loglevel))
     {
@@ -102,6 +105,7 @@ int main(int argc, const char *argv[])
 
 #if defined(AUDIO_SUPPORT)
     global_audio[0] = std::make_shared<audio_stream>(1, 0, 0);
+    global_backchannel = std::make_shared<backchannel_stream>();
 #endif
 
     pthread_create(&cf_thread, nullptr, Worker::watch_config_poll, nullptr);
@@ -111,6 +115,15 @@ int main(int argc, const char *argv[])
     {
         global_restart = true;
 #if defined(AUDIO_SUPPORT)
+        if (cfg->audio.output_enabled && (global_restart_audio || startup))
+        {
+             StartHelper sh;
+             int ret = pthread_create(&backchannel_thread, nullptr, Worker::backchannel_processor, &sh);
+             LOG_DEBUG_OR_ERROR(ret, "create backchannel processor thread");
+             // wait for initialization done
+             sh.has_started.acquire();
+        }
+
         if (cfg->audio.input_enabled && (global_restart_audio || startup))
         {
             StartHelper sh{0};
@@ -161,7 +174,7 @@ int main(int argc, const char *argv[])
             LOG_DEBUG_OR_ERROR(ret, "create rtsp thread");
         }
 
-        /* we should wait a short period to ensure all services are up 
+        /* we should wait a short period to ensure all services are up
          * and running, additionally we add the timespan which is configured as 
          * OSD startup delay.
          */
@@ -200,6 +213,15 @@ int main(int argc, const char *argv[])
             global_audio[0]->should_grab_frames.notify_one();
             int ret = pthread_join(global_audio[0]->thread, NULL);
             LOG_DEBUG_OR_ERROR(ret, "join audio thread");
+        }
+
+        // stop backchannel
+        if (global_backchannel && global_restart_audio)
+        {
+             global_backchannel->running = false;
+             global_backchannel->should_grab_frames.notify_one();
+             int ret = pthread_join(backchannel_thread, NULL);
+             LOG_DEBUG_OR_ERROR(ret, "join backchannel processor thread");
         }
 
         if (global_restart_video)
