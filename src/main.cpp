@@ -7,10 +7,15 @@
 #include "Config.hpp"
 #include "WS.hpp"
 #include "version.hpp"
-#include "worker.hpp"
+#include "ConfigWatcher.hpp"
+#include "AudioWorker.hpp"
+#include "BackchannelWorker.hpp"
+#include "VideoWorker.hpp"
+#include "JPEGWorker.hpp"
 #include "globals.hpp"
 #include "IMPSystem.hpp"
 #include "Motion.hpp"
+#include "WorkerUtils.hpp"
 #include "IMPBackchannel.hpp"
 using namespace std::chrono;
 
@@ -62,7 +67,7 @@ bool timesync_wait()
 void start_video(int encChn)
 {
     StartHelper sh{encChn};
-    int ret = pthread_create(&global_video[encChn]->thread, nullptr, Worker::stream_grabber, static_cast<void *>(&sh));
+    int ret = pthread_create(&global_video[encChn]->thread, nullptr, VideoWorker::thread_entry, static_cast<void *>(&sh));
     LOG_DEBUG_OR_ERROR(ret, "create video["<< encChn << "] thread");
 
     // wait for initialization done
@@ -73,7 +78,7 @@ int main(int argc, const char *argv[])
 {
     LOG_INFO("PRUDYNT-T Next-Gen Video Daemon: " << VERSION);
 
-    pthread_t cf_thread;      // monitor config changes
+    pthread_t cw_thread;
     pthread_t ws_thread;
     pthread_t osd_thread;
     pthread_t rtsp_thread;
@@ -101,14 +106,13 @@ int main(int argc, const char *argv[])
     global_video[0] = std::make_shared<video_stream>(0, &cfg->stream0, "stream0");
     global_video[1] = std::make_shared<video_stream>(1, &cfg->stream1, "stream1");
     global_jpeg[0] = std::make_shared<jpeg_stream>(2, &cfg->stream2);
-    //global_jpeg[1] = std::make_shared<jpeg_stream>(jpeg_stream{3, &cfg->stream3});
 
 #if defined(AUDIO_SUPPORT)
     global_audio[0] = std::make_shared<audio_stream>(1, 0, 0);
     global_backchannel = std::make_shared<backchannel_stream>();
 #endif
 
-    pthread_create(&cf_thread, nullptr, Worker::watch_config_poll, nullptr);
+    pthread_create(&cw_thread, nullptr, ConfigWatcher::thread_entry, nullptr);
     pthread_create(&ws_thread, nullptr, WS::run, &ws);
 
     while (true)
@@ -117,17 +121,14 @@ int main(int argc, const char *argv[])
 #if defined(AUDIO_SUPPORT)
         if (cfg->audio.output_enabled && (global_restart_audio || startup))
         {
-             StartHelper sh;
-             int ret = pthread_create(&backchannel_thread, nullptr, Worker::backchannel_processor, &sh);
-             LOG_DEBUG_OR_ERROR(ret, "create backchannel processor thread");
-             // wait for initialization done
-             sh.has_started.acquire();
+             int ret = pthread_create(&backchannel_thread, nullptr, BackchannelWorker::thread_entry, NULL);
+             LOG_DEBUG_OR_ERROR(ret, "create backchannel thread");
         }
 
         if (cfg->audio.input_enabled && (global_restart_audio || startup))
         {
             StartHelper sh{0};
-            int ret = pthread_create(&global_audio[0]->thread, nullptr, Worker::audio_grabber, static_cast<void *>(&sh));
+            int ret = pthread_create(&global_audio[0]->thread, nullptr, AudioWorker::thread_entry, static_cast<void *>(&sh));
             LOG_DEBUG_OR_ERROR(ret, "create audio thread");
             // wait for initialization done
             sh.has_started.acquire();
@@ -148,7 +149,7 @@ int main(int argc, const char *argv[])
             if (cfg->stream2.enabled)
             {
                 StartHelper sh{2};
-                int ret = pthread_create(&global_jpeg[0]->thread, nullptr, Worker::jpeg_grabber, static_cast<void *>(&sh));
+                int ret = pthread_create(&global_jpeg[0]->thread, nullptr, JPEGWorker::thread_entry, static_cast<void *>(&sh));
                 LOG_DEBUG_OR_ERROR(ret, "create jpeg thread");
                 // wait for initialization done
                 sh.has_started.acquire();
@@ -156,7 +157,7 @@ int main(int argc, const char *argv[])
 
             if (cfg->stream0.osd.enabled || cfg->stream1.osd.enabled)
             {
-                int ret = pthread_create(&osd_thread, nullptr, Worker::update_osd, NULL);
+                int ret = pthread_create(&osd_thread, nullptr, OSD::thread_entry, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "create osd thread");
             }
 
@@ -221,7 +222,7 @@ int main(int argc, const char *argv[])
              global_backchannel->running = false;
              global_backchannel->should_grab_frames.notify_one();
              int ret = pthread_join(backchannel_thread, NULL);
-             LOG_DEBUG_OR_ERROR(ret, "join backchannel processor thread");
+             LOG_DEBUG_OR_ERROR(ret, "join backchannel thread");
         }
 
         if (global_restart_video)

@@ -22,7 +22,7 @@
  *      (global_backchannel->inputQueue). These frames can be either
  *      playback frames (containing audio data) or stop frames (with empty
  *      payload, signaling the end of a session).
- *   4. Audio Processing and Session Management: The BackchannelProcessor
+ *   4. Audio Processing and Session Management: The BackchannelWorker
  *      dequeues frames from the queue, decodes the audio data using the
  *      IMP audio SDK, and resamples it if necessary. It maintains a
  *      concept of a "current" session, processing only frames from that

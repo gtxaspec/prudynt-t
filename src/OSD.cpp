@@ -2,7 +2,11 @@
 #include <cmath>
 #include "OSD.hpp"
 #include "Config.hpp"
+#include <pthread.h>
 #include "Logger.hpp"
+#include "globals.hpp"
+#include <unistd.h>
+#include <vector>
 
 #if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
 #define IMPEncoderCHNAttr IMPEncoderChnAttr
@@ -880,4 +884,43 @@ void OSD::updateDisplayEverySecond()
             }          
         }
     }
+}
+
+void *OSD::thread_entry(void *arg) {
+    LOG_DEBUG("start osd update thread.");
+
+    global_osd_thread_signal = true;
+    while (global_osd_thread_signal) {
+        for (auto v : global_video)
+        {
+            if (v != nullptr)
+            {
+                if (v->active)
+                {
+                    if ((v->imp_encoder->osd != nullptr))
+                    {
+                        if (v->imp_encoder->osd->is_started)
+                        {
+                            v->imp_encoder->osd->updateDisplayEverySecond();
+                        }
+                        else
+                        {
+                            if (v->imp_encoder->osd->startup_delay)
+                            {
+                                v->imp_encoder->osd->startup_delay--;
+                            }
+                            else
+                            {
+                                v->imp_encoder->osd->start();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        usleep(THREAD_SLEEP);
+    }
+
+    LOG_DEBUG("exit osd update thread.");
+    return 0;
 }

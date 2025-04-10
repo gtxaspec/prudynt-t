@@ -49,6 +49,7 @@ public:
     int start();
 
     void updateDisplayEverySecond();
+    static void *thread_entry(void *arg);
 
     void rotateBGRAImage(uint8_t *&inputImage, uint16_t &width, uint16_t &height, int angle, bool del);
     static void set_pos(IMPOSDRgnAttr *rgnAttr, int x, int y, uint16_t width, uint16_t height, const uint16_t max_width, const uint16_t max_height);

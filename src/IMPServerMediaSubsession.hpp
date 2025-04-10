@@ -2,7 +2,7 @@
 #define IMPServerMediaSubsession_hpp
 
 #include "Config.hpp"
-#include "worker.hpp"
+#include "globals.hpp"
 #include "StreamReplicator.hh"
 #include "ServerMediaSession.hh"
 #include "OnDemandServerMediaSubsession.hh"
