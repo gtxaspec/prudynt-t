@@ -10,7 +10,6 @@
 #include <imp/imp_isp.h>
 #include <imp/imp_audio.h>
 #include "OSD.hpp"
-#include "worker.hpp"
 #include "globals.hpp"
 #include <filesystem>
 #include <sys/inotify.h>

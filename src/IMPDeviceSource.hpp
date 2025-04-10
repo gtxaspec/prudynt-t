@@ -2,7 +2,6 @@
 #define IMPDeviceSource_hpp
 
 #include "FramedSource.hh"
-#include "worker.hpp"
 #include <mutex>
 #include <condition_variable>
 #include <queue>

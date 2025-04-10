@@ -10,15 +10,17 @@
 #include <cstdint>
 #include <cstdio>
 
-class BackchannelProcessor
+class BackchannelWorker
 {
 public:
-    BackchannelProcessor();
-    ~BackchannelProcessor();
+    BackchannelWorker();
+    ~BackchannelWorker();
 
-    void run();
+    static void *thread_entry(void *arg);
 
 private:
+    void run();
+
     std::vector<int16_t> resampleLinear(const std::vector<int16_t> &input_pcm,
                                         int input_rate,
                                         int output_rate);
@@ -38,8 +40,8 @@ private:
     FILE *fPipe;
     int fPipeFd;
 
-    BackchannelProcessor(const BackchannelProcessor &) = delete;
-    BackchannelProcessor &operator=(const BackchannelProcessor &) = delete;
+    BackchannelWorker(const BackchannelWorker &) = delete;
+    BackchannelWorker &operator=(const BackchannelWorker &) = delete;
 };
 
 #endif // BACKCHANNEL_PROCESSOR_HPP

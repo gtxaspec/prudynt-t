@@ -1,8 +1,7 @@
-#include "BackchannelProcessor.hpp"
+#include "BackchannelWorker.hpp"
 
 #include "IMPBackchannel.hpp"
 #include "Logger.hpp"
-#include "globals.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -10,22 +9,22 @@
 
 #include <imp/imp_audio.h>
 
-#define MODULE "BackchannelProcessor"
+#define MODULE "BackchannelWorker"
 
-BackchannelProcessor::BackchannelProcessor()
+BackchannelWorker::BackchannelWorker()
     : currentSessionId(0)
     , fPipe(nullptr)
     , fPipeFd(-1)
 {}
 
-BackchannelProcessor::~BackchannelProcessor()
+BackchannelWorker::~BackchannelWorker()
 {
     closePipe();
 }
 
-std::vector<int16_t> BackchannelProcessor::resampleLinear(const std::vector<int16_t> &input_pcm,
-                                                          int input_rate,
-                                                          int output_rate)
+std::vector<int16_t> BackchannelWorker::resampleLinear(const std::vector<int16_t> &input_pcm,
+                                                       int input_rate,
+                                                       int output_rate)
 {
     assert(input_rate != output_rate);
 
@@ -65,7 +64,7 @@ std::vector<int16_t> BackchannelProcessor::resampleLinear(const std::vector<int1
     return output_pcm;
 }
 
-bool BackchannelProcessor::initPipe()
+bool BackchannelWorker::initPipe()
 {
     if (fPipe)
     {
@@ -108,7 +107,7 @@ bool BackchannelProcessor::initPipe()
     return true;
 }
 
-void BackchannelProcessor::closePipe()
+void BackchannelWorker::closePipe()
 {
     if (fPipe)
     {
@@ -138,10 +137,10 @@ void BackchannelProcessor::closePipe()
     }
 }
 
-bool BackchannelProcessor::decodeFrame(const uint8_t *payload,
-                                       size_t payloadSize,
-                                       IMPBackchannelFormat format,
-                                       std::vector<int16_t> &outPcmBuffer)
+bool BackchannelWorker::decodeFrame(const uint8_t *payload,
+                                    size_t payloadSize,
+                                    IMPBackchannelFormat format,
+                                    std::vector<int16_t> &outPcmBuffer)
 {
     IMPAudioStream stream_in;
     stream_in.stream = const_cast<uint8_t *>(payload);
@@ -181,7 +180,7 @@ bool BackchannelProcessor::decodeFrame(const uint8_t *payload,
     return true;
 }
 
-bool BackchannelProcessor::writePcmToPipe(const std::vector<int16_t> &pcmBuffer)
+bool BackchannelWorker::writePcmToPipe(const std::vector<int16_t> &pcmBuffer)
 {
     if (fPipeFd == -1 || fPipe == nullptr)
     {
@@ -236,7 +235,7 @@ bool BackchannelProcessor::writePcmToPipe(const std::vector<int16_t> &pcmBuffer)
     return true;
 }
 
-bool BackchannelProcessor::processFrame(const BackchannelFrame &frame)
+bool BackchannelWorker::processFrame(const BackchannelFrame &frame)
 {
     if (!cfg->audio.output_enabled)
     {
@@ -281,11 +280,11 @@ bool BackchannelProcessor::processFrame(const BackchannelFrame &frame)
     return true;
 }
 
-void BackchannelProcessor::run()
+void BackchannelWorker::run()
 {
     if (!global_backchannel)
     {
-        LOG_ERROR("Cannot run BackchannelProcessor: global_backchannel is null.");
+        LOG_ERROR("Cannot run BackchannelWorker: global_backchannel is null.");
         return;
     }
 
@@ -395,4 +394,21 @@ void BackchannelProcessor::run()
 
     LOG_INFO("Processor thread stopping.");
     closePipe();
+}
+
+void *BackchannelWorker::thread_entry(void *arg)
+{
+    LOG_INFO("Starting BackchannelWorker thread.");
+
+    global_backchannel->imp_backchannel = IMPBackchannel::createNew();
+
+    BackchannelWorker processor;
+    processor.run();
+
+    global_backchannel->imp_backchannel->deinit();
+    delete global_backchannel->imp_backchannel;
+    global_backchannel->imp_backchannel = nullptr;
+
+    LOG_INFO("Exiting BackchannelWorker thread.");
+    return nullptr;
 }
