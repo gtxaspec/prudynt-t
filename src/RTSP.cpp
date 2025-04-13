@@ -1,4 +1,6 @@
 #include "RTSP.hpp"
+#include "IMPBackchannel.hpp"
+#include "BackchannelServerMediaSubsession.hpp"
 
 #define MODULE "RTSP"
 
@@ -76,6 +78,20 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
         IMPAudioServerMediaSubsession *audioSub = IMPAudioServerMediaSubsession::createNew(*env, 0);
         sms->addSubsession(audioSub);
         LOG_INFO("Audio stream " << chnNr << " added to session");
+    }
+
+    if (cfg->audio.output_enabled && stream.audio_enabled)
+    {
+        #define ADD_BACKCHANNEL_SUBSESSION(EnumName, NameString, PayloadType, Frequency, MimeType) \
+            { \
+                BackchannelServerMediaSubsession* backchannelSub = \
+                    BackchannelServerMediaSubsession::createNew(*env, IMPBackchannelFormat::EnumName); \
+                sms->addSubsession(backchannelSub); \
+                LOG_INFO("Backchannel stream " << NameString << " added to session"); \
+            }
+
+        X_FOREACH_BACKCHANNEL_FORMAT(ADD_BACKCHANNEL_SUBSESSION)
+        #undef ADD_BACKCHANNEL_SUBSESSION
     }
 #endif
 
