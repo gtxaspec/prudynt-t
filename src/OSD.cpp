@@ -4,12 +4,12 @@
 #include "Config.hpp"
 #include "Logger.hpp"
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
 #define IMPEncoderCHNAttr IMPEncoderChnAttr
 #define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
 #define picWidth uWidth
 #define picHeight uHeight
 #endif

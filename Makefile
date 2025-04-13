@@ -37,6 +37,8 @@ endif
 
 ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))
 	LIBIMP_INC_DIR = ./include/T31/1.1.6/en
+else ifneq (,$(findstring -DPLATFORM_C100,$(CFLAGS)))
+	LIBIMP_INC_DIR = ./include/C100/2.1.0/en
 else ifneq (,$(or $(findstring -DPLATFORM_T20,$(CFLAGS)), $(findstring -DPLATFORM_T10,$(CFLAGS))))
 	LIBIMP_INC_DIR = ./include/T20/3.12.0/zh
 else ifneq (,$(findstring -DPLATFORM_T21,$(CFLAGS)))

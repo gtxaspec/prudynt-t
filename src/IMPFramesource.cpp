@@ -3,7 +3,7 @@
 
 #define MODULE "IMP_FRAMESOURCE"
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
 #define IMPEncoderCHNAttr IMPEncoderChnAttr
 #define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
@@ -64,7 +64,7 @@ int IMPFramesource::init()
     }
 
 #if !defined(KERNEL_VERSION_4)
-#if defined(PLATFORM_T31)
+#if defined(PLATFORM_T31) && !defined(PLATFORM_C100)
 
     int rot_rotation = stream->rotation;
     int rot_height = stream->height;

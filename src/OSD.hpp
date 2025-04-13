@@ -12,7 +12,7 @@
 #include <sys/sysinfo.h>
 #include "schrift.h"
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
 #define IMPEncoderCHNAttr IMPEncoderChnAttr
 #define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
