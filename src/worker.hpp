@@ -35,6 +35,7 @@ public:
 	static void *watch_config_notify(void *arg);
 	static void *watch_config_poll(void *arg);
 	static std::vector<uint8_t> capture_jpeg_image(int encChn);
+	static void *backchannel_processor(void *arg);
 };
 
 #endif

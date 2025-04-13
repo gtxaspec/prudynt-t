@@ -82,11 +82,18 @@ bool validateUint(const unsigned int &v)
     return true;
 }
 
+bool validateSampleRate(const int &v)
+{
+    std::set<int> allowed_rates = {8000, 16000, 24000, 44100, 48000};
+    return allowed_rates.count(v) == 1;
+}
+
 std::vector<ConfigItem<bool>> CFG::getBoolItems()
 {
     return {
 #if defined(AUDIO_SUPPORT)
         {"audio.input_enabled", audio.input_enabled, true, validateBool},
+        {"audio.output_enabled", audio.output_enabled, false, validateBool},
         {"audio.force_stereo", audio.force_stereo, false, validateBool},
 #if defined(LIB_AUDIO_PROCESSING)
         {"audio.input_high_pass_filter", audio.input_high_pass_filter, false, validateBool},
@@ -179,10 +186,8 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
     return {
 #if defined(AUDIO_SUPPORT)
         {"audio.input_bitrate", audio.input_bitrate, 40, [](const int &v) { return v >= 6 && v <= 256; }},
-        {"audio.input_sample_rate", audio.input_sample_rate, 16000, [](const int &v) {
-            std::set<int> a = {8000, 16000, 24000, 44100, 48000};
-            return a.count(v) == 1;
-        }},
+        {"audio.input_sample_rate", audio.input_sample_rate, 16000, validateSampleRate},
+        {"audio.output_sample_rate", audio.output_sample_rate, 16000, validateSampleRate},
         {"audio.input_vol", audio.input_vol, 80, [](const int &v) { return v >= -30 && v <= 120; }},
         {"audio.input_gain", audio.input_gain, 25, [](const int &v) { return v >= -1 && v <= 31; }},
 #if defined(LIB_AUDIO_PROCESSING)
