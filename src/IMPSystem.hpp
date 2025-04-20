@@ -9,7 +9,7 @@
 #include <imp/imp_osd.h>
 #include <imp/imp_system.h>
 #include <imp/imp_framesource.h>
-#include <../sysutils/su_base.h>
+#include <sysutils/su_base.h>
 
 class IMPSystem
 {

@@ -1142,7 +1142,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
             }
             add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
         }
-#if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30) || defined(PLATFORM_T31) | defined(PLATFORM_T40) | defined(PLATFORM_T41)
+#if defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30) || defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
         else if (ctx->path_match == PNT_AUDIO_INPUT_AGC_ENABLED)
         {
             IMPAudioIOAttr ioattr;
@@ -1223,7 +1223,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                 add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 break;
             case PNT_AUDIO_INPUT_ALC_GAIN:
-#if defined(PLATFORM_T21) || defined(PLATFORM_T31) //|| defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T21) || defined(PLATFORM_T31) || defined(PLATFORM_C100) //|| defined(PLATFORM_T40) || defined(PLATFORM_T41)
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
                     if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))

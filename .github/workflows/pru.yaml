@@ -26,6 +26,8 @@ jobs:
             build_type: static
           - target: T31
             build_type: static
+          - target: C100
+            build_type: static
           - target: T10
             build_type: dynamic
           - target: T20
@@ -37,6 +39,8 @@ jobs:
           - target: T30
             build_type: dynamic
           - target: T31
+            build_type: dynamic
+          - target: C100
             build_type: dynamic
 
     steps:

@@ -146,7 +146,7 @@ int IMPSystem::init()
                                               << cfg->image.wb_rgain << ", bgain: " << cfg->image.wb_bgain);
     }
 
-#if defined(PLATFORM_T23) || defined(PLATFORM_T31)
+#if defined(PLATFORM_T23) || defined(PLATFORM_T31) || defined(PLATFORM_C100)
     ret = IMP_ISP_Tuning_SetBcshHue(cfg->image.hue);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetBcshHue(" << cfg->image.hue << ")");
 
@@ -157,12 +157,12 @@ int IMPSystem::init()
     ret = IMP_ISP_Tuning_SetDPC_Strength(cfg->image.dpc_strength);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDPC_Strength(" << cfg->image.dpc_strength << ")");
 #endif
-#if defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T31)
+#if defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T31) || defined(PLATFORM_C100)
     ret = IMP_ISP_Tuning_SetDRC_Strength(cfg->image.drc_strength);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetDRC_Strength(" << cfg->image.drc_strength << ")");
 #endif
 
-#if defined(PLATFORM_T23) || defined(PLATFORM_T31)
+#if defined(PLATFORM_T23) || defined(PLATFORM_T31) || defined(PLATFORM_C100)
     if (cfg->image.backlight_compensation > 0)
     {
         ret = IMP_ISP_Tuning_SetBacklightComp(cfg->image.backlight_compensation);

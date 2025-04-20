@@ -1,0 +1,3 @@
+[submodule "include"]
+	path = include
+	url = http://github.com/gtxaspec/ingenic-headers

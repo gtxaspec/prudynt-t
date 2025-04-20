@@ -36,21 +36,23 @@ endif
 endif
 
 ifneq (,$(findstring -DPLATFORM_T31,$(CFLAGS)))
-	LIBIMP_INC_DIR = ./include/T31
+	LIBIMP_INC_DIR = ./include/T31/1.1.6/en
+else ifneq (,$(findstring -DPLATFORM_C100,$(CFLAGS)))
+	LIBIMP_INC_DIR = ./include/C100/2.1.0/en
 else ifneq (,$(or $(findstring -DPLATFORM_T20,$(CFLAGS)), $(findstring -DPLATFORM_T10,$(CFLAGS))))
-	LIBIMP_INC_DIR = ./include/T20
+	LIBIMP_INC_DIR = ./include/T20/3.12.0/zh
 else ifneq (,$(findstring -DPLATFORM_T21,$(CFLAGS)))
-	LIBIMP_INC_DIR = ./include/T21
+	LIBIMP_INC_DIR = ./include/T21/1.0.33/zh
 else ifneq (,$(findstring -DPLATFORM_T23,$(CFLAGS)))
-	LIBIMP_INC_DIR = ./include/T23
+	LIBIMP_INC_DIR = ./include/T23/1.1.0/zh
 else ifneq (,$(findstring -DPLATFORM_T30,$(CFLAGS)))
-	LIBIMP_INC_DIR = ./include/T30
+	LIBIMP_INC_DIR = ./include/T30/1.0.5/zh
 else ifneq (,$(findstring -DPLATFORM_T40,$(CFLAGS)))
-	LIBIMP_INC_DIR = ./include/T40
+	LIBIMP_INC_DIR = ./include/T40/1.2.0/zh
 else ifneq (,$(findstring -DPLATFORM_T41,$(CFLAGS)))
-	LIBIMP_INC_DIR = ./include/T41
+	LIBIMP_INC_DIR = ./include/T41/1.2.0/zh
 else
-	LIBIMP_INC_DIR = ./include/T31
+	LIBIMP_INC_DIR = ./include/T31/1.1.6/en
 endif
 
 SRC_DIR = ./src
@@ -69,8 +71,10 @@ ifndef commit_tag
 commit_tag=$(shell git rev-parse --short HEAD)
 endif
 
-LIBWEBSOCKETS = ./3rdparty/install/include/
 VERSION_FILE  = $(LIBIMP_INC_DIR)/version.hpp
+THIRDPARTY_INC_DIR = ./3rdparty/install/include
+
+STRIP_FLAG := $(if $(filter 0,$(DEBUG_STRIP)),,"-s")
 
 STRIP_FLAG := $(if $(filter 0,$(DEBUG_STRIP)),,"-s")
 
@@ -82,11 +86,11 @@ $(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(VERSION_FILE)
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBIMP_INC_DIR)/imp -I$(LIBIMP_INC_DIR)/sysutils -isystem $(THIRDPARTY_INC_DIR) -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(VERSION_FILE)
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBWEBSOCKETS) -c $< -o $@
+	$(CC) $(CFLAGS) -I$(LIBIMP_INC_DIR) -I$(LIBIMP_INC_DIR)/imp -I$(LIBIMP_INC_DIR)/sysutils -isystem $(THIRDPARTY_INC_DIR) -c $< -o $@
 
 $(TARGET): $(OBJECTS) $(VERSION_FILE)
 	@mkdir -p $(@D)

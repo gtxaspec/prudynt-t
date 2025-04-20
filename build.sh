@@ -20,11 +20,11 @@ prudynt(){
 	/usr/bin/make -j$(nproc) \
 	ARCH= CROSS_COMPILE="${PRUDYNT_CROSS}" \
 	CFLAGS="-DPLATFORM_$1 $BIN_TYPE -O2 -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 \
-	-I./3rdparty/install/include \
-	-I./3rdparty/install/include/liveMedia \
-	-I./3rdparty/install/include/groupsock \
-	-I./3rdparty/install/include/UsageEnvironment \
-	-I./3rdparty/install/include/BasicUsageEnvironment" \
+	-isystem ./3rdparty/install/include \
+	-isystem ./3rdparty/install/include/liveMedia \
+	-isystem ./3rdparty/install/include/groupsock \
+	-isystem ./3rdparty/install/include/UsageEnvironment \
+	-isystem ./3rdparty/install/include/BasicUsageEnvironment" \
 	LDFLAGS=" -L./3rdparty/install/lib" \
 	-C $PWD all
 	exit 0
@@ -91,11 +91,8 @@ deps() {
 
 	echo "Build live555"
 	cd 3rdparty
-	rm -rf live555
-	if [[ ! -f live555-latest.tar.gz ]]; then
-		wget 'http://www.live555.com/liveMedia/public/live555-latest.tar.gz';
-	fi
-	tar xf live555-latest.tar.gz
+	rm -rf live
+	git clone https://github.com/themactep/live555.git live
 	cd live
 
 	if [[ -f Makefile ]]; then
@@ -142,6 +139,10 @@ deps() {
 		T31)
 			echo "use $1 libs"
 			cp ingenic-lib/$1/lib/1.1.6/uclibc/5.4.0/* $TOP/3rdparty/install/lib
+			;;
+		C100)
+			echo "use $1 libs"
+			cp ingenic-lib/$1/lib/2.1.0/uclibc/5.4.0/* $TOP/3rdparty/install/lib
 			;;
 		T40)
 			echo "use $1 libs"
@@ -209,7 +210,7 @@ if [ $# -eq 0 ]; then
 	echo "       ./build.sh prudynt <platform> [options]"
 	echo "       ./build.sh full <platform> [options]"
 	echo ""
-	echo "Platforms: T20, T21, T23, T30, T31, T40, T41"
+	echo "Platforms: T20, T21, T23, T30, T31, C100, T40, T41"
 	echo "Options:   -static (optional, for static builds)"
 	exit 1
 elif [[ "$1" == "deps" ]]; then

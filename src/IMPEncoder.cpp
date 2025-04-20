@@ -3,7 +3,7 @@
 
 #define MODULE "IMPENCODER"
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
 #define IMPEncoderCHNAttr IMPEncoderChnAttr
 #define IMPEncoderCHNStat IMPEncoderChnStat
 #endif
@@ -57,7 +57,7 @@ void IMPEncoder::initProfile()
     memset(&chnAttr, 0, sizeof(IMPEncoderCHNAttr));
     rcAttr = &chnAttr.rcAttr;
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
     IMPEncoderRcMode rcMode = IMP_ENC_RC_MODE_CAPPED_QUALITY;
     IMPEncoderProfile encoderProfile = IMP_ENC_PROFILE_AVC_HIGH;
 
@@ -312,7 +312,7 @@ int IMPEncoder::init()
 
     initProfile();
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
     if(cfg->stream2.enabled && cfg->stream2.jpeg_channel == encChn && stream->allow_shared) {
         ret = IMP_Encoder_SetbufshareChn(2, encChn);
         LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_Encoder_SetbufshareChn(2, " << encChn << ")");
@@ -350,7 +350,7 @@ int IMPEncoder::init()
             LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_System_Bind(&fs, &enc)");
         }
     }
-#if !(defined(PLATFORM_T31) || !defined(PLATFORM_T40) || !defined(PLATFORM_T41))
+#if !(defined(PLATFORM_T31) || !defined(PLATFORM_C100) || !defined(PLATFORM_T40) || !defined(PLATFORM_T41))
     else
     {
         IMPEncoderJpegeQl pstJpegeQl;

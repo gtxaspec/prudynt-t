@@ -32,7 +32,7 @@ static int save_jpeg_stream(int fd, IMPEncoderStream *stream)
         void *data_ptr;
         size_t data_len;
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
         IMPEncoderPack *pack = &stream->pack[i];
         uint32_t remSize = 0; // Declare remSize here
         if (pack->length)
@@ -58,7 +58,7 @@ static int save_jpeg_stream(int fd, IMPEncoderStream *stream)
             return -1; // Return error on write failure
         }
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
         // Check the condition only under T31 platform, as remSize is used here
         if (remSize && pack->length > remSize)
         {
@@ -346,7 +346,7 @@ void *Worker::stream_grabber(void *arg)
 
                     if (global_video[encChn]->hasDataCallback)
                     {
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
                         uint8_t *start = (uint8_t *)stream.virAddr + stream.pack[i].offset;
                         uint8_t *end = start + stream.pack[i].length;
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
@@ -400,7 +400,7 @@ void *Worker::stream_grabber(void *arg)
                         nalu.data.insert(nalu.data.end(), start + 4, end);
                         if (global_video[encChn]->idr == false)
                         {
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
                             if (stream.pack[i].nalType.h264NalType == 7 ||
                                 stream.pack[i].nalType.h264NalType == 8 ||
                                 stream.pack[i].nalType.h264NalType == 5)
