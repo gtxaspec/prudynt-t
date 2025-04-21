@@ -34,7 +34,7 @@ index 0000000..24ffa9d
 +    ARCHIVE DESTINATION lib
 +)
 diff --git a/src/libhelix-aac/aaccommon.h b/src/libhelix-aac/aaccommon.h
-index 804337c..686ad18 100644
+index 462f104..da8b16c 100644
 --- a/src/libhelix-aac/aaccommon.h
 +++ b/src/libhelix-aac/aaccommon.h
 @@ -46,8 +46,14 @@
@@ -47,32 +47,22 @@ index 804337c..686ad18 100644
 +  #include <Arduino.h>
 +  #include <pgmspace.h>
 +#else
-+    #define PROGMEM
-+    #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
-+    #define pgm_read_word(addr) (*(const unsigned short *)(addr))
++  #define PROGMEM
++  #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
++  #define pgm_read_word(addr) (*(const unsigned short *)(addr))
 +#endif
  
  // Can't fit in ESP8266 RAM
  #ifndef ESP8266
 diff --git a/src/libhelix-aac/statname.h b/src/libhelix-aac/statname.h
-index a27f04d..286029d 100644
+index 2899ca9..37278c0 100644
 --- a/src/libhelix-aac/statname.h
 +++ b/src/libhelix-aac/statname.h
-@@ -50,16 +50,8 @@
-  * all the C functions and global variables will be mangled by the preprocessor
-  *   e.g. void DCT4(...) becomes void raac_DCT4(...)
-  */
+@@ -50,7 +50,6 @@
+     all the C functions and global variables will be mangled by the preprocessor
+      e.g. void DCT4(...) becomes void raac_DCT4(...)
+ */
 -#define STAT_PREFIX		raac
  
--#define STATCC1(x,y,z)	STATCC2(x,y,z)
--#define STATCC2(x,y,z)	x##y##z  
--
--#ifdef STAT_PREFIX
--#define STATNAME(func)	STATCC1(STAT_PREFIX, _, func)
--#else
--#define STATNAME(func)	func
--#endif
-+#define STATNAME(func) func
- 
- /* these symbols are common to all implementations */
- #define AllocateBuffers			STATNAME(AllocateBuffers)
+ #define STATCC1(x,y,z)	STATCC2(x,y,z)
+ #define STATCC2(x,y,z)	x##y##z
