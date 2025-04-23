@@ -29,10 +29,8 @@ struct AudioFrame
 struct H264NALUnit
 {
 	std::vector<uint8_t> data;
-    /* timestamp fix, can be removed if solved
 	struct timeval time;
 	int64_t imp_ts;
-    */
 };
 
 struct BackchannelFrame
@@ -92,13 +90,17 @@ struct audio_stream
     std::mutex onDataCallbackLock; // protects onDataCallback from deallocation
     std::condition_variable should_grab_frames;
     std::binary_semaphore is_activated{0};
+    
+    // Base timestamp for synchronizing with video
+    int64_t base_timestamp{0};
+    bool timestamp_initialized{false};
 
     StreamReplicator *streamReplicator = nullptr;
 
     audio_stream(int devId, int aiChn, int aeChn)
         : devId(devId), aiChn(aiChn), aeChn(aeChn), running(false), imp_audio(nullptr),
           msgChannel(std::make_shared<MsgChannel<AudioFrame>>(30)),
-          onDataCallback{nullptr}, hasDataCallback{false} {}
+          onDataCallback{nullptr}, hasDataCallback{false}, base_timestamp(0), timestamp_initialized(false) {}
 };
 
 struct video_stream
@@ -120,11 +122,15 @@ struct video_stream
     std::mutex onDataCallbackLock;     // protects onDataCallback from deallocation
     std::condition_variable should_grab_frames;
     std::binary_semaphore is_activated{0};
+    
+    // Base timestamp for synchronizing streams - zero point reference
+    int64_t base_timestamp{0};
+    bool timestamp_initialized{false};
 
     video_stream(int encChn, _stream *stream, const char *name)
         : encChn(encChn), stream(stream), name(name), running(false), idr(false), idr_fix(0), imp_encoder(nullptr), imp_framesource(nullptr),
           msgChannel(std::make_shared<MsgChannel<H264NALUnit>>(MSG_CHANNEL_SIZE)), onDataCallback(nullptr),  run_for_jpeg{false},
-          hasDataCallback{false} {}
+          hasDataCallback{false}, base_timestamp(0), timestamp_initialized(false) {}
 };
 
 struct backchannel_stream

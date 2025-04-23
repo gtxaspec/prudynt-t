@@ -356,10 +356,45 @@ void *Worker::stream_grabber(void *arg)
 #endif
                         H264NALUnit nalu;
 
-                        /* timestamp fix, can be removed if solved
+                        // We need to normalize timestamps to start from zero for players
+                        // But also ensure video PTS values are always valid
+                        
+                        // Make sure we always have a valid timestamp reference
+                        if (!global_video[encChn]->timestamp_initialized) {
+                            // If stream has no timestamps, use the current system time as reference
+                            if (stream.pack[i].timestamp == 0) {
+                                struct timeval current_time;
+                                gettimeofday(&current_time, NULL);
+                                // Convert to microseconds
+                                int64_t current_micros = (current_time.tv_sec * 1000000LL) + current_time.tv_usec;
+                                // Use a non-zero value but close to zero
+                                global_video[encChn]->base_timestamp = current_micros - 1000; // Offset by 1ms
+                                LOG_INFO("Video stream with zero timestamps, using system time reference");
+                            } else {
+                                global_video[encChn]->base_timestamp = stream.pack[i].timestamp;
+                            }
+                            global_video[encChn]->timestamp_initialized = true;
+                        }
+                        
+                        // Set the timestamp in microseconds
                         nalu.imp_ts = stream.pack[i].timestamp;
-                        nalu.time = encoder_time;
-                        */
+                        
+                        // Calculate normalized timestamp by subtracting the base timestamp
+                        // This makes timestamps start from close to zero
+                        int64_t normalized_ts = nalu.imp_ts - global_video[encChn]->base_timestamp;
+                        
+                        // Ensure we never use negative or zero timestamps
+                        if (normalized_ts <= 0) normalized_ts = 1000; // Use 1ms minimum
+                        
+                        // Add an increment based on the frame position in this batch
+                        // This ensures timestamps are unique even within a batch of frames
+                        normalized_ts += (i+1) * 100; // Add 100μs per frame in the batch
+                        
+                        // Convert to timeval structure for the decoder
+                        struct timeval normalized_time;
+                        normalized_time.tv_sec = normalized_ts / 1000000;
+                        normalized_time.tv_usec = normalized_ts % 1000000;
+                        nalu.time = normalized_time;
 
                         // We use start+4 because the encoder inserts 4-byte MPEG
                         //'startcodes' at the beginning of each NAL. Live555 complains
@@ -522,13 +557,39 @@ void *Worker::stream_grabber(void *arg)
 #if defined(AUDIO_SUPPORT)
 static void process_audio_frame(int encChn, IMPAudioFrame &frame)
 {
+    // Initialize the audio timestamp base if not already set
+    if (!global_audio[encChn]->timestamp_initialized) {
+        // Handle case with zero timestamps from encoder
+        if (frame.timeStamp == 0) {
+            struct timeval current_time;
+            gettimeofday(&current_time, NULL);
+            // Convert to microseconds
+            int64_t current_micros = (current_time.tv_sec * 1000000LL) + current_time.tv_usec;
+            // Use a non-zero value but close to zero
+            global_audio[encChn]->base_timestamp = current_micros - 1000; // Offset by 1ms
+            LOG_INFO("Audio stream with zero timestamps, using system time reference");
+        } else {
+            global_audio[encChn]->base_timestamp = frame.timeStamp;
+        }
+        global_audio[encChn]->timestamp_initialized = true;
+    }
+    
+    // Get the raw timestamp from the encoder
     int64_t audio_ts = frame.timeStamp;
-    struct timeval encoder_time;
-    encoder_time.tv_sec = audio_ts / 1000000;
-    encoder_time.tv_usec = audio_ts % 1000000;
+    
+    // Calculate normalized timestamp by subtracting the base timestamp
+    int64_t normalized_ts = audio_ts - global_audio[encChn]->base_timestamp;
+    
+    // Ensure we never use negative or zero timestamps
+    if (normalized_ts <= 0) normalized_ts = 1000; // Use 1ms minimum
+    
+    // Convert to timeval structure for the audio frame
+    struct timeval normalized_time;
+    normalized_time.tv_sec = normalized_ts / 1000000;
+    normalized_time.tv_usec = normalized_ts % 1000000;
 
     AudioFrame af;
-    af.time = encoder_time;
+    af.time = normalized_time;
 
     uint8_t *start = (uint8_t *)frame.virAddr;
     uint8_t *end = start + frame.len;

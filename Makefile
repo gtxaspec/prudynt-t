@@ -76,6 +76,8 @@ THIRDPARTY_INC_DIR = ./3rdparty/install/include
 
 STRIP_FLAG := $(if $(filter 0,$(DEBUG_STRIP)),,"-s")
 
+STRIP_FLAG := $(if $(filter 0,$(DEBUG_STRIP)),,"-s")
+
 $(VERSION_FILE): $(SRC_DIR)/version.tpl.hpp
 	@if ! grep -q "$(commit_tag)" version.h > /dev/null 2>&1; then \
 		echo "Updating version.h to $(commit_tag)"; \
