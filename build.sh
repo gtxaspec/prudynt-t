@@ -38,7 +38,7 @@ deps() {
 
 	echo "Build libhelix-aac"
 	cd 3rdparty
-	if [[ "$2" == "-static" ]]; then
+	if [[ "$2" == "-static" || "$2" == "-hybrid" ]]; then
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libhelixaac_deps.sh -static
 	else
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libhelixaac_deps.sh
@@ -56,7 +56,7 @@ deps() {
 
 	echo "Build opus"
 	cd 3rdparty
-	if [[ "$2" == "-static" ]]; then
+	if [[ "$2" == "-static" || "$2" == "-hybrid" ]]; then
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_opus_deps.sh -static
 	else
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_opus_deps.sh
@@ -71,7 +71,7 @@ deps() {
 	git apply ../../res/libschrift.patch
 	mkdir -p $TOP/3rdparty/install/lib
 	mkdir -p $TOP/3rdparty/install/include
-	if [[ "$2" == "-static" ]]; then
+	if [[ "$2" == "-static" || "$2" == "-hybrid" ]]; then
 		${PRUDYNT_CROSS}gcc -std=c99 -pedantic -Wall -Wextra -Wconversion -c -o schrift.o schrift.c
 		${PRUDYNT_CROSS}ar rc libschrift.a schrift.o
 		${PRUDYNT_CROSS}ranlib libschrift.a
@@ -108,7 +108,7 @@ deps() {
 		make distclean
 	fi
 
-	if [[ "$2" == "-static" ]]; then
+	if [[ "$2" == "-static" || "$2" == "-hybrid" ]]; then
 		echo "STATIC LIVE555"
 		cp ../../res/live555-config.prudynt-static ./config.prudynt-static
 		./genMakefiles prudynt-static
@@ -203,7 +203,7 @@ deps() {
 	cd faac
 	sed -i 's/^#define MAX_CHANNELS 64/#define MAX_CHANNELS 2/' libfaac/coder.h
 	./bootstrap
-	if [[ "$2" == "-static" ]]; then
+	if [[ "$2" == "-static" || "$2" == "-hybrid" ]]; then
 		CC="${PRUDYNT_CROSS}gcc" ./configure --host mipsel-linux-gnu --prefix="$TOP/3rdparty/install" --enable-static --disable-shared
 	else
 		CC="${PRUDYNT_CROSS}gcc" ./configure --host mipsel-linux-gnu --prefix="$TOP/3rdparty/install" --disable-static --enable-shared

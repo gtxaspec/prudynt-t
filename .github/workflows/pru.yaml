@@ -1,100 +1,100 @@
 name: prudynt-t
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - '**'
 
 env:
   TAG_NAME: release
-  TOOLCHAIN_MUSL: /home/runner/work/prudynt-t/prudynt-t/mipsel-thingino-linux-musl_sdk-buildroot/bin/mipsel-linux-
+  TOOLCHAIN_URL: https://github.com/themactep/thingino-firmware/releases/download/toolchain-x86_64/thingino-toolchain-x86_64_xburst1_4_4_musl_gcc14-linux-mipsel.tar.gz
+  TOOLCHAIN_DIR: /opt/mipsel-thingino-linux-musl_sdk-buildroot
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
 
 jobs:
-  buildroot:
-    name: prudynt
+  native-build:
+    name: prudynt-build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - target: T10
-            build_type: static
-          - target: T20
-            build_type: static
-          - target: T21
-            build_type: static
-          - target: T23
-            build_type: static
-          - target: T30
-            build_type: static
-          - target: T31
-            build_type: static
-          - target: C100
-            build_type: static
-          - target: T10
-            build_type: dynamic
-          - target: T20
-            build_type: dynamic
-          - target: T21
-            build_type: dynamic
-          - target: T23
-            build_type: dynamic
-          - target: T30
-            build_type: dynamic
-          - target: T31
-            build_type: dynamic
-          - target: C100
-            build_type: dynamic
+        target:
+          - T10
+          - T20
+          - T21
+          - T23
+          - T30
+          - T31
+          - C100
+        build_type:
+          - static
+          - dynamic
+          - hybrid
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
         with:
-          submodules: 'true'
+          submodules: true
 
-      - name: Setup cache directories
+      - name: Install dependencies
         run: |
-          mkdir -p /tmp/ccache
-          ln -s /tmp/ccache ${HOME}/.ccache
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends --no-install-suggests \
+            build-essential bc bison cpio curl file flex git libncurses-dev \
+            make rsync unzip wget whiptail gcc lzop u-boot-tools \
+            ca-certificates cmake ccache
 
-      - name: Setup ccache
-        uses: actions/cache@v4
+      - name: Download and extract toolchain
+        run: |
+          mkdir -p /opt
+          cd /opt
+          wget "$TOOLCHAIN_URL" -O thingino-toolchain.tar.gz
+          tar -xf thingino-toolchain.tar.gz
+          cd mipsel-thingino-linux-musl_sdk-buildroot
+          ./relocate-sdk.sh
+
+      - name: Set up toolchain and ccache env vars
+        run: |
+          echo "TOOLCHAIN_DIR=${TOOLCHAIN_DIR}" >> $GITHUB_ENV
+          echo "PATH=${TOOLCHAIN_DIR}/bin:/usr/lib/ccache:$PATH" >> $GITHUB_ENV
+          echo "CC=ccache ${TOOLCHAIN_DIR}/bin/mipsel-linux-gcc" >> $GITHUB_ENV
+          echo "CXX=ccache ${TOOLCHAIN_DIR}/bin/mipsel-linux-g++" >> $GITHUB_ENV
+          echo "PRUDYNT_CROSS=ccache ${TOOLCHAIN_DIR}/bin/mipsel-linux-" >> $GITHUB_ENV
+
+      - name: Restore ccache
+        id: restore-ccache
         if: always()
+        uses: actions/cache@v4
         with:
-          path: /tmp/ccache
-          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ matrix.target }}-${{ matrix.build_type }}-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-ccache-
+            ccache-${{ matrix.target }}-${{ matrix.build_type }}-
 
-      - name: Update system sources
-        run: sudo apt-get update
-
-      - name: Install build dependencies
+      - name: Set build suffix
+        id: suffix
         run: |
-          sudo apt-get install -y --no-install-recommends --no-install-suggests build-essential bc bison cpio curl file flex git libncurses-dev make rsync unzip wget whiptail gcc lzop u-boot-tools ca-certificates ccache
+          case "${{ matrix.build_type }}" in
+            static) echo "SUFFIX=-static" >> $GITHUB_ENV ;;
+            hybrid) echo "SUFFIX=-hybrid" >> $GITHUB_ENV ;;
+            *) echo "SUFFIX=" >> $GITHUB_ENV ;;
+          esac
 
-      - name: Download toolchain
+      - name: Build deps
         run: |
-          wget https://github.com/themactep/thingino-firmware/releases/download/toolchain/thingino-toolchain_xburst1_musl_gcc14-linux-mipsel.tar.gz
-          tar -xf thingino-toolchain_xburst1_musl_gcc14-linux-mipsel.tar.gz
-          cd mipsel-thingino-linux-musl_sdk-buildroot; ./relocate-sdk.sh
-          cd ../
+          ./build.sh deps ${{ matrix.target }} $SUFFIX
 
-      - name: Build deps for target
+      - name: Build prudynt
         run: |
-          PRUDYNT_CROSS="ccache $TOOLCHAIN_MUSL" ./build.sh deps ${{ matrix.target }} ${{ matrix.build_type == 'static' && '-static' || '' }}
-
-      - name: Build prudynt for target
-        run: |
-          PRUDYNT_CROSS="$TOOLCHAIN_MUSL" ./build.sh prudynt ${{ matrix.target }} ${{ matrix.build_type == 'static' && '-static' || '' }}
-
-      - name: Rename prudynt for release
-        run: |
-          mv bin/prudynt bin/prudynt-${{ matrix.target }}-${{ matrix.build_type }}
+          ./build.sh prudynt ${{ matrix.target }} $SUFFIX
+          mv bin/prudynt "bin/prudynt-${{ matrix.target }}-${{ matrix.build_type }}"
 
       - name: Upload binary as artifact
         uses: actions/upload-artifact@v4
         with:
           name: prudynt-${{ matrix.target }}-${{ matrix.build_type }}
-          path: |
-            bin/prudynt-${{ matrix.target }}-${{ matrix.build_type }}
+          path: bin/prudynt-${{ matrix.target }}-${{ matrix.build_type }}
 
       - name: Upload binary to release
         if: github.event_name != 'pull_request'
