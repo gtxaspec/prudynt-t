@@ -29,7 +29,7 @@ int JPEGWorker::save_jpeg_stream(int fd, IMPEncoderStream *stream)
         void *data_ptr;
         size_t data_len;
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41) || defined(PLATFORM_C100)
         IMPEncoderPack *pack = &stream->pack[i];
         uint32_t remSize = 0; // Declare remSize here
         if (pack->length)
@@ -57,7 +57,7 @@ int JPEGWorker::save_jpeg_stream(int fd, IMPEncoderStream *stream)
             return -1; // Return error on write failure
         }
 
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41) || defined(PLATFORM_C100)
         // Check the condition only under T31 platform, as remSize is used here
         if (remSize && pack->length > remSize)
         {
