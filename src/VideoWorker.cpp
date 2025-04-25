@@ -67,7 +67,7 @@ void VideoWorker::run()
 
                     if (global_video[encChn]->hasDataCallback)
                     {
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41) || defined(PLATFORM_C100)
                         uint8_t *start = (uint8_t *) stream.virAddr + stream.pack[i].offset;
                         uint8_t *end = start + stream.pack[i].length;
 #elif defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) \
@@ -87,7 +87,7 @@ void VideoWorker::run()
                         nalu.data.insert(nalu.data.end(), start + 4, end);
                         if (global_video[encChn]->idr == false)
                         {
-#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#if defined(PLATFORM_T31) || defined(PLATFORM_T40) || defined(PLATFORM_T41) || defined(PLATFORM_C100)
                             if (stream.pack[i].nalType.h264NalType == 7
                                 || stream.pack[i].nalType.h264NalType == 8
                                 || stream.pack[i].nalType.h264NalType == 5)
