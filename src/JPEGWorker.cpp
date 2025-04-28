@@ -5,6 +5,9 @@
 #include "WorkerUtils.hpp"
 #include "globals.hpp"
 
+#include <fcntl.h>   // For O_RDWR, O_CREAT, O_TRUNC flags
+#include <unistd.h>  // For open(), close(), etc.
+
 #define MODULE "JPEGWorker"
 
 JPEGWorker::JPEGWorker(int jpgChnIndex, int impEncoderChn)

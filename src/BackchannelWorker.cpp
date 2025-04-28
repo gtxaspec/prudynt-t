@@ -7,6 +7,8 @@
 #include <cmath>
 #include <vector>
 
+#include <fcntl.h>
+#include <unistd.h>
 #include <imp/imp_audio.h>
 
 #define MODULE "BackchannelWorker"
