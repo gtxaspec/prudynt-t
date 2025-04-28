@@ -14,22 +14,39 @@ else
 override CFLAGS += -DBINARY_DYNAMIC
 endif
 
+# Check for libc type from CFLAGS, default to musl if not specified
+# We add libmuslshim only when using musl (default if no libc type specified)
 ifneq ($(MAKECMDGOALS),clean)
 ifneq (,$(findstring -DBINARY_STATIC,$(CFLAGS)))
 override LDFLAGS += -static -static-libgcc -static-libstdc++
-LIBS = -l:libimp.a -l:libalog.a -l:libsysutils.a -l:libmuslshim.a \
+LIBS = -l:libimp.a -l:libalog.a -l:libsysutils.a \
 	-l:libliveMedia.a -l:libgroupsock.a -l:libBasicUsageEnvironment.a -l:libUsageEnvironment.a \
 	-l:libconfig++.a -l:libwebsockets.a -l:libschrift.a -l:libopus.a -l:libfaac.a -l:libhelix-aac.a
+ifneq (,$(findstring -DLIBC_GLIBC,$(CFLAGS)))
+else ifneq (,$(findstring -DLIBC_UCLIBC,$(CFLAGS)))
+else
+LIBS += -l:libmuslshim.a
+endif
 else ifneq (,$(findstring -DBINARY_HYBRID,$(CFLAGS)))
 override LDFLAGS += -static-libstdc++
-LIBS = -Wl,-Bdynamic -l:libimp.so -l:libalog.so -l:libsysutils.so -l:libmuslshim.so -l:libaudioProcess.so -l:libaudioshim.so -l:libwebsockets.so \
+LIBS = -Wl,-Bdynamic -l:libimp.so -l:libalog.so -l:libsysutils.so -l:libaudioProcess.so -l:libaudioshim.so -l:libwebsockets.so \
 	-Wl,-Bstatic -l:libliveMedia.a -l:libgroupsock.a -l:libBasicUsageEnvironment.a -l:libUsageEnvironment.a \
 	-l:libconfig++.a -l:libschrift.a -l:libopus.a -l:libfaac.a -l:libhelix-aac.a \
 	-Wl,-Bdynamic
+ifneq (,$(findstring -DLIBC_GLIBC,$(CFLAGS)))
+else ifneq (,$(findstring -DLIBC_UCLIBC,$(CFLAGS)))
+else
+LIBS := $(LIBS:-Wl,-Bdynamic=-Wl,-Bdynamic -l:libmuslshim.so)
+endif
 else ifneq (,$(findstring -DBINARY_DYNAMIC,$(CFLAGS)))
-LIBS = -Wl,-Bdynamic -l:libimp.so -l:libalog.so -l:libaudioProcess.so -l:libsysutils.so -l:libmuslshim.so \
+LIBS = -Wl,-Bdynamic -l:libimp.so -l:libalog.so -l:libaudioProcess.so -l:libsysutils.so \
 	-l:libliveMedia.so -l:libgroupsock.so -l:libUsageEnvironment.so -l:libBasicUsageEnvironment.so \
 	-l:libconfig++.so -l:libwebsockets.so -l:libschrift.so -l:libopus.so -l:libfaac.so -l:libhelix-aac.so
+ifneq (,$(findstring -DLIBC_GLIBC,$(CFLAGS)))
+else ifneq (,$(findstring -DLIBC_UCLIBC,$(CFLAGS)))
+else
+LIBS += -l:libmuslshim.so
+endif
 else
 $(error No valid binary type defined in CFLAGS. Please specify -DBINARY_STATIC, -DBINARY_HYBRID, or -DBINARY_DYNAMIC)
 endif
