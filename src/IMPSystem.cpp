@@ -12,6 +12,19 @@ IMPSensorInfo IMPSystem::create_sensor_info(const char *sensor_name)
     out.cbus_type = TX_SENSOR_CONTROL_INTERFACE_I2C;
     strcpy(out.i2c.type, cfg->sensor.model);
     out.i2c.addr = cfg->sensor.i2c_address;
+
+#if defined(PLATFORM_T40) || defined(PLATFORM_T41)
+    // Additional fields required for T40/T41 platforms
+    out.i2c.i2c_adapter_id = 1;
+    out.rst_gpio = cfg->sensor.gpio_reset;
+    out.pwdn_gpio = -1;
+    out.power_gpio = -1;
+    out.sensor_id = 0;
+    out.video_interface = static_cast<IMPSensorVinType>(cfg->sensor.video_interface);
+    out.mclk = static_cast<IMPSensorMclk>(cfg->sensor.mclk);
+    out.default_boot = 0;
+#endif
+
     return out;
 }
 
@@ -48,7 +61,6 @@ int IMPSystem::init()
     sinfo = create_sensor_info(cfg->sensor.model);
 #if defined(PLATFORM_T40) || defined(PLATFORM_T41)
     ret = IMP_ISP_AddSensor(IMPVI_MAIN, &sinfo);
-    ret = IMP_ISP_EnableSensor(IMPVI_MAIN, &sinfo);
 #else
     ret = IMP_ISP_AddSensor(&sinfo);
 #endif

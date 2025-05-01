@@ -26,7 +26,9 @@
 #define USE_AUDIO_STREAM_REPLICATOR
 
 //disable tunings (debugging)
-//#define NO_TUNINGS
+#if defined(PLATFORM_T40) || defined(PLATFORM_T41)
+#define NO_TUNINGS
+#endif
 
 #define IMP_AUTO_VALUE 16384
 #define OSD_AUTO_VALUE 16384
@@ -115,6 +117,11 @@ struct _sensor {
     int height;
     const char *model;
     unsigned int i2c_address;
+    int boot;
+    int mclk;
+    int i2c_bus_id;
+    int video_interface;
+    int gpio_reset;
 };
 struct _image {
     int contrast;
