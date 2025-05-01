@@ -88,7 +88,7 @@ deps() {
 	cd 3rdparty
 	rm -rf libconfig
 	if [[ ! -f libconfig-1.7.3.tar.gz ]]; then
-		wget 'https://hyperrealm.github.io/libconfig/dist/libconfig-1.7.3.tar.gz';
+		wget 'https://github.com/hyperrealm/libconfig/releases/download/v1.7.3/libconfig-1.7.3.tar.gz';
 	fi
 	tar xf libconfig-1.7.3.tar.gz
 	mv libconfig-1.7.3 libconfig
@@ -155,11 +155,11 @@ deps() {
 			;;
 		T40)
 			echo "use $1 libs"
-			cp ingenic-lib/$1/lib/1.2.0/uclibc/* $TOP/3rdparty/install/lib
+			cp ingenic-lib/$1/lib/1.2.0/uclibc/7.2.0/* $TOP/3rdparty/install/lib
 			;;
 		T41)
 			echo "use $1 libs"
-			cp ingenic-lib/$1/lib/1.2.0/uclibc/* $TOP/3rdparty/install/lib
+			cp ingenic-lib/$1/lib/1.2.0/uclibc/7.2.0/* $TOP/3rdparty/install/lib
 			;;
 		*)
 			echo "Unsupported or unspecified SoC model."
