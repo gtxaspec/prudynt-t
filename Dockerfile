@@ -11,11 +11,19 @@ RUN apt-get update && \
     ca-certificates cmake && \
     rm -rf /var/lib/apt/lists/*
 
-ENV TOOLCHAIN_URL=https://github.com/themactep/thingino-firmware/releases/download/toolchain-x86_64/thingino-toolchain-x86_64_xburst1_4_4_musl_gcc14-linux-mipsel.tar.gz
+ENV TOOLCHAIN_URL_XBURST2=https://github.com/themactep/thingino-firmware/releases/download/toolchain-x86_64/thingino-toolchain-x86_64_xburst2_musl_gcc14-linux-mipsel.tar.gz
+ENV TOOLCHAIN_URL_XBURST1=https://github.com/themactep/thingino-firmware/releases/download/toolchain-x86_64/thingino-toolchain-x86_64_xburst1_4_4_musl_gcc14-linux-mipsel.tar.gz
 ENV TOOLCHAIN_DIR=/opt/mipsel-thingino-linux-musl_sdk-buildroot
 
 RUN mkdir -p /opt && \
     cd /opt && \
+    case "$TARGET" in \
+      T40) \
+        TOOLCHAIN_URL="$TOOLCHAIN_URL_XBURST2";; \
+      *) \
+        TOOLCHAIN_URL="$TOOLCHAIN_URL_XBURST1";; \
+    esac && \
+    echo "Using toolchain URL: $TOOLCHAIN_URL" && \
     wget "$TOOLCHAIN_URL" -O thingino-toolchain.tar.gz && \
     tar -xf thingino-toolchain.tar.gz && \
     cd mipsel-thingino-linux-musl_sdk-buildroot && \
