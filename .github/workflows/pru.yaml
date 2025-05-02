@@ -25,6 +25,7 @@ jobs:
           - T23
           - T30
           - T31
+          - T40
           - C100
         build_type:
           - static
