@@ -119,7 +119,7 @@ struct _sensor {
     unsigned int i2c_address;
     int boot;
     int mclk;
-    int i2c_bus_id;
+    int i2c_bus;
     int video_interface;
     int gpio_reset;
 };

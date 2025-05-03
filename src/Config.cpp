@@ -118,7 +118,7 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
         {"stream1.audio_enabled", stream1.audio_enabled, true, validateBool},
 #endif
         {"stream1.enabled", stream1.enabled, true, validateBool},
-        {"stream1.allow_shared", stream1.allow_shared, true, validateBool},     
+        {"stream1.allow_shared", stream1.allow_shared, true, validateBool},
         {"stream1.osd.enabled", stream1.osd.enabled, true, validateBool},
         {"stream1.osd.logo_enabled", stream1.osd.logo_enabled, true, validateBool},
         {"stream1.osd.time_enabled", stream1.osd.time_enabled, true, validateBool},
@@ -198,7 +198,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
 #endif
 #endif
         {"general.imp_polling_timeout", general.imp_polling_timeout, 500, [](const int &v) { return v >= 1 && v <= 5000; }},
-        {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 4096; }},
+        {"general.osd_pool_size", general.osd_pool_size, 1024, [](const int &v) { return v >= 0 && v <= 65535; }},
         {"image.ae_compensation", image.ae_compensation, 128, validateInt255},
         {"image.anti_flicker", image.anti_flicker, 2, validateInt2},
         {"image.backlight_compensation", image.backlight_compensation, 0, [](const int &v) { return v >= 0 && v <= 10; }},
@@ -240,12 +240,12 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"rtsp.port", rtsp.port, 554, validateInt65535},
         {"rtsp.send_buffer_size", rtsp.send_buffer_size, 307200, validateIntGe0},
         {"rtsp.session_reclaim", rtsp.session_reclaim, 65, validateIntGe0},
+        {"sensor.i2c_bus", sensor.i2c_bus, 0, validateIntGe0, false, "/proc/jz/sensor/i2c_bus"},
         {"sensor.fps", sensor.fps, 25, validateInt120, false, "/proc/jz/sensor/max_fps"},
         {"sensor.height", sensor.height, 1080, validateIntGe0, false, "/proc/jz/sensor/height"},
         {"sensor.width", sensor.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},
         {"sensor.boot", sensor.boot, 0, validateIntGe0, false, "/proc/jz/sensor/boot"},
         {"sensor.mclk", sensor.mclk, 1, validateIntGe0, false, "/proc/jz/sensor/mclk"},
-        {"sensor.i2c_bus_id", sensor.i2c_bus_id, 0, validateIntGe0, false, "/proc/jz/sensor/i2c_bus_id"},
         {"sensor.video_interface", sensor.video_interface, 0, validateIntGe0, false, "/proc/jz/sensor/video_interface"},
         {"sensor.gpio_reset", sensor.gpio_reset, 91, validateIntGe0, false, "/proc/jz/sensor/reset_gpio"},
         {"stream0.bitrate", stream0.bitrate, 3000, validateIntGe0},

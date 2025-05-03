@@ -35,9 +35,14 @@ rtsp: {
 sensor: {
 	# model: "gc2053";  # Sensor model.
 	# i2c_address: 0x37;  # I2C address of the sensor (0x0 - 0x7F).
+	# i2c_bus: 0 # I2C bus ID of the sensor. (T40/T41 only)
 	fps: 25;  # Frames per second captured by the sensor (0-60).
 	# width: 1920;  # Width of the sensor's image (in pixels).
 	# height: 1080;  # Height of the sensor's image (in pixels).
+	# boot: 0; # Boot mode of the sensor. (T40/T41 only)
+	# mclk: 1; # Clock interface ID of the sensor. (T40/T41 only)
+	# video_interface: 0; # Video interface ID (CSI) of the sensor. (T40/T41 only)
+	# gpio_reset: 91; # Reset GPIO of the sensor. (T40/T41 only)
 };
 
 # Image Settings

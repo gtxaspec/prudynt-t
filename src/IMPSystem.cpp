@@ -15,7 +15,7 @@ IMPSensorInfo IMPSystem::create_sensor_info(const char *sensor_name)
 
 #if defined(PLATFORM_T40) || defined(PLATFORM_T41)
     // Additional fields required for T40/T41 platforms
-    out.i2c.i2c_adapter_id = 1;
+    out.i2c.i2c_adapter_id = cfg->sensor.i2c_bus;
     out.rst_gpio = cfg->sensor.gpio_reset;
     out.pwdn_gpio = -1;
     out.power_gpio = -1;
@@ -38,10 +38,8 @@ int IMPSystem::init()
     LOG_DEBUG("IMPSystem::init()");
     int ret = 0;
 
-#if !(defined(PLATFORM_T40) || defined(PLATFORM_T41))
     ret = IMP_OSD_SetPoolSize(cfg->general.osd_pool_size * 1024);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_SetPoolSize(" << (cfg->general.osd_pool_size * 1024) << ")");
-#endif
 
     IMPVersion impVersion;
     ret = IMP_System_GetVersion(&impVersion);
