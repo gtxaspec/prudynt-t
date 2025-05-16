@@ -57,6 +57,7 @@ protected:
                              ServerRequestAlternativeByteHandler *serverRequestAlternativeByteHandler,
                              void *serverRequestAlternativeByteHandlerClientData);
     virtual void deleteStream(unsigned clientSessionId, void *&streamToken);
+    virtual void pauseStream(unsigned clientSessionId, void *streamToken);
 
     virtual void getRTPSinkandRTCP(void *streamToken, RTPSink *&rtpSink, RTCPInstance *&rtcp);
     virtual FramedSource *createNewStreamSource(unsigned clientSessionId, unsigned &estBitrate);
