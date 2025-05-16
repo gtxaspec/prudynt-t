@@ -366,6 +366,12 @@ void BackchannelServerMediaSubsession::deleteStream(unsigned clientSessionId, vo
     }
 }
 
+void BackchannelServerMediaSubsession::pauseStream(unsigned /*clientSessionId*/,
+                                                   void * /*streamToken*/)
+{
+    // We do not support PAUSE in this subsession
+}
+
 void BackchannelServerMediaSubsession::getRTPSinkandRTCP(void *streamToken,
                                                          RTPSink *&rtpSink,
                                                          RTCPInstance *&rtcp)
