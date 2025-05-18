@@ -217,7 +217,7 @@ int main(int argc, const char *argv[])
         }
 
         // stop backchannel
-        if (global_backchannel && global_restart_audio)
+        if (global_backchannel->imp_backchannel && global_restart_audio)
         {
              global_backchannel->running = false;
              global_backchannel->should_grab_frames.notify_one();
