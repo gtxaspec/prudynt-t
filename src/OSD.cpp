@@ -251,7 +251,7 @@ int OSD::libschrift_init()
     return 0;
 }
 
-void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, int posX, int posY, int angle)
+void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *irgnAttr, const char *text, int posX, int posY, int angle)
 {
 
     // size and stroke
@@ -279,21 +279,20 @@ void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, i
 
     if (item_width != osdItem->width || item_height != osdItem->height)
     {
-        if (rgnAttr == nullptr)
+        if (irgnAttr == nullptr)
         {
-            rgnAttr = new IMPOSDRgnAttr();
-            IMP_OSD_GetRgnAttr(osdItem->imp_rgn, rgnAttr);
+            IMP_OSD_GetRgnAttr(osdItem->imp_rgn, &osdItem->rgnAttr);
         }
 
-        set_pos(rgnAttr, posX, posY, item_width, item_height, stream_width, stream_height);
+        set_pos(&osdItem->rgnAttr, posX, posY, item_width, item_height, stream_width, stream_height);
 
-        rgnAttr->data.picData.pData = osdItem->data;
-        osdItem->rgnAttrData = &rgnAttr->data;
+        osdItem->rgnAttr.data.picData.pData = osdItem->data;
+        osdItem->rgnAttrData = &osdItem->rgnAttr.data;
 
         osdItem->width = item_width;
         osdItem->height = item_height;
 
-        IMP_OSD_SetRgnAttr(osdItem->imp_rgn, rgnAttr);
+        IMP_OSD_SetRgnAttr(osdItem->imp_rgn, &osdItem->rgnAttr);
     }
     else
     {
@@ -564,13 +563,12 @@ void OSD::init()
         IMP_OSD_RegisterRgn(osdTime.imp_rgn, osdGrp, nullptr);
         osd.regions.time = osdTime.imp_rgn;
 
-        IMPOSDRgnAttr rgnAttr;
-        memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
-        rgnAttr.type = OSD_REG_PIC;
-        rgnAttr.fmt = PIX_FMT_BGRA;
-        set_text(&osdTime, &rgnAttr, osd.time_format,
+        memset(&osdTime.rgnAttr, 0, sizeof(IMPOSDRgnAttr));
+        osdTime.rgnAttr.type = OSD_REG_PIC;
+        osdTime.rgnAttr.fmt = PIX_FMT_BGRA;
+        set_text(&osdTime, &osdTime.rgnAttr, osd.time_format,
                  osd.pos_time_x, osd.pos_time_y, osd.time_rotation);
-        IMP_OSD_SetRgnAttr(osdTime.imp_rgn, &rgnAttr);
+        IMP_OSD_SetRgnAttr(osdTime.imp_rgn, &osdTime.rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
@@ -603,13 +601,12 @@ void OSD::init()
         IMP_OSD_RegisterRgn(osdUser.imp_rgn, osdGrp, nullptr);
         osd.regions.user = osdUser.imp_rgn;
 
-        IMPOSDRgnAttr rgnAttr;
-        memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
-        rgnAttr.type = OSD_REG_PIC;
-        rgnAttr.fmt = PIX_FMT_BGRA;
-        set_text(&osdUser, &rgnAttr, osd.user_text_format,
+        memset(&osdUser.rgnAttr, 0, sizeof(IMPOSDRgnAttr));
+        osdUser.rgnAttr.type = OSD_REG_PIC;
+        osdUser.rgnAttr.fmt = PIX_FMT_BGRA;
+        set_text(&osdUser, &osdUser.rgnAttr, osd.user_text_format,
                  osd.pos_user_text_x, osd.pos_user_text_y, osd.user_text_rotation);
-        IMP_OSD_SetRgnAttr(osdUser.imp_rgn, &rgnAttr);
+        IMP_OSD_SetRgnAttr(osdUser.imp_rgn, &osdUser.rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
@@ -639,13 +636,12 @@ void OSD::init()
         IMP_OSD_RegisterRgn(osdUptm.imp_rgn, osdGrp, nullptr);
         osd.regions.uptime = osdUptm.imp_rgn;
 
-        IMPOSDRgnAttr rgnAttr;
-        memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
-        rgnAttr.type = OSD_REG_PIC;
-        rgnAttr.fmt = PIX_FMT_BGRA;
-        set_text(&osdUptm, &rgnAttr, osd.uptime_format,
+        memset(&osdUptm.rgnAttr, 0, sizeof(IMPOSDRgnAttr));
+        osdUptm.rgnAttr.type = OSD_REG_PIC;
+        osdUptm.rgnAttr.fmt = PIX_FMT_BGRA;
+        set_text(&osdUptm, &osdUptm.rgnAttr, osd.uptime_format,
                  osd.pos_uptime_x, osd.pos_uptime_y, osd.uptime_rotation);
-        IMP_OSD_SetRgnAttr(osdUptm.imp_rgn, &rgnAttr);
+        IMP_OSD_SetRgnAttr(osdUptm.imp_rgn, &osdUptm.rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
@@ -678,28 +674,27 @@ void OSD::init()
         IMP_OSD_RegisterRgn(osdLogo.imp_rgn, osdGrp, nullptr);
         osd.regions.logo = osdLogo.imp_rgn;
 
-        IMPOSDRgnAttr rgnAttr;
-        memset(&rgnAttr, 0, sizeof(IMPOSDRgnAttr));
+        memset(&osdLogo.rgnAttr, 0, sizeof(IMPOSDRgnAttr));
 
         // Verify OSD logo size vs dimensions
         if ((osd.logo_width * osd.logo_height * 4) == (int)imageSize)
         {
-            rgnAttr.type = OSD_REG_PIC;
-            rgnAttr.fmt = PIX_FMT_BGRA;
-            rgnAttr.data.picData.pData = imageData;
+            osdLogo.rgnAttr.type = OSD_REG_PIC;
+            osdLogo.rgnAttr.fmt = PIX_FMT_BGRA;
+            osdLogo.rgnAttr.data.picData.pData = imageData;
 
             // Logo rotation
             uint16_t logo_width = osd.logo_width;
             uint16_t logo_height = osd.logo_height;
             if (osd.logo_rotation)
             {
-                uint8_t *imageData = static_cast<uint8_t *>(rgnAttr.data.picData.pData);
+                uint8_t *imageData = static_cast<uint8_t *>(osdLogo.rgnAttr.data.picData.pData);
                 rotateBGRAImage(imageData, logo_width,
                                 logo_height, osd.logo_rotation, false);
-                rgnAttr.data.picData.pData = imageData;
+                osdLogo.rgnAttr.data.picData.pData = imageData;
             }
 
-            set_pos(&rgnAttr, osd.pos_logo_x,
+            set_pos(&osdLogo.rgnAttr, osd.pos_logo_x,
                     osd.pos_logo_y, logo_width, logo_height, stream_width, stream_height);
         }
         else
@@ -708,7 +703,7 @@ void OSD::init()
             LOG_ERROR("Invalid OSD logo dimensions. Imagesize=" << imageSize << ", " << osd.logo_width
                                                                 << "*" << osd.logo_height << "*4=" << (osd.logo_width * osd.logo_height * 4));
         }
-        IMP_OSD_SetRgnAttr(osdLogo.imp_rgn, &rgnAttr);
+        IMP_OSD_SetRgnAttr(osdLogo.imp_rgn, &osdLogo.rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
