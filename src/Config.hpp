@@ -269,6 +269,12 @@ struct _websocket {
     const char *name;
     const char *usertoken{""};
 };
+struct _migration {
+    int motion_roi_0_x;
+    int motion_roi_0_y;
+    int motion_roi_1_x;
+    int motion_roi_1_y;
+};
 struct _sysinfo {
     const char *cpu = nullptr;
 };
@@ -298,6 +304,7 @@ class CFG {
 		_stream stream2{};
 		_motion motion{};
         _websocket websocket{};
+        _migration migration{};
         _sysinfo sysinfo{};
 
     template <typename T>
