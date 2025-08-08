@@ -62,7 +62,7 @@ void Motion::detect()
         }
 
         bool motionDetected = false;
-        for (int i = 0; i < IMP_IVS_MOVE_MAX_ROI_CNT; i++)
+        for (int i = 0; i < cfg->motion.roi_count; i++)
         {
             if (result->retRoi[i])
             {
@@ -128,6 +128,8 @@ void Motion::detect()
 
 int Motion::init()
 {
+    int i = 0;
+
     LOG_INFO("Initialize motion detection.");
 
     if((cfg->motion.monitor_stream == 0 && !cfg->stream0.enabled) || 
@@ -156,38 +158,43 @@ int Motion::init()
         if (cfg->motion.roi_1_x == IVS_AUTO_VALUE)
         {
             cfg->set<int>(getConfigPath("roi_1_x"), channelAttributes.encAttr.picWidth - 1, true);
+            cfg->motion.rois[0].p1_x = channelAttributes.encAttr.picWidth - 1;
         }
         if (cfg->motion.roi_1_y == IVS_AUTO_VALUE)
         {
             cfg->set<int>(getConfigPath("roi_1_y"), channelAttributes.encAttr.picHeight - 1, true);
-        }        
+            cfg->motion.rois[0].p1_x = channelAttributes.encAttr.picHeight - 1;
+        }
     }
 
     memset(&move_param, 0, sizeof(IMP_IVS_MoveParam));
     // OSD is affecting motion for some reason.
     // Sensitivity range is 0-4
-    move_param.sense[0] = cfg->motion.sensitivity;
     move_param.skipFrameCnt = cfg->motion.skip_frame_count;
     move_param.frameInfo.width = cfg->motion.frame_width;
     move_param.frameInfo.height = cfg->motion.frame_height;
 
-    LOG_INFO("Motion detection:" << 
-             " sensibility: " << move_param.sense[0] << 
-             ", skipCnt:" << move_param.skipFrameCnt << 
-             ", width:" << move_param.frameInfo.width << 
+    LOG_INFO("Motion detection:" <<
+             " sensibility: " << cfg->motion.sensitivity <<
+             ", skipCnt:" << move_param.skipFrameCnt <<
+             ", width:" << move_param.frameInfo.width <<
              ", height:" << move_param.frameInfo.height);
 
-    move_param.roiRect[0].p0.x = cfg->motion.roi_0_x;
-    move_param.roiRect[0].p0.y = cfg->motion.roi_0_y;
-    move_param.roiRect[0].p1.x = cfg->motion.roi_1_x - 1;
-    move_param.roiRect[0].p1.y = cfg->motion.roi_1_y - 1;
-    move_param.roiRectCnt = cfg->motion.roi_count;
+    for (i = 0; i < cfg->motion.roi_count; i++) {
+        move_param.sense[i] = cfg->motion.sensitivity;
+        move_param.roiRect[i].p0.x = cfg->motion.rois[i].p0_x;
+        move_param.roiRect[i].p0.y = cfg->motion.rois[i].p0_y;
+        move_param.roiRect[i].p1.x = cfg->motion.rois[i].p1_x;
+        move_param.roiRect[i].p1.y = cfg->motion.rois[i].p1_y;
 
-    LOG_INFO("Motion detection roi[0]:" << 
-             " roi_0_x: " << cfg->motion.roi_0_x << 
-             ", roi_0_y:" << cfg->motion.roi_0_y << 
-             ", roi_1_x: " << cfg->motion.roi_1_x << 
-             ", roi_1_y:" << cfg->motion.roi_1_y);
+        LOG_INFO("Motion detection roi[" << i << "]:" <<
+                 " roi_0_x: " << cfg->motion.rois[i].p0_x <<
+                 ", roi_0_y:" << cfg->motion.rois[i].p0_y <<
+                 ", roi_1_x: " << cfg->motion.rois[i].p1_x <<
+                 ", roi_1_y:" << cfg->motion.rois[i].p1_y);
+    }
+
+    move_param.roiRectCnt = cfg->motion.roi_count;
 
     move_intf = IMP_IVS_CreateMoveInterface(&move_param);
 
