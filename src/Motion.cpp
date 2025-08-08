@@ -155,15 +155,11 @@ int Motion::init()
         {
             cfg->set<int>(getConfigPath("frame_height"), channelAttributes.encAttr.picHeight, true);
         }
-        if (cfg->motion.roi_1_x == IVS_AUTO_VALUE)
+        if (cfg->motion.roi_count == IVS_AUTO_VALUE)
         {
-            cfg->set<int>(getConfigPath("roi_1_x"), channelAttributes.encAttr.picWidth - 1, true);
+            cfg->motion.roi_count = 1;
             cfg->motion.rois[0].p1_x = channelAttributes.encAttr.picWidth - 1;
-        }
-        if (cfg->motion.roi_1_y == IVS_AUTO_VALUE)
-        {
-            cfg->set<int>(getConfigPath("roi_1_y"), channelAttributes.encAttr.picHeight - 1, true);
-            cfg->motion.rois[0].p1_x = channelAttributes.encAttr.picHeight - 1;
+            cfg->motion.rois[0].p1_y = channelAttributes.encAttr.picHeight - 1;
         }
     }
 
@@ -176,9 +172,9 @@ int Motion::init()
 
     LOG_INFO("Motion detection:" <<
              " sensibility: " << cfg->motion.sensitivity <<
-             ", skipCnt:" << move_param.skipFrameCnt <<
-             ", width:" << move_param.frameInfo.width <<
-             ", height:" << move_param.frameInfo.height);
+             ", skipCnt: " << move_param.skipFrameCnt <<
+             ", width: " << move_param.frameInfo.width <<
+             ", height: " << move_param.frameInfo.height);
 
     for (i = 0; i < cfg->motion.roi_count; i++) {
         move_param.sense[i] = cfg->motion.sensitivity;
@@ -188,10 +184,10 @@ int Motion::init()
         move_param.roiRect[i].p1.y = cfg->motion.rois[i].p1_y;
 
         LOG_INFO("Motion detection roi[" << i << "]:" <<
-                 " roi_0_x: " << cfg->motion.rois[i].p0_x <<
-                 ", roi_0_y:" << cfg->motion.rois[i].p0_y <<
-                 ", roi_1_x: " << cfg->motion.rois[i].p1_x <<
-                 ", roi_1_y:" << cfg->motion.rois[i].p1_y);
+                 " p0.x: " << cfg->motion.rois[i].p0_x <<
+                 ", p0.y: " << cfg->motion.rois[i].p0_y <<
+                 ", p1.x: " << cfg->motion.rois[i].p1_x <<
+                 ", p1.y: "  << cfg->motion.rois[i].p1_y);
     }
 
     move_param.roiRectCnt = cfg->motion.roi_count;

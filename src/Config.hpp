@@ -66,7 +66,7 @@
     #define DEFAULT_TEMPER_VALIDATE validateInt50_150
 #endif
 
-struct roi{
+struct roi {
     int p0_x;
     int p0_y;
     int p1_x;
@@ -254,10 +254,6 @@ struct _motion {
     int skip_frame_count;
     int frame_width;
     int frame_height;
-    int roi_0_x;
-    int roi_0_y;
-    int roi_1_x;
-    int roi_1_y;
     int roi_count;
     bool enabled;
     const char *script_path;
