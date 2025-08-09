@@ -66,7 +66,7 @@
     #define DEFAULT_TEMPER_VALIDATE validateInt50_150
 #endif
 
-struct roi{
+struct roi {
     int p0_x;
     int p0_y;
     int p1_x;
@@ -254,10 +254,6 @@ struct _motion {
     int skip_frame_count;
     int frame_width;
     int frame_height;
-    int roi_0_x;
-    int roi_0_y;
-    int roi_1_x;
-    int roi_1_y;
     int roi_count;
     bool enabled;
     const char *script_path;
@@ -272,6 +268,12 @@ struct _websocket {
     int first_image_delay;
     const char *name;
     const char *usertoken{""};
+};
+struct _migration {
+    int motion_roi_0_x;
+    int motion_roi_0_y;
+    int motion_roi_1_x;
+    int motion_roi_1_y;
 };
 struct _sysinfo {
     const char *cpu = nullptr;
@@ -302,6 +304,7 @@ class CFG {
 		_stream stream2{};
 		_motion motion{};
         _websocket websocket{};
+        _migration migration{};
         _sysinfo sysinfo{};
 
     template <typename T>

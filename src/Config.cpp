@@ -6,6 +6,7 @@
 #include <libconfig.h++>
 #include "Config.hpp"
 #include "Logger.hpp"
+#include "imp/imp_ivs_move.h"
 
 #define MODULE "CONFIG"
 
@@ -230,11 +231,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"motion.frame_width", motion.frame_width, IVS_AUTO_VALUE, validateIntGe0},
         {"motion.frame_height", motion.frame_height, IVS_AUTO_VALUE, validateIntGe0},
         {"motion.monitor_stream", motion.monitor_stream, 1, validateInt1},
-        {"motion.roi_0_x", motion.roi_0_x, 0, validateIntGe0},
-        {"motion.roi_0_y", motion.roi_0_y, 0, validateIntGe0},
-        {"motion.roi_1_x", motion.roi_1_x, IVS_AUTO_VALUE, validateIntGe0},
-        {"motion.roi_1_y", motion.roi_1_y, IVS_AUTO_VALUE, validateIntGe0},
-        {"motion.roi_count", motion.roi_count, 1, [](const int &v) { return v >= 1 && v <= 52; }},
+        {"motion.roi_count", motion.roi_count, IVS_AUTO_VALUE, [](const int &v) { return v >= 1 && v <= IMP_IVS_MOVE_MAX_ROI_CNT; }},
         {"rtsp.est_bitrate", rtsp.est_bitrate, 5000, validateIntGe0},
         {"rtsp.out_buffer_size", rtsp.out_buffer_size, 500000, validateIntGe0},
         {"rtsp.port", rtsp.port, 554, validateInt65535},
@@ -321,6 +318,11 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"websocket.loglevel", websocket.loglevel, 4096, [](const int &v) { return v > 0 && v <= 4096; }},
         {"websocket.port", websocket.port, 8089, validateInt65535},
         {"websocket.first_image_delay", websocket.first_image_delay, 100, validateInt65535},
+        // Next section contains old options, only necessary for your migration.
+        {"motion.roi_0_x", migration.motion_roi_0_x, 0, validateIntGe0},
+        {"motion.roi_0_y", migration.motion_roi_0_y, 0, validateIntGe0},
+        {"motion.roi_1_x", migration.motion_roi_1_x, 0, validateIntGe0},
+        {"motion.roi_1_y", migration.motion_roi_1_y, 0, validateIntGe0},
     };
 };
 
@@ -601,6 +603,15 @@ bool CFG::updateConfig()
         entry.add(Setting::TypeInt) = motion.rois[i].p1_y;
     }
 
+    if (root.exists("motion.roi_0_x"))
+        root.remove("motion.roi_0_x");
+    if (root.exists("motion.roi_0_y"))
+        root.remove("motion.roi_0_y");
+    if (root.exists("motion.roi_1_x"))
+        root.remove("motion.roi_1_x");
+    if (root.exists("motion.roi_1_y"))
+        root.remove("motion.roi_1_y");
+
     lc.writeFile(filePath);
     LOG_DEBUG("Config is written to " << filePath);
 
@@ -660,4 +671,13 @@ void CFG::load()
             }
         }
     }
+
+    if (motion.roi_count == 1 && migration.motion_roi_0_x > 0)
+        motion.rois[0].p0_x = migration.motion_roi_0_x;
+    if (motion.roi_count == 1 && migration.motion_roi_0_y > 0)
+        motion.rois[0].p0_y = migration.motion_roi_0_y;
+    if (motion.roi_count == 1 && migration.motion_roi_1_x > 0)
+        motion.rois[0].p1_x = migration.motion_roi_1_x;
+    if (motion.roi_count == 1 && migration.motion_roi_1_y > 0)
+        motion.rois[0].p1_y = migration.motion_roi_1_y;
 }
