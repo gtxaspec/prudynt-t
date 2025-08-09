@@ -6,6 +6,7 @@
 #include <libconfig.h++>
 #include "Config.hpp"
 #include "Logger.hpp"
+#include "imp/imp_ivs_move.h"
 
 #define MODULE "CONFIG"
 
@@ -230,7 +231,7 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"motion.frame_width", motion.frame_width, IVS_AUTO_VALUE, validateIntGe0},
         {"motion.frame_height", motion.frame_height, IVS_AUTO_VALUE, validateIntGe0},
         {"motion.monitor_stream", motion.monitor_stream, 1, validateInt1},
-        {"motion.roi_count", motion.roi_count, IVS_AUTO_VALUE, [](const int &v) { return v >= 1 && v <= 52; }},
+        {"motion.roi_count", motion.roi_count, IVS_AUTO_VALUE, [](const int &v) { return v >= 1 && v <= IMP_IVS_MOVE_MAX_ROI_CNT; }},
         {"rtsp.est_bitrate", rtsp.est_bitrate, 5000, validateIntGe0},
         {"rtsp.out_buffer_size", rtsp.out_buffer_size, 500000, validateIntGe0},
         {"rtsp.port", rtsp.port, 554, validateInt65535},

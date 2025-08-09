@@ -128,8 +128,6 @@ void Motion::detect()
 
 int Motion::init()
 {
-    int i = 0;
-
     LOG_INFO("Initialize motion detection.");
 
     if((cfg->motion.monitor_stream == 0 && !cfg->stream0.enabled) || 
@@ -176,7 +174,7 @@ int Motion::init()
              ", width: " << move_param.frameInfo.width <<
              ", height: " << move_param.frameInfo.height);
 
-    for (i = 0; i < cfg->motion.roi_count; i++) {
+    for (int i = 0; i < cfg->motion.roi_count; i++) {
         move_param.sense[i] = cfg->motion.sensitivity;
         move_param.roiRect[i].p0.x = cfg->motion.rois[i].p0_x;
         move_param.roiRect[i].p0.y = cfg->motion.rois[i].p0_y;
