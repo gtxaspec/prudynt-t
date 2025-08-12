@@ -145,7 +145,8 @@ void AudioWorker::run()
     while (global_audio[encChn]->running)
     {
         if (global_audio[encChn]->hasDataCallback && cfg->audio.input_enabled
-            && (global_video[0]->hasDataCallback || global_video[1]->hasDataCallback))
+            && (global_video[0]->hasDataCallback || global_video[1]->hasDataCallback)
+            && (!cfg->general.privacy_mode))
         {
             if (IMP_AI_PollingFrame(global_audio[encChn]->devId,
                                     global_audio[encChn]->aiChn,

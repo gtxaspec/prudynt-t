@@ -90,6 +90,8 @@ struct _stream_stats {
 };
 
 struct _regions {
+    int priv_back;
+    int priv_text;
     int time;
     int user;
     int uptime;
@@ -99,6 +101,7 @@ struct _general {
     const char *loglevel;
     int osd_pool_size;
     int imp_polling_timeout;
+    bool privacy_mode;
 };
 struct _rtsp {
     int port;
@@ -203,6 +206,7 @@ struct _osd {
     const char *time_format;
     const char *uptime_format;
     const char *user_text_format;
+    const char *privacy_format;
     const char *logo_path;
     unsigned int font_color;
     unsigned int font_stroke_color;

@@ -140,8 +140,11 @@ int IMPAudio::init()
     ret = IMP_AI_GetPubAttr(devId, &ioattr);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_GetPubAttr(" << devId << ")");
 
-    ret = IMP_AI_Enable(devId);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Enable(" << devId << ")");
+    if (!cfg->general.privacy_mode)
+    {
+        ret = IMP_AI_Enable(devId);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Enable(" << devId << ")");
+    }
 
     IMPAudioIChnParam chnParam = {
         .usrFrmDepth = 30, // frame buffer depth

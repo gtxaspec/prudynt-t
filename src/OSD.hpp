@@ -75,8 +75,9 @@ private:
 
     _osd &osd;
     int last_updated_second;
-    
 
+    OSDItem osdPrivBack{};
+    OSDItem osdPrivText{};
     OSDItem osdTime{};
     OSDItem osdUser{};
     OSDItem osdUptm{};
