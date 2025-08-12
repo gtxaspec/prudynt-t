@@ -109,13 +109,16 @@ enum
 {
     PNT_GENERAL_LOGLEVEL = 1,
     PNT_GENERAL_OSD_POOL_SIZE,
-    PNT_GENERAL_IMP_POLLING_TIMEOUT
+    PNT_GENERAL_IMP_POLLING_TIMEOUT,
+    PNT_GENERAL_PRIVACY_MODE
 };
 
 static const char *const general_keys[] = {
     "loglevel",
     "osd_pool_size",
-    "imp_polling_timeout"};
+    "imp_polling_timeout",
+    "privacy_mode",
+};
 
 /* RTSP */
 enum
@@ -661,6 +664,25 @@ signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
                 }
                 add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));                
                 break;                    
+            case PNT_GENERAL_PRIVACY_MODE:
+                if (reason == LEJPCB_VAL_TRUE)
+                {
+                    if (cfg->set<bool>(u_ctx->path, true))
+                    {
+                        global_restart_audio = true;
+                        global_restart_rtsp = true;
+                    }
+                }
+                else if (reason == LEJPCB_VAL_FALSE)
+                {
+                    if (cfg->set<bool>(u_ctx->path, true))
+                    {
+                        global_restart_audio = true;
+                        global_restart_rtsp = true;
+                    }
+                }
+                add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
+                break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
                 break;
@@ -1498,7 +1520,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                 if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
                 {
 
-                    _regions regions{-1,-1,-1,-1};
+                    _regions regions{-1,-1,-1,-1,-1,-1};
 
                     if (u_ctx->value == 0)
                     {

@@ -103,6 +103,7 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
 #endif
         {"image.vflip", image.vflip, false, validateBool},
         {"image.hflip", image.hflip, false, validateBool},
+        {"general.privacy_mode", general.privacy_mode, true, validateBool},
         {"motion.enabled", motion.enabled, false, validateBool},
         {"rtsp.auth_required", rtsp.auth_required, true, validateBool},
 #if defined(AUDIO_SUPPORT)
@@ -156,6 +157,7 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
         {"stream0.osd.time_format", stream0.osd.time_format, "%F %T", validateCharNotEmpty},
         {"stream0.osd.uptime_format", stream0.osd.uptime_format, "Up: %02lud %02lu:%02lu", validateCharNotEmpty},
         {"stream0.osd.user_text_format", stream0.osd.user_text_format, "%hostname", validateCharNotEmpty},
+        {"stream0.osd.privacy_format", stream0.osd.privacy_format, "%hostname in private mode", validateCharNotEmpty},
         {"stream0.mode", stream0.mode, DEFAULT_ENC_MODE_0, [](const char *v) {
             std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQP", "CAPPED_VBR", "CAPPED_QUALITY"};
             return a.count(std::string(v)) == 1;
@@ -168,6 +170,7 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
         {"stream1.osd.time_format", stream1.osd.time_format, "%F %T", validateCharNotEmpty},
         {"stream1.osd.uptime_format", stream1.osd.uptime_format, "Up: %02lud %02lu:%02lu", validateCharNotEmpty},
         {"stream1.osd.user_text_format", stream1.osd.user_text_format, "%hostname", validateCharNotEmpty},
+        {"stream1.osd.privacy_format", stream1.osd.privacy_format, "%hostname in private mode", validateCharNotEmpty},
         {"stream1.mode", stream1.mode, DEFAULT_ENC_MODE_1, [](const char *v) {
             std::set<std::string> a = {"CBR", "VBR", "SMART", "FIXQP", "CAPPED_VBR", "CAPPED_QUALITY"};
             return a.count(std::string(v)) == 1;

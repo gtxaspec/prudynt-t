@@ -136,6 +136,12 @@ int Motion::init()
         LOG_ERROR("Monitor stream is disabled, abort.");
         return -1;
     }
+
+    if (cfg->general.privacy_mode) {
+        LOG_ERROR("Privacy mode enabled, abort.");
+        return -1;
+    }
+
     int ret;
 
     ret = IMP_IVS_CreateGroup(0);
