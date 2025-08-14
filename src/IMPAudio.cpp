@@ -140,11 +140,8 @@ int IMPAudio::init()
     ret = IMP_AI_GetPubAttr(devId, &ioattr);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_GetPubAttr(" << devId << ")");
 
-    if (!cfg->general.privacy_mode)
-    {
-        ret = IMP_AI_Enable(devId);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Enable(" << devId << ")");
-    }
+    ret = IMP_AI_Enable(devId);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Enable(" << devId << ")");
 
     IMPAudioIChnParam chnParam = {
         .usrFrmDepth = 30, // frame buffer depth
@@ -229,6 +226,13 @@ int IMPAudio::init()
     }
 #endif        
 #endif //LIB_AUDIO_PROCESSING
+
+    if (cfg->general.privacy_mode)
+    {
+        ret = IMP_AI_SetVolMute(devId, inChn, 1);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetVolMute(" << devId << ", " << inChn << ", 1)");
+    }
+
     return 0;
 }
 
