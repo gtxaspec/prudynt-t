@@ -545,6 +545,12 @@ void OSD::init()
         LOG_DEBUG("libschrift init failed.");
     }
 
+    if (cfg->general.privacy_mode || osd.user_text_enabled)
+    {
+        getIp(ip);
+        gethostname(hostname, 64);
+    }
+
     if (cfg->general.privacy_mode)
     {
         /* OSD Privacy Background */
@@ -561,7 +567,7 @@ void OSD::init()
         osdPrivBack.rgnAttr.rect.p0.y = 0;
         osdPrivBack.rgnAttr.rect.p1.x = stream_width - 1;
         osdPrivBack.rgnAttr.rect.p1.y = stream_height - 1;
-        osdPrivBack.rgnAttr.data.coverData.color = 0xff000000;
+        osdPrivBack.rgnAttr.data.coverData.color = OSD_BLACK;
 
         IMP_OSD_SetRgnAttr(osdPrivBack.imp_rgn, &osdPrivBack.rgnAttr);
 
@@ -575,8 +581,6 @@ void OSD::init()
         IMP_OSD_SetGrpRgnAttr(osdPrivBack.imp_rgn, osdGrp, &grpRgnAttrBack);
 
         /* OSD Privacy Message */
-        int posPrivacyTextX = round(stream_width / 2);
-        int posPrivacyTextY = round(stream_height / 2);
 
         osdPrivText.data = nullptr;
         osdPrivText.imp_rgn = IMP_OSD_CreateRgn(nullptr);
@@ -592,6 +596,21 @@ void OSD::init()
         {
             replace(privacy_text, "%hostname", hostname);
         }
+
+        if (strstr(osd.privacy_format, "%ipaddress") != nullptr)
+        {
+            replace(privacy_text, "%ipaddress", ip);
+        }
+
+        int posPrivacyTextX = round(stream_width / 2);
+        int posPrivacyTextY = round(stream_height / 2);
+
+        uint16_t text_width = 0;
+        uint16_t text_height = 0;
+        calculateTextSize(privacy_text.c_str(), text_width, text_height, osd.font_stroke);
+
+        posPrivacyTextX -= round(text_width / 2);
+        posPrivacyTextY -= round(text_height / 2);
 
         set_text(&osdPrivText, &osdPrivText.rgnAttr, privacy_text.c_str(),
                  posPrivacyTextX, posPrivacyTextY, 0);
@@ -646,9 +665,6 @@ void OSD::init()
 
     if (osd.user_text_enabled)
     {
-        getIp(ip);
-        gethostname(hostname, 64);
-
         /* OSD Usertext */
         if (osd.pos_user_text_x == OSD_AUTO_VALUE)
         {
