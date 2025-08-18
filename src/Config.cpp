@@ -103,7 +103,7 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
 #endif
         {"image.vflip", image.vflip, false, validateBool},
         {"image.hflip", image.hflip, false, validateBool},
-        {"general.privacy_mode", general.privacy_mode, true, validateBool},
+        {"general.privacy_mode", general.privacy_mode, false, validateBool},
         {"motion.enabled", motion.enabled, false, validateBool},
         {"rtsp.auth_required", rtsp.auth_required, true, validateBool},
 #if defined(AUDIO_SUPPORT)

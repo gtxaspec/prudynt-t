@@ -675,7 +675,7 @@ signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
                 }
                 else if (reason == LEJPCB_VAL_FALSE)
                 {
-                    if (cfg->set<bool>(u_ctx->path, true))
+                    if (cfg->set<bool>(u_ctx->path, false))
                     {
                         global_restart_audio = true;
                         global_restart_rtsp = true;
