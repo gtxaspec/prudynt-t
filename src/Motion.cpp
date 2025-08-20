@@ -137,7 +137,7 @@ int Motion::init()
         return -1;
     }
 
-    if (cfg->general.privacy_mode) {
+    if (cfg->privacy.enabled) {
         LOG_ERROR("Privacy mode enabled, abort.");
         return -1;
     }

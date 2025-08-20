@@ -30,6 +30,7 @@ private:
 
         static signed char root_callback(struct lejp_ctx *ctx, char reason);
         static signed char general_callback(struct lejp_ctx *ctx, char reason);
+        static signed char privacy_callback(struct lejp_ctx *ctx, char reason);
         static signed char rtsp_callback(struct lejp_ctx *ctx, char reason);
         static signed char sensor_callback(struct lejp_ctx *ctx, char reason);
         static signed char image_callback(struct lejp_ctx *ctx, char reason);

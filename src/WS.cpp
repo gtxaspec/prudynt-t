@@ -79,6 +79,7 @@ enum
 enum
 {
     PNT_GENERAL = 1,
+    PNT_PRIVACY,
     PNT_RTSP,
     PNT_SENSOR,
     PNT_IMAGE,
@@ -93,6 +94,7 @@ enum
 
 static const char *const root_keys[] = {
     "general",
+    "privacy",
     "rtsp",
     "sensor",
     "image",
@@ -109,15 +111,13 @@ enum
 {
     PNT_GENERAL_LOGLEVEL = 1,
     PNT_GENERAL_OSD_POOL_SIZE,
-    PNT_GENERAL_IMP_POLLING_TIMEOUT,
-    PNT_GENERAL_PRIVACY_MODE
+    PNT_GENERAL_IMP_POLLING_TIMEOUT
 };
 
 static const char *const general_keys[] = {
     "loglevel",
     "osd_pool_size",
     "imp_polling_timeout",
-    "privacy_mode",
 };
 
 /* RTSP */
@@ -315,6 +315,18 @@ static const char *const stream2_keys[] = {
     "jpeg_channel",
     "stats",
     "fps"};
+
+/* Privacy */
+enum
+{
+    PNT_PRIVACY_ENABLED = 1,
+    PNT_PRIVACY_TEXT_FORMAT,
+};
+
+static const char *const privacy_keys[] = {
+    "enabled",
+    "text_format",
+};
 
 /* OSD */
 enum
@@ -668,29 +680,63 @@ signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
                 }
                 add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));                
                 break;                    
-            case PNT_GENERAL_PRIVACY_MODE:
-                if (reason == LEJPCB_VAL_TRUE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, true))
-                    {
-                        global_restart_audio = true;
-                        global_restart_rtsp = true;
-                    }
-                }
-                else if (reason == LEJPCB_VAL_FALSE)
-                {
-                    if (cfg->set<bool>(u_ctx->path, false))
-                    {
-                        global_restart_audio = true;
-                        global_restart_rtsp = true;
-                    }
-                }
-                add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
-                break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
                 break;
             }
+        }
+    }
+    else if (reason == LEJPCB_OBJECT_END)
+    {
+        u_ctx->flag |= PNT_FLAG_SEPARATOR;
+        u_ctx->message.append("}");
+        lejp_parser_pop(ctx);
+    }
+
+    return 0;
+}
+
+signed char WS::privacy_callback(struct lejp_ctx *ctx, char reason)
+{
+    struct user_ctx *u_ctx = (struct user_ctx *)ctx->user;
+
+    if ((reason & LEJP_FLAG_CB_IS_VALUE) && ctx->path_match)
+    {
+        combine_path(u_ctx->path, u_ctx->root, ctx->path);
+
+        add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), privacy_keys[ctx->path_match - 1]);
+
+        u_ctx->flag |= PNT_FLAG_SEPARATOR;
+
+        switch (ctx->path_match)
+        {
+        case PNT_PRIVACY_ENABLED:
+            if (reason == LEJPCB_VAL_TRUE)
+            {
+                if (cfg->set<bool>(u_ctx->path, true))
+                {
+                }
+            }
+            else if (reason == LEJPCB_VAL_FALSE)
+            {
+                if (cfg->set<bool>(u_ctx->path, false))
+                {
+                }
+            }
+            add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
+            break;
+        case PNT_PRIVACY_TEXT_FORMAT:
+            if (reason == LEJPCB_VAL_STR_END)
+            {
+                if (cfg->set<const char *>(u_ctx->path, strdup(ctx->buf)))
+                {
+                }
+            }
+            add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
+            break;
+        default:
+            u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
+            break;
         }
     }
     else if (reason == LEJPCB_OBJECT_END)
@@ -1524,7 +1570,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                 if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
                 {
 
-                    _regions regions{-1,-1,-1,-1,-1,-1};
+                    _regions regions{-1,-1,-1,-1};
 
                     if (u_ctx->value == 0)
                     {
@@ -2005,6 +2051,10 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
         case PNT_GENERAL:
             lejp_parser_push(ctx, u_ctx,
                              general_keys, LWS_ARRAY_SIZE(general_keys), general_callback);
+            break;
+        case PNT_PRIVACY:
+            lejp_parser_push(ctx, u_ctx,
+                             privacy_keys, LWS_ARRAY_SIZE(privacy_keys), privacy_callback);
             break;
         case PNT_RTSP:
             lejp_parser_push(ctx, u_ctx,
