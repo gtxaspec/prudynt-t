@@ -545,19 +545,19 @@ void OSD::init()
         LOG_DEBUG("libschrift init failed.");
     }
 
-    if (cfg->general.privacy_mode || osd.user_text_enabled)
+    if (cfg->privacy.enabled || osd.user_text_enabled)
     {
         getIp(ip);
         gethostname(hostname, 64);
     }
 
-    if (cfg->general.privacy_mode)
+    if (cfg->privacy.enabled)
     {
         /* OSD Privacy Background */
         osdPrivBack.data = nullptr;
         osdPrivBack.imp_rgn = IMP_OSD_CreateRgn(nullptr);
         IMP_OSD_RegisterRgn(osdPrivBack.imp_rgn, osdGrp, nullptr);
-        osd.regions.priv_back = osdPrivBack.imp_rgn;
+        cfg->privacy.background_region = osdPrivBack.imp_rgn;
 
         memset(&osdPrivBack.rgnAttr, 0, sizeof(IMPOSDRgnAttr));
 
@@ -585,19 +585,19 @@ void OSD::init()
         osdPrivText.data = nullptr;
         osdPrivText.imp_rgn = IMP_OSD_CreateRgn(nullptr);
         IMP_OSD_RegisterRgn(osdPrivText.imp_rgn, osdGrp, nullptr);
-        osd.regions.priv_text = osdPrivText.imp_rgn;
+        cfg->privacy.text_region = osdPrivText.imp_rgn;
 
         memset(&osdPrivText.rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         osdPrivText.rgnAttr.type = OSD_REG_PIC;
         osdPrivText.rgnAttr.fmt = PIX_FMT_BGRA;
 
-        std::string privacy_text = osd.privacy_format;
-        if (strstr(osd.privacy_format, "%hostname") != nullptr)
+        std::string privacy_text = cfg->privacy.text_format;
+        if (strstr(cfg->privacy.text_format, "%hostname") != nullptr)
         {
             replace(privacy_text, "%hostname", hostname);
         }
 
-        if (strstr(osd.privacy_format, "%ipaddress") != nullptr)
+        if (strstr(cfg->privacy.text_format, "%ipaddress") != nullptr)
         {
             replace(privacy_text, "%ipaddress", ip);
         }
