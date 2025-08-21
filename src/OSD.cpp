@@ -814,6 +814,24 @@ int OSD::start()
     return ret;
 }
 
+void OSD::cleanup_item(OSDItem *osdItem)
+{
+    int ret;
+
+    if (osdItem->imp_rgn == 0)
+        return;
+
+    ret = IMP_OSD_ShowRgn(osdItem->imp_rgn, osdGrp, 0);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(" << osdItem->imp_rgn << ", " << osdGrp << ", 0)");
+
+    ret = IMP_OSD_UnRegisterRgn(osdItem->imp_rgn, osdGrp);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(" << osdItem->imp_rgn << ", " << osdGrp << ")");
+
+    IMP_OSD_DestroyRgn(osdItem->imp_rgn);
+
+    free(osdItem->data);
+}
+
 int OSD::exit()
 {
     int ret;
@@ -821,81 +839,18 @@ int OSD::exit()
     ret = IMP_OSD_Stop(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_Stop(" << osdGrp << ")");
 
-    if (osdPrivBack.imp_rgn)
-    {
-        ret = IMP_OSD_ShowRgn(osdPrivBack.imp_rgn, osdGrp, 0);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdPrivBack.imp_rgn, " << osdGrp << ", 0)");
-    }
-
-    if (osdPrivText.imp_rgn)
-    {
-        ret = IMP_OSD_ShowRgn(osdPrivText.imp_rgn, osdGrp, 0);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdPrivText.imp_rgn, " << osdGrp << ", 0)");
-    }
-
-    ret = IMP_OSD_ShowRgn(osdTime.imp_rgn, osdGrp, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdTime.imp_rgn, " << osdGrp << ", 0)");
-
-    ret = IMP_OSD_ShowRgn(osdUser.imp_rgn, osdGrp, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdUser.imp_rgn, " << osdGrp << ", 0)");
-
-    ret = IMP_OSD_ShowRgn(osdUptm.imp_rgn, osdGrp, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdUptm.imp_rgn, " << osdGrp << ", 0)");
-
-    ret = IMP_OSD_ShowRgn(osdLogo.imp_rgn, osdGrp, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdLogo.imp_rgn, " << osdGrp << ", 0)");
-
-    if (osdPrivBack.imp_rgn)
-    {
-        ret = IMP_OSD_UnRegisterRgn(osdPrivBack.imp_rgn, osdGrp);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdPrivBack.imp_rgn, " << osdGrp << ")");
-    }
-
-    if (osdPrivText.imp_rgn)
-    {
-        ret = IMP_OSD_UnRegisterRgn(osdPrivText.imp_rgn, osdGrp);
-        LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdPrivText.imp_rgn, " << osdGrp << ")");
-    }
-
-    ret = IMP_OSD_UnRegisterRgn(osdTime.imp_rgn, osdGrp);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdTime.imp_rgn, " << osdGrp << ")");
-
-    ret = IMP_OSD_UnRegisterRgn(osdUser.imp_rgn, osdGrp);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdUser.imp_rgn, " << osdGrp << ")");
-
-    ret = IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, osdGrp);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, " << osdGrp << ")");
-
-    ret = IMP_OSD_UnRegisterRgn(osdLogo.imp_rgn, osdGrp);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, " << osdGrp << ")");
-
-    if (osdPrivBack.imp_rgn)
-    {
-        IMP_OSD_DestroyRgn(osdPrivBack.imp_rgn);
-    }
-
-    if (osdPrivText.imp_rgn)
-    {
-        IMP_OSD_DestroyRgn(osdPrivText.imp_rgn);
-    }
-
-    IMP_OSD_DestroyRgn(osdTime.imp_rgn);
-    IMP_OSD_DestroyRgn(osdUser.imp_rgn);
-    IMP_OSD_DestroyRgn(osdUptm.imp_rgn);
-    IMP_OSD_DestroyRgn(osdLogo.imp_rgn);
+    cleanup_item(&osdPrivBack);
+    cleanup_item(&osdPrivText);
+    cleanup_item(&osdTime);
+    cleanup_item(&osdUser);
+    cleanup_item(&osdUptm);
+    cleanup_item(&osdLogo);
 
     ret = IMP_OSD_DestroyGroup(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_DestroyGroup(" << osdGrp << ")");
 
-    // cleanup osd image data
-    free(osdPrivBack.data);
-    free(osdPrivText.data);
-    free(osdTime.data);
-    free(osdUser.data);
-    free(osdUptm.data);
-    free(osdLogo.data);
-
     sft_freefont(sft->font);
+
     return 0;
 }
 

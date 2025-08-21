@@ -85,6 +85,7 @@ private:
 
     void set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, int posX, int posY, int angle);
     std::string getConfigPath(const char *itemName);
+    void cleanup_item(OSDItem *osdItem);
 
     IMPEncoderCHNAttr channelAttributes;
 
