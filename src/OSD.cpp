@@ -545,7 +545,7 @@ void OSD::init()
         LOG_DEBUG("libschrift init failed.");
     }
 
-    if (cfg->privacy.enabled || osd.user_text_enabled)
+    if (cfg->privacy.enabled || (osd.enabled && osd.user_text_enabled))
     {
         getIp(ip);
         gethostname(hostname, 64);
@@ -629,7 +629,7 @@ void OSD::init()
     }
 
 
-    if (osd.time_enabled)
+    if (osd.enabled && osd.time_enabled)
     {
         /* OSD Time */
         if (osd.pos_time_x == OSD_AUTO_VALUE)
@@ -663,7 +663,7 @@ void OSD::init()
         IMP_OSD_SetGrpRgnAttr(osdTime.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
-    if (osd.user_text_enabled)
+    if (osd.enabled && osd.user_text_enabled)
     {
         /* OSD Usertext */
         if (osd.pos_user_text_x == OSD_AUTO_VALUE)
@@ -698,7 +698,7 @@ void OSD::init()
         IMP_OSD_SetGrpRgnAttr(osdUser.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
-    if (osd.uptime_enabled)
+    if (osd.enabled && osd.uptime_enabled)
     {
         /* OSD Uptime */
         if (osd.pos_uptime_x == OSD_AUTO_VALUE)
@@ -733,7 +733,7 @@ void OSD::init()
         IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
-    if (osd.logo_enabled)
+    if (osd.enabled && osd.logo_enabled)
     {
         /* OSD Logo */
         if (osd.pos_logo_x == OSD_AUTO_VALUE)

@@ -334,7 +334,7 @@ int IMPEncoder::init()
         enc = {DEV_ID_ENC, encGrp, 0};
         osd_cell = {DEV_ID_OSD, encGrp, 0};
 
-        if (stream->osd.enabled)
+        if (stream->osd.enabled || cfg->privacy.enabled)
         {
             osd = OSD::createNew(stream->osd, encGrp, encChn, name);
 
