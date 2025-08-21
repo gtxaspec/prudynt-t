@@ -557,7 +557,6 @@ void OSD::init()
         osdPrivBack.data = nullptr;
         osdPrivBack.imp_rgn = IMP_OSD_CreateRgn(nullptr);
         IMP_OSD_RegisterRgn(osdPrivBack.imp_rgn, osdGrp, nullptr);
-        cfg->privacy.background_region = osdPrivBack.imp_rgn;
 
         memset(&osdPrivBack.rgnAttr, 0, sizeof(IMPOSDRgnAttr));
 
@@ -585,7 +584,6 @@ void OSD::init()
         osdPrivText.data = nullptr;
         osdPrivText.imp_rgn = IMP_OSD_CreateRgn(nullptr);
         IMP_OSD_RegisterRgn(osdPrivText.imp_rgn, osdGrp, nullptr);
-        cfg->privacy.text_region = osdPrivText.imp_rgn;
 
         memset(&osdPrivText.rgnAttr, 0, sizeof(IMPOSDRgnAttr));
         osdPrivText.rgnAttr.type = OSD_REG_PIC;
@@ -823,11 +821,17 @@ int OSD::exit()
     ret = IMP_OSD_Stop(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_Stop(" << osdGrp << ")");
 
-    ret = IMP_OSD_ShowRgn(osdPrivBack.imp_rgn, osdGrp, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdPrivBack.imp_rgn, " << osdGrp << ", 0)");
+    if (osdPrivBack.imp_rgn)
+    {
+        ret = IMP_OSD_ShowRgn(osdPrivBack.imp_rgn, osdGrp, 0);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdPrivBack.imp_rgn, " << osdGrp << ", 0)");
+    }
 
-    ret = IMP_OSD_ShowRgn(osdPrivText.imp_rgn, osdGrp, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdPrivText.imp_rgn, " << osdGrp << ", 0)");
+    if (osdPrivText.imp_rgn)
+    {
+        ret = IMP_OSD_ShowRgn(osdPrivText.imp_rgn, osdGrp, 0);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdPrivText.imp_rgn, " << osdGrp << ", 0)");
+    }
 
     ret = IMP_OSD_ShowRgn(osdTime.imp_rgn, osdGrp, 0);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdTime.imp_rgn, " << osdGrp << ", 0)");
@@ -841,6 +845,18 @@ int OSD::exit()
     ret = IMP_OSD_ShowRgn(osdLogo.imp_rgn, osdGrp, 0);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdLogo.imp_rgn, " << osdGrp << ", 0)");
 
+    if (osdPrivBack.imp_rgn)
+    {
+        ret = IMP_OSD_UnRegisterRgn(osdPrivBack.imp_rgn, osdGrp);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdPrivBack.imp_rgn, " << osdGrp << ")");
+    }
+
+    if (osdPrivText.imp_rgn)
+    {
+        ret = IMP_OSD_UnRegisterRgn(osdPrivText.imp_rgn, osdGrp);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdPrivText.imp_rgn, " << osdGrp << ")");
+    }
+
     ret = IMP_OSD_UnRegisterRgn(osdTime.imp_rgn, osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdTime.imp_rgn, " << osdGrp << ")");
 
@@ -853,8 +869,16 @@ int OSD::exit()
     ret = IMP_OSD_UnRegisterRgn(osdLogo.imp_rgn, osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, " << osdGrp << ")");
 
-    IMP_OSD_DestroyRgn(osdPrivBack.imp_rgn);
-    IMP_OSD_DestroyRgn(osdPrivText.imp_rgn);
+    if (osdPrivBack.imp_rgn)
+    {
+        IMP_OSD_DestroyRgn(osdPrivBack.imp_rgn);
+    }
+
+    if (osdPrivText.imp_rgn)
+    {
+        IMP_OSD_DestroyRgn(osdPrivText.imp_rgn);
+    }
+
     IMP_OSD_DestroyRgn(osdTime.imp_rgn);
     IMP_OSD_DestroyRgn(osdUser.imp_rgn);
     IMP_OSD_DestroyRgn(osdUptm.imp_rgn);

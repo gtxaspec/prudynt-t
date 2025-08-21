@@ -103,8 +103,6 @@ struct _general {
 struct _privacy {
     bool enabled;
     const char *text_format;
-    int background_region;
-    int text_region;
 };
 struct _rtsp {
     int port;
