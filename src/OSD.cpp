@@ -579,6 +579,8 @@ void OSD::init()
         grpRgnAttrBack.fgAlhpa = 0;
         IMP_OSD_SetGrpRgnAttr(osdPrivBack.imp_rgn, osdGrp, &grpRgnAttrBack);
 
+        osdPrivBack.is_show = true;
+
         /* OSD Privacy Message */
 
         osdPrivText.data = nullptr;
@@ -624,6 +626,8 @@ void OSD::init()
         grpRgnAttrText.gAlphaEn = 1;
         grpRgnAttrText.fgAlhpa = osd.user_text_transparency;
         IMP_OSD_SetGrpRgnAttr(osdPrivText.imp_rgn, osdGrp, &grpRgnAttrText);
+
+        osdPrivText.is_show = true;
     }
 
 
@@ -659,6 +663,8 @@ void OSD::init()
         grpRgnAttr.gAlphaEn = 0;
         grpRgnAttr.fgAlhpa = osd.time_transparency;
         IMP_OSD_SetGrpRgnAttr(osdTime.imp_rgn, osdGrp, &grpRgnAttr);
+
+        osdTime.is_show = true;
     }
 
     if (osd.enabled && osd.user_text_enabled)
@@ -694,6 +700,8 @@ void OSD::init()
         grpRgnAttr.gAlphaEn = 1;
         grpRgnAttr.fgAlhpa = osd.user_text_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUser.imp_rgn, osdGrp, &grpRgnAttr);
+
+        osdUser.is_show = true;
     }
 
     if (osd.enabled && osd.uptime_enabled)
@@ -729,6 +737,8 @@ void OSD::init()
         grpRgnAttr.gAlphaEn = 1;
         grpRgnAttr.fgAlhpa = osd.uptime_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, osdGrp, &grpRgnAttr);
+
+        osdUptm.is_show = true;
     }
 
     if (osd.enabled && osd.logo_enabled)
@@ -791,6 +801,8 @@ void OSD::init()
         grpRgnAttr.gAlphaEn = 1;
         grpRgnAttr.fgAlhpa = osd.logo_transparency;
         IMP_OSD_SetGrpRgnAttr(osdLogo.imp_rgn, osdGrp, &grpRgnAttr);
+
+        osdLogo.is_show = true;
     }
 
     if(osd.start_delay)
@@ -818,7 +830,7 @@ void OSD::cleanup_item(OSDItem *osdItem)
 {
     int ret;
 
-    if (osdItem->imp_rgn == 0)
+    if (!osdItem->is_show)
         return;
 
     ret = IMP_OSD_ShowRgn(osdItem->imp_rgn, osdGrp, 0);

@@ -19,6 +19,7 @@
 
 struct OSDItem
 {
+    bool is_show;
     IMPRgnHandle imp_rgn;
     uint8_t *data;
     uint16_t width;
