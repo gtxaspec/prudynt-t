@@ -266,6 +266,13 @@ int IMPAudio::init()
     }
 #endif
 #endif //LIB_AUDIO_PROCESSING
+
+    if (cfg->privacy.enabled)
+    {
+        ret = IMP_AI_SetVolMute(devId, inChn, 1);
+        LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetVolMute(" << devId << ", " << inChn << ", 1)");
+    }
+
     return 0;
 }
 

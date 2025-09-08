@@ -545,7 +545,93 @@ void OSD::init()
         LOG_DEBUG("libschrift init failed.");
     }
 
-    if (osd.time_enabled)
+    if (cfg->privacy.enabled || (osd.enabled && osd.user_text_enabled))
+    {
+        getIp(ip);
+        gethostname(hostname, 64);
+    }
+
+    if (cfg->privacy.enabled)
+    {
+        /* OSD Privacy Background */
+        osdPrivBack.data = nullptr;
+        osdPrivBack.imp_rgn = IMP_OSD_CreateRgn(nullptr);
+        IMP_OSD_RegisterRgn(osdPrivBack.imp_rgn, osdGrp, nullptr);
+
+        memset(&osdPrivBack.rgnAttr, 0, sizeof(IMPOSDRgnAttr));
+
+        osdPrivBack.rgnAttr.type = OSD_REG_COVER;
+        osdPrivBack.rgnAttr.fmt = PIX_FMT_BGRA;
+        osdPrivBack.rgnAttr.rect.p0.x = 0;
+        osdPrivBack.rgnAttr.rect.p0.y = 0;
+        osdPrivBack.rgnAttr.rect.p1.x = stream_width - 1;
+        osdPrivBack.rgnAttr.rect.p1.y = stream_height - 1;
+        osdPrivBack.rgnAttr.data.coverData.color = OSD_BLACK;
+
+        IMP_OSD_SetRgnAttr(osdPrivBack.imp_rgn, &osdPrivBack.rgnAttr);
+
+        IMPOSDGrpRgnAttr grpRgnAttrBack;
+
+        memset(&grpRgnAttrBack, 0, sizeof(IMPOSDGrpRgnAttr));
+        grpRgnAttrBack.show = 1;
+        grpRgnAttrBack.layer = 1;
+        grpRgnAttrBack.gAlphaEn = 0;
+        grpRgnAttrBack.fgAlhpa = 0;
+        IMP_OSD_SetGrpRgnAttr(osdPrivBack.imp_rgn, osdGrp, &grpRgnAttrBack);
+
+        osdPrivBack.is_show = true;
+
+        /* OSD Privacy Message */
+
+        osdPrivText.data = nullptr;
+        osdPrivText.imp_rgn = IMP_OSD_CreateRgn(nullptr);
+        IMP_OSD_RegisterRgn(osdPrivText.imp_rgn, osdGrp, nullptr);
+
+        memset(&osdPrivText.rgnAttr, 0, sizeof(IMPOSDRgnAttr));
+        osdPrivText.rgnAttr.type = OSD_REG_PIC;
+        osdPrivText.rgnAttr.fmt = PIX_FMT_BGRA;
+
+        std::string privacy_text = cfg->privacy.text_format;
+        if (strstr(cfg->privacy.text_format, "%hostname") != nullptr)
+        {
+            replace(privacy_text, "%hostname", hostname);
+        }
+
+        if (strstr(cfg->privacy.text_format, "%ipaddress") != nullptr)
+        {
+            replace(privacy_text, "%ipaddress", ip);
+        }
+
+        int posPrivacyTextX = round(stream_width / 2);
+        int posPrivacyTextY = round(stream_height / 2);
+
+        uint16_t text_width = 0;
+        uint16_t text_height = 0;
+        calculateTextSize(privacy_text.c_str(), text_width, text_height, osd.font_stroke);
+
+        posPrivacyTextX -= round(text_width / 2);
+        posPrivacyTextY -= round(text_height / 2);
+
+        set_text(&osdPrivText, &osdPrivText.rgnAttr, privacy_text.c_str(),
+                 posPrivacyTextX, posPrivacyTextY, 0);
+
+        privacy_text.clear();
+
+        IMP_OSD_SetRgnAttr(osdPrivText.imp_rgn, &osdPrivText.rgnAttr);
+
+        IMPOSDGrpRgnAttr grpRgnAttrText;
+        memset(&grpRgnAttrText, 0, sizeof(IMPOSDGrpRgnAttr));
+        grpRgnAttrText.show = 1;
+        grpRgnAttrText.layer = 2;
+        grpRgnAttrText.gAlphaEn = 1;
+        grpRgnAttrText.fgAlhpa = osd.user_text_transparency;
+        IMP_OSD_SetGrpRgnAttr(osdPrivText.imp_rgn, osdGrp, &grpRgnAttrText);
+
+        osdPrivText.is_show = true;
+    }
+
+
+    if (osd.enabled && osd.time_enabled)
     {
         /* OSD Time */
         if (osd.pos_time_x == OSD_AUTO_VALUE)
@@ -573,17 +659,16 @@ void OSD::init()
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
         grpRgnAttr.show = 1;
-        grpRgnAttr.layer = 1;
+        grpRgnAttr.layer = 3;
         grpRgnAttr.gAlphaEn = 1;  // Enable alpha for time transparency
         grpRgnAttr.fgAlhpa = osd.time_transparency;
         IMP_OSD_SetGrpRgnAttr(osdTime.imp_rgn, osdGrp, &grpRgnAttr);
+
+        osdTime.is_show = true;
     }
 
-    if (osd.user_text_enabled)
+    if (osd.enabled && osd.user_text_enabled)
     {
-        getIp(ip);
-        gethostname(hostname, 64);
-
         /* OSD Usertext */
         if (osd.pos_user_text_x == OSD_AUTO_VALUE)
         {
@@ -611,13 +696,15 @@ void OSD::init()
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
         grpRgnAttr.show = 1;
-        grpRgnAttr.layer = 2;
+        grpRgnAttr.layer = 4;
         grpRgnAttr.gAlphaEn = 1;
         grpRgnAttr.fgAlhpa = osd.user_text_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUser.imp_rgn, osdGrp, &grpRgnAttr);
+
+        osdUser.is_show = true;
     }
 
-    if (osd.uptime_enabled)
+    if (osd.enabled && osd.uptime_enabled)
     {
         /* OSD Uptime */
         if (osd.pos_uptime_x == OSD_AUTO_VALUE)
@@ -646,13 +733,15 @@ void OSD::init()
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
         grpRgnAttr.show = 1;
-        grpRgnAttr.layer = 3;
+        grpRgnAttr.layer = 5;
         grpRgnAttr.gAlphaEn = 1;
         grpRgnAttr.fgAlhpa = osd.uptime_transparency;
         IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, osdGrp, &grpRgnAttr);
+
+        osdUptm.is_show = true;
     }
 
-    if (osd.logo_enabled)
+    if (osd.enabled && osd.logo_enabled)
     {
         /* OSD Logo */
         if (osd.pos_logo_x == OSD_AUTO_VALUE)
@@ -708,10 +797,12 @@ void OSD::init()
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
         grpRgnAttr.show = 1;
-        grpRgnAttr.layer = 4;
+        grpRgnAttr.layer = 6;
         grpRgnAttr.gAlphaEn = 1;
         grpRgnAttr.fgAlhpa = osd.logo_transparency;
         IMP_OSD_SetGrpRgnAttr(osdLogo.imp_rgn, osdGrp, &grpRgnAttr);
+
+        osdLogo.is_show = true;
     }
 
     if(osd.start_delay)
@@ -735,6 +826,24 @@ int OSD::start()
     return ret;
 }
 
+void OSD::cleanup_item(OSDItem *osdItem)
+{
+    int ret;
+
+    if (!osdItem->is_show)
+        return;
+
+    ret = IMP_OSD_ShowRgn(osdItem->imp_rgn, osdGrp, 0);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(" << osdItem->imp_rgn << ", " << osdGrp << ", 0)");
+
+    ret = IMP_OSD_UnRegisterRgn(osdItem->imp_rgn, osdGrp);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(" << osdItem->imp_rgn << ", " << osdGrp << ")");
+
+    IMP_OSD_DestroyRgn(osdItem->imp_rgn);
+
+    free(osdItem->data);
+}
+
 int OSD::exit()
 {
     int ret;
@@ -742,45 +851,18 @@ int OSD::exit()
     ret = IMP_OSD_Stop(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_Stop(" << osdGrp << ")");
 
-    ret = IMP_OSD_ShowRgn(osdTime.imp_rgn, osdGrp, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdTime.imp_rgn, " << osdGrp << ", 0)");
-
-    ret = IMP_OSD_ShowRgn(osdUser.imp_rgn, osdGrp, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdUser.imp_rgn, " << osdGrp << ", 0)");
-
-    ret = IMP_OSD_ShowRgn(osdUptm.imp_rgn, osdGrp, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdUptm.imp_rgn, " << osdGrp << ", 0)");
-
-    ret = IMP_OSD_ShowRgn(osdLogo.imp_rgn, osdGrp, 0);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_ShowRgn(osdLogo.imp_rgn, " << osdGrp << ", 0)");
-
-    ret = IMP_OSD_UnRegisterRgn(osdTime.imp_rgn, osdGrp);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdTime.imp_rgn, " << osdGrp << ")");
-
-    ret = IMP_OSD_UnRegisterRgn(osdUser.imp_rgn, osdGrp);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdUser.imp_rgn, " << osdGrp << ")");
-
-    ret = IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, osdGrp);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, " << osdGrp << ")");
-
-    ret = IMP_OSD_UnRegisterRgn(osdLogo.imp_rgn, osdGrp);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_UnRegisterRgn(osdUptm.imp_rgn, " << osdGrp << ")");
-
-    IMP_OSD_DestroyRgn(osdTime.imp_rgn);
-    IMP_OSD_DestroyRgn(osdUser.imp_rgn);
-    IMP_OSD_DestroyRgn(osdUptm.imp_rgn);
-    IMP_OSD_DestroyRgn(osdLogo.imp_rgn);
+    cleanup_item(&osdPrivBack);
+    cleanup_item(&osdPrivText);
+    cleanup_item(&osdTime);
+    cleanup_item(&osdUser);
+    cleanup_item(&osdUptm);
+    cleanup_item(&osdLogo);
 
     ret = IMP_OSD_DestroyGroup(osdGrp);
     LOG_DEBUG_OR_ERROR(ret, "IMP_OSD_DestroyGroup(" << osdGrp << ")");
 
-    // cleanup osd image data
-    free(osdTime.data);
-    free(osdUser.data);
-    free(osdUptm.data);
-    free(osdLogo.data);
-
     sft_freefont(sft->font);
+
     return 0;
 }
 

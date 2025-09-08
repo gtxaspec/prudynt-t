@@ -104,6 +104,7 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
         {"image.hflip", image.hflip, false, validateBool},
         {"motion.enabled", motion.enabled, false, validateBool},
         {"rtsp.auth_required", rtsp.auth_required, true, validateBool},
+        {"privacy.enabled", privacy.enabled, false, validateBool},
 #if defined(AUDIO_SUPPORT)
         {"stream0.audio_enabled", stream0.audio_enabled, true, validateBool},
 #endif
@@ -145,6 +146,7 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
             return a.count(std::string(v)) == 1;
         }},
         {"motion.script_path", motion.script_path, "/usr/sbin/motion", validateCharNotEmpty},
+        {"privacy.text_format", privacy.text_format, "%hostname in privacy mode", validateCharNotEmpty},
         {"rtsp.name", rtsp.name, "thingino prudynt", validateCharNotEmpty},
         {"rtsp.password", rtsp.password, "thingino", validateCharNotEmpty},
         {"rtsp.username", rtsp.username, "thingino", validateCharNotEmpty},
