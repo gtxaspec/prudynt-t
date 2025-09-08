@@ -8,7 +8,7 @@
 #include <mutex>
 #include <condition_variable>
 
-/* Implementation of the MsgChannel API, except that it keeps 
+/* Implementation of the MsgChannel API, except that it keeps
  * the most recent bsize elements in the queue.
  */
 template <class T> class MsgChannel {

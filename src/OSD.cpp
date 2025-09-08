@@ -538,7 +538,7 @@ void OSD::init()
     {
         // use cfg->set to set noSave, so auto values will not written to config
         cfg->set<int>(getConfigPath("font_size"), fontSize, true);
-    } 
+    }
 
     if (libschrift_init() != 0)
     {
@@ -660,7 +660,7 @@ void OSD::init()
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 3;
-        grpRgnAttr.gAlphaEn = 0;
+        grpRgnAttr.gAlphaEn = 1;  // Enable alpha for time transparency
         grpRgnAttr.fgAlhpa = osd.time_transparency;
         IMP_OSD_SetGrpRgnAttr(osdTime.imp_rgn, osdGrp, &grpRgnAttr);
 
@@ -878,7 +878,7 @@ void OSD::updateDisplayEverySecond()
     {
         flag |= 7;
         // Update the last second tracker
-        last_updated_second = ltime->tm_sec; 
+        last_updated_second = ltime->tm_sec;
     }
     else
     {
@@ -887,7 +887,7 @@ void OSD::updateDisplayEverySecond()
         // this should relieve the system
         if (flag != 0)
         {
-            
+
             // Format and update system time
             if ((flag & 1) && osd.time_enabled)
             {
@@ -954,7 +954,7 @@ void OSD::updateDisplayEverySecond()
 
                 flag ^= 4;
                 return;
-            }          
+            }
         }
     }
 }

@@ -211,7 +211,7 @@ void AudioWorker::run()
             global_audio[encChn]->active = false;
             LOG_DDEBUG("AUDIO LOCK");
 
-            /* Since the audio stream is permanently in use by the stream replicator, 
+            /* Since the audio stream is permanently in use by the stream replicator,
              * we send the audio grabber and encoder to standby when no video is requested.
             */
             while ((global_audio[encChn]->onDataCallback == nullptr
@@ -242,16 +242,25 @@ void *AudioWorker::thread_entry(void *arg)
               << global_audio[encChn]->devId << " and channel " << global_audio[encChn]->aiChn
               << " and encoder " << global_audio[encChn]->aeChn);
 
-    global_audio[encChn]->imp_audio = IMPAudio::createNew(global_audio[encChn]->devId,
-                                                          global_audio[encChn]->aiChn,
-                                                          global_audio[encChn]->aeChn);
+    try {
+        global_audio[encChn]->imp_audio = IMPAudio::createNew(global_audio[encChn]->devId,
+                                                              global_audio[encChn]->aiChn,
+                                                              global_audio[encChn]->aeChn);
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to initialize audio: " << e.what());
+        global_audio[encChn]->imp_audio = nullptr;
+        global_audio[encChn]->running = false;
+        // inform main that initialization is complete (even though it failed)
+        sh->has_started.release();
+        return nullptr;
+    }
 
     // inform main that initialization is complete
     sh->has_started.release();
 
     /* 'active' indicates, the thread is activly polling and grabbing images
      * 'running' describes the runlevel of the thread, if this value is set to false
-     *           the thread exits and cleanup all ressources 
+     *           the thread exits and cleanup all ressources
      */
     global_audio[encChn]->active = true;
     global_audio[encChn]->running = true;

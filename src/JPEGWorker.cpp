@@ -123,7 +123,7 @@ void JPEGWorker::run()
                 // check if current jpeg channal is running if not start it
                 if (!global_video[global_jpeg[jpgChn]->streamChn]->active)
                 {
-                    /* required video channel was not running, we need to start it  
+                    /* required video channel was not running, we need to start it
                     * and set run_for_jpeg as a reason.
                     */
                     std::unique_lock<std::mutex> lock_stream{mutex_main};

@@ -133,7 +133,7 @@ int main(int argc, const char *argv[])
             // wait for initialization done
             sh.has_started.acquire();
         }
-#endif        
+#endif
         if (global_restart_video || startup)
         {
             if (cfg->stream0.enabled)
@@ -165,7 +165,7 @@ int main(int argc, const char *argv[])
             {
                 int ret = pthread_create(&motion_thread, nullptr, Motion::run, &motion);
                 LOG_DEBUG_OR_ERROR(ret, "create motion thread");
-            }            
+            }
         }
 
         // start rtsp server
@@ -176,26 +176,26 @@ int main(int argc, const char *argv[])
         }
 
         /* we should wait a short period to ensure all services are up
-         * and running, additionally we add the timespan which is configured as 
+         * and running, additionally we add the timespan which is configured as
          * OSD startup delay.
          */
         usleep(250000 + (cfg->stream0.osd.start_delay * 1000) + cfg->stream1.osd.start_delay * 1000);
-        
+
         LOG_DEBUG("main thread is going to sleep");
         std::unique_lock lck(mutex_main);
-        
+
         startup = false;
         global_restart = false;
         global_restart_video = false;
         global_restart_audio = false;
-        global_restart_rtsp = false;        
-        
+        global_restart_rtsp = false;
+
         while (!global_restart_rtsp && !global_restart_video && !global_restart_audio)
             global_cv_worker_restart.wait(lck);
         lck.unlock();
 
         global_restart = true;
-        
+
         if (global_restart_rtsp)
         {
             // stop rtsp thread
@@ -204,7 +204,7 @@ int main(int argc, const char *argv[])
                 global_rtsp_thread_signal = 1;
                 int ret = pthread_join(rtsp_thread, NULL);
                 LOG_DEBUG_OR_ERROR(ret, "join rtsp thread");
-            }        
+            }
         }
 
         // stop audio

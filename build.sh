@@ -1,21 +1,36 @@
 #!/bin/bash
 set -e
-: "${PRUDYNT_CROSS:=ccache mipsel-linux-}"
+#: "${PRUDYNT_CROSS:=ccache mipsel-linux-}"
+: "${PRUDYNT_CROSS:=/home/paul/output/wyze_cam3_t31x_gc2053_rtl8189ftv/host/bin/mipsel-linux-}"
 TOP=$(pwd)
 
-prudynt(){
+prudynt() {
 	echo "Build prudynt"
 
 	cd $TOP
 	make clean
 
-	if [ "$2" = "-static" ]; then
-		BIN_TYPE="-DBINARY_STATIC"
-	elif [ "$2" = -"hybrid" ]; then
-		BIN_TYPE="-DBINARY_HYBRID"
-	else
-		BIN_TYPE="-DBINARY_DYNAMIC"
-	fi
+	# Parse build type flags - default to dynamic linking (ideal for buildroot/firmware)
+	BIN_TYPE=""
+	for arg in "$@"; do
+		if [ "$arg" = "-static" ]; then
+			BIN_TYPE="-DBINARY_STATIC"
+		elif [ "$arg" = "-hybrid" ]; then
+			BIN_TYPE="-DBINARY_HYBRID"
+		fi
+	done
+	# If no explicit flag provided, default to dynamic (no flag needed in Makefile)
+
+	# Detect optional -ffmpeg flag in args to enable USE_FFMPEG in Makefile
+	FFMPEG_FLAG=""
+	for arg in "$@"; do
+		if [ "$arg" = "-ffmpeg" ]; then
+			FFMPEG_FLAG="USE_FFMPEG=1"
+		fi
+	done
+
+	# Ensure cross-built FFmpeg pkg-configs are found
+	export PKG_CONFIG_PATH="$TOP/3rdparty/install/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 
 	/usr/bin/make -j$(nproc) \
 	ARCH= CROSS_COMPILE="${PRUDYNT_CROSS}" \
@@ -31,14 +46,26 @@ prudynt(){
 }
 
 deps() {
-	rm -rf 3rdparty
+	# Parse flags for dependency builds
+	CLEAN_ALL=0
+	STATIC_BUILD=0
+	HYBRID_BUILD=0
+	for arg in "$@"; do
+		if [ "$arg" = "--clean-all" ]; then CLEAN_ALL=1; fi
+		if [ "$arg" = "-static" ]; then STATIC_BUILD=1; fi
+		if [ "$arg" = "-hybrid" ]; then HYBRID_BUILD=1; fi
+	done
+	if [ $CLEAN_ALL -eq 1 ]; then
+		echo "Cleaning 3rdparty/ (requested via --clean-all)"
+		rm -rf 3rdparty
+	fi
 	mkdir -p 3rdparty/install
 	mkdir -p 3rdparty/install/include
 	CROSS_COMPILE=${PRUDYNT_CROSS}
 
 	echo "Build libhelix-aac"
 	cd 3rdparty
-	if [[ "$2" == "-static" || "$2" == "-hybrid" ]]; then
+	if [[ $STATIC_BUILD -eq 1 || $HYBRID_BUILD -eq 1 ]]; then
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libhelixaac_deps.sh -static
 	else
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libhelixaac_deps.sh
@@ -47,7 +74,7 @@ deps() {
 
 	echo "Build libwebsockets"
 	cd 3rdparty
-	if [[ "$2" == "-static" ]]; then
+	if [[ $STATIC_BUILD -eq 1 ]]; then
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libwebsockets_deps.sh -static
 	else
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_libwebsockets_deps.sh
@@ -56,7 +83,7 @@ deps() {
 
 	echo "Build opus"
 	cd 3rdparty
-	if [[ "$2" == "-static" || "$2" == "-hybrid" ]]; then
+	if [[ $STATIC_BUILD -eq 1 || $HYBRID_BUILD -eq 1 ]]; then
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_opus_deps.sh -static
 	else
 		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_opus_deps.sh
@@ -71,7 +98,7 @@ deps() {
 	git apply ../../res/libschrift.patch
 	mkdir -p $TOP/3rdparty/install/lib
 	mkdir -p $TOP/3rdparty/install/include
-	if [[ "$2" == "-static" || "$2" == "-hybrid" ]]; then
+	if [[ $STATIC_BUILD -eq 1 || $HYBRID_BUILD -eq 1 ]]; then
 		${PRUDYNT_CROSS}gcc -std=c99 -pedantic -Wall -Wextra -Wconversion -c -o schrift.o schrift.c
 		${PRUDYNT_CROSS}ar rc libschrift.a schrift.o
 		${PRUDYNT_CROSS}ranlib libschrift.a
@@ -84,19 +111,26 @@ deps() {
 	cp schrift.h $TOP/3rdparty/install/include/
 	cd ../../
 
-	echo "Build libconfig"
+	echo "Build json-c"
 	cd 3rdparty
-	rm -rf libconfig
-	if [[ ! -f libconfig-1.7.3.tar.gz ]]; then
-		wget 'https://github.com/hyperrealm/libconfig/releases/download/v1.7.3/libconfig-1.7.3.tar.gz';
+	rm -rf json-c
+	if [[ ! -f json-c-0.18.zip ]]; then
+		wget 'https://github.com/json-c/json-c/archive/refs/heads/json-c-0.18.zip' -O json-c-0.18.zip
 	fi
-	tar xf libconfig-1.7.3.tar.gz
-	mv libconfig-1.7.3 libconfig
-	cd libconfig
-	CC="${PRUDYNT_CROSS}gcc" CXX="${PRUDYNT_CROSS}g++" ./configure --host mipsel-linux-gnu --prefix="$TOP/3rdparty/install"
+	unzip json-c-0.18.zip
+	mv json-c-json-c-0.18 json-c
+	cd json-c
+	mkdir -p build
+	cd build
+	cmake -DCMAKE_SYSTEM_NAME=Linux \
+		-DCMAKE_C_COMPILER="${PRUDYNT_CROSS}gcc" \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX="$TOP/3rdparty/install" \
+		-DBUILD_SHARED_LIBS=ON \
+		..
 	make -j$(nproc)
 	make install
-	cd ../../
+	cd ../../../
 
 	echo "Build live555"
 	cd 3rdparty
@@ -124,7 +158,7 @@ deps() {
 
 	echo "import libimp"
 	cd 3rdparty
-	rm -rf ingenic-lib
+	if [[ $CLEAN_ALL -eq 1 ]]; then rm -rf ingenic-lib; fi
 	if [[ ! -d ingenic-lib ]]; then
 	git clone --depth=1 https://github.com/gtxaspec/ingenic-lib
 
@@ -171,18 +205,18 @@ deps() {
 
 	echo "import libmuslshim"
 	cd 3rdparty
-	rm -rf ingenic-musl
+	if [[ $CLEAN_ALL -eq 1 ]]; then rm -rf ingenic-musl; fi
 	if [[ ! -d ingenic-musl ]]; then
 	git clone --depth=1 https://github.com/gtxaspec/ingenic-musl
+	fi
 	cd ingenic-musl
-	if [[ "$2" == "-static" ]]; then
+	if [[ $STATIC_BUILD -eq 1 ]]; then
 		make CC="${PRUDYNT_CROSS}gcc" -j$(nproc) static
 		make CC="${PRUDYNT_CROSS}gcc" -j$(nproc)
 	else
 		make CC="${PRUDYNT_CROSS}gcc" -j$(nproc)
 	fi
 	cp libmuslshim.* ../install/lib/
-	fi
 	cd $TOP
 
 	echo "import libaudioshim"
@@ -203,7 +237,7 @@ deps() {
 	cd faac
 	sed -i 's/^#define MAX_CHANNELS 64/#define MAX_CHANNELS 2/' libfaac/coder.h
 	./bootstrap
-	if [[ "$2" == "-static" || "$2" == "-hybrid" ]]; then
+	if [[ $STATIC_BUILD -eq 1 || $HYBRID_BUILD -eq 1 ]]; then
 		CC="${PRUDYNT_CROSS}gcc" ./configure --host mipsel-linux-gnu --prefix="$TOP/3rdparty/install" --enable-static --disable-shared
 	else
 		CC="${PRUDYNT_CROSS}gcc" ./configure --host mipsel-linux-gnu --prefix="$TOP/3rdparty/install" --disable-static --enable-shared
@@ -211,6 +245,12 @@ deps() {
 	make -j$(nproc)
 	make install
 	cd ../../
+
+	# Optional: Build FFmpeg when -ffmpeg is requested
+	if [[ "$3" == "-ffmpeg" || "$4" == "-ffmpeg" || "$5" == "-ffmpeg" ]]; then
+		echo "Build FFmpeg minimal (parsers + BSFs)"
+		PRUDYNT_CROSS=$PRUDYNT_CROSS ../scripts/make_ffmpeg_deps.sh "$2"
+	fi
 }
 
 if [ $# -eq 0 ]; then
@@ -220,13 +260,18 @@ if [ $# -eq 0 ]; then
 	echo "       ./build.sh full <platform> [options]"
 	echo ""
 	echo "Platforms: T20, T21, T23, T30, T31, C100, T40, T41"
-	echo "Options:   -static (optional, for static builds)"
+	echo "Options:   -static | -hybrid | -ffmpeg (enable USE_FFMPEG)"
 	exit 1
 elif [[ "$1" == "deps" ]]; then
-	deps $2 $3
+	deps "${@:2}"
 elif [[ "$1" == "prudynt" ]]; then
-	prudynt $2 $3
+	prudynt "${@:2}"
 elif [[ "$1" == "full" ]]; then
-	deps $2 $3
-	prudynt $2 $3
+	deps "${@:2}"
+	prudynt "${@:2}"
 fi
+
+echo "DONE. COPYING BINARY TO NFS"
+cp -vf bin/prudynt /nfs/
+
+exit 0

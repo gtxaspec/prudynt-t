@@ -135,13 +135,25 @@ int IMPAudio::init()
 
     ret = IMP_AI_SetPubAttr(devId, &ioattr);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetPubAttr(" << devId << ")");
+    if (ret != 0) {
+        LOG_ERROR("Failed to set audio public attributes, cannot continue audio initialization");
+        return ret;
+    }
 
     memset(&ioattr, 0x0, sizeof(ioattr));
     ret = IMP_AI_GetPubAttr(devId, &ioattr);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_GetPubAttr(" << devId << ")");
+    if (ret != 0) {
+        LOG_ERROR("Failed to get audio public attributes, cannot continue audio initialization");
+        return ret;
+    }
 
     ret = IMP_AI_Enable(devId);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_Enable(" << devId << ")");
+    if (ret != 0) {
+        LOG_ERROR("Failed to enable audio device, cannot continue audio initialization");
+        return ret;
+    }
 
     IMPAudioIChnParam chnParam = {
         .usrFrmDepth = 30, // frame buffer depth
@@ -150,30 +162,58 @@ int IMPAudio::init()
 
     ret = IMP_AI_SetChnParam(devId, inChn, &chnParam);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetChnParam(" << devId << ", " << inChn << ")");
+    if (ret != 0) {
+        LOG_ERROR("Failed to set audio channel parameters, cannot continue audio initialization");
+        return ret;
+    }
 
     memset(&chnParam, 0x0, sizeof(chnParam));
     ret = IMP_AI_GetChnParam(devId, inChn, &chnParam);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_GetChnParam(" << devId << ", " << inChn << ")");
+    if (ret != 0) {
+        LOG_ERROR("Failed to get audio channel parameters, cannot continue audio initialization");
+        return ret;
+    }
 
     ret = IMP_AI_EnableChn(devId, inChn);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_EnableChn(" << devId << ", " << inChn << ")");
+    if (ret != 0) {
+        LOG_ERROR("Failed to enable audio channel, cannot continue audio initialization");
+        return ret;
+    }
 
     ret = IMP_AI_SetVol(devId, inChn, cfg->audio.input_vol);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetVol(" << devId << ", " << inChn << ", " << cfg->audio.input_vol << ")");
+    if (ret != 0) {
+        LOG_ERROR("Failed to set audio volume, cannot continue audio initialization");
+        return ret;
+    }
 
     int vol;
     ret = IMP_AI_GetVol(devId, inChn, &vol);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_GetVol(" << devId << ", " << inChn << ", &vol)");
+    if (ret != 0) {
+        LOG_ERROR("Failed to get audio volume, hardware may not be properly initialized");
+        return ret;
+    }
 
     if(cfg->audio.input_gain >= 0)
     {
         ret = IMP_AI_SetGain(devId, inChn, cfg->audio.input_gain);
         LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetGain(" << devId << ", " << inChn << ", " << cfg->audio.input_gain << ")");
+        if (ret != 0) {
+            LOG_ERROR("Failed to set audio gain, cannot continue audio initialization");
+            return ret;
+        }
     }
 
     int gain;
     ret = IMP_AI_GetGain(devId, inChn, &gain);
     LOG_DEBUG_OR_ERROR(ret, "IMP_AI_GetGain(" << devId << ", " << inChn << ", &gain)");
+    if (ret != 0) {
+        LOG_ERROR("Failed to get audio gain, hardware may not be properly initialized");
+        return ret;
+    }
 
     LOG_INFO("Audio In: format:" << cfg->audio.input_format <<
             ", vol:" << vol <<
@@ -224,7 +264,7 @@ int IMPAudio::init()
         ret = IMP_AI_SetAlcGain(devId, inChn, cfg->audio.input_alc_gain);
         LOG_DEBUG_OR_ERROR(ret, "IMP_AI_SetAlcGain(" << devId << ", " << inChn << ", " << cfg->audio.input_alc_gain << ")");
     }
-#endif        
+#endif
 #endif //LIB_AUDIO_PROCESSING
 
     if (cfg->privacy.enabled)

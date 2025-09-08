@@ -18,8 +18,7 @@ public:
 
     IMPSystem()
     {
-        if( init() != 0 && Logger::level != Logger::DEBUG) {
-
+        if( init() != 0) {
             throw std::invalid_argument("error initializing the imp system.");
         };
 

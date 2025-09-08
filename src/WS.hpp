@@ -22,8 +22,8 @@ public:
         static void *run(void* arg);
 
 private:
-        lws_protocols protocols{};
-        struct lws_context_creation_info info;
+        lws_protocols protocols_[3]{}; // http-only, ws protocol, terminator
+        struct lws_context_creation_info info{};
         struct lws_context *context{};
 
         static int ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
