@@ -187,7 +187,7 @@ int IMPSystem::init()
         ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
         LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
     }
-#elif defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
     ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
 #endif
@@ -206,7 +206,7 @@ int IMPSystem::init()
     ret = IMP_ISP_Tuning_SetSensorFPS(desired_sensor_fps, 1);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetSensorFPS(" << desired_sensor_fps << ", 1)");
 
-#if defined(PLATFORM_T21)
+#if defined(PLATFORM_T20) || defined(PLATFORM_T21)
     //T20 T21 only set FPS if it is read after set.
     uint32_t fps_num, fps_den;
     ret = IMP_ISP_Tuning_GetSensorFPS(&fps_num, &fps_den);
