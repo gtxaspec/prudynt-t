@@ -1000,7 +1000,9 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     }
 
                     IMPISPRunningMode running_mode;
-                    IMP_ISP_Tuning_GetISPRunningMode(&running_mode);
+                    int ret = IMP_ISP_Tuning_GetISPRunningMode(&running_mode);
+                    if (ret == 0)                             
+                        cfg->set<int>(u_ctx->path, (int) running_mode);
                     add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
                 }
                 break;
