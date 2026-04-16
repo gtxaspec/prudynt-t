@@ -1,3 +1,8 @@
+> **ARCHIVED — This project is no longer actively maintained and is not recommended for current use.**
+> Its successor is **[Raptor Streaming System (RSS)](https://github.com/gtxaspec/raptor)** — a complete rewrite with modular daemon architecture, WebRTC, RTSP, HTTP streaming, OSD, motion detection, recording, and support for all Ingenic T-series SoCs.
+
+---
+
 # prudynt-t
 
 **prudynt-t** is a video server based on the **[prudynt-v3](https://git.i386.io/wyze/prudynt-v3)** project originally for the Wyzecam v3. It extends the functionality of the original project while expanding compatibility with modern Ingenic hardware.
