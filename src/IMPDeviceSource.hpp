@@ -24,7 +24,7 @@ public:
     virtual ~IMPDeviceSource();
 
 private:
-    
+
     virtual void doGetNextFrame() override;
     static void deliverFrame0(void *clientData);
     void deliverFrame();

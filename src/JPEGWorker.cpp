@@ -94,7 +94,7 @@ void JPEGWorker::run()
     unsigned long long ms{0};
 
     // Initialize timestamp for stats calculation (ensure it's set before first use)
-    gettimeofday(&global_jpeg[jpgChn]->stream->stats.ts, NULL);
+    WorkerUtils::getMonotonicTimeOfDay(&global_jpeg[jpgChn]->stream->stats.ts);
     global_jpeg[jpgChn]->stream->stats.ts.tv_sec -= 10;
 
     while (global_jpeg[jpgChn]->running)
@@ -123,7 +123,7 @@ void JPEGWorker::run()
                 // check if current jpeg channal is running if not start it
                 if (!global_video[global_jpeg[jpgChn]->streamChn]->active)
                 {
-                    /* required video channel was not running, we need to start it  
+                    /* required video channel was not running, we need to start it
                     * and set run_for_jpeg as a reason.
                     */
                     std::unique_lock<std::mutex> lock_stream{mutex_main};
@@ -197,14 +197,14 @@ void JPEGWorker::run()
                                                   &stream); // Release stream after saving
                     }
 
-                    ms = WorkerUtils::tDiffInMs(&global_jpeg[jpgChn]->stream->stats.ts);
+                    ms = WorkerUtils::getMonotonicTimeDiffInMs(&global_jpeg[jpgChn]->stream->stats.ts);
                     if (ms > 1000)
                     {
                         global_jpeg[jpgChn]->stream->stats.fps = fps;
                         global_jpeg[jpgChn]->stream->stats.bps = bps;
                         fps = 0;
                         bps = 0;
-                        gettimeofday(&global_jpeg[jpgChn]->stream->stats.ts, NULL);
+                        WorkerUtils::getMonotonicTimeOfDay(&global_jpeg[jpgChn]->stream->stats.ts);
 
                         LOG_DDEBUG("JPG " << jpgChn
                                           << " fps: " << global_jpeg[jpgChn]->stream->stats.fps

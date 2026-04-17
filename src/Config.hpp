@@ -5,7 +5,7 @@
 #include <chrono>
 #include <iostream>
 #include <functional>
-#include <libconfig.h++>
+#include <json-c/json.h>
 #include <sys/time.h>
 #include <any>
 
@@ -99,6 +99,8 @@ struct _general {
     const char *loglevel;
     int osd_pool_size;
     int imp_polling_timeout;
+    bool timestamp_validation_enabled;
+    bool audio_debug_verbose;
 };
 struct _rtsp {
     int port;
@@ -110,6 +112,8 @@ struct _rtsp {
     const char *username;
     const char *password;
     const char *name;
+    float packet_loss_threshold;
+    float bandwidth_margin;
 };
 struct _sensor {
     int fps;
@@ -122,6 +126,9 @@ struct _sensor {
     int i2c_bus;
     int video_interface;
     int gpio_reset;
+    const char *chip_id;
+    const char *version;
+    int min_fps;
 };
 struct _image {
     int contrast;
@@ -131,6 +138,7 @@ struct _image {
     int hue;
     int sinter_strength;
     int temper_strength;
+    bool isp_bypass;
     bool vflip;
     bool hflip;
     int running_mode;
@@ -146,7 +154,6 @@ struct _image {
     int core_wb_mode;
     int wb_rgain;
     int wb_bgain;
-
 };
 #if defined(AUDIO_SUPPORT)
 struct _audio {
@@ -167,9 +174,12 @@ struct _audio {
     bool output_enabled;
     int output_sample_rate;
 #endif
+    // Buffer tuning (in 20 ms frames per channel)
+    int buffer_warn_frames;
+    int buffer_cap_frames;
 };
-#endif      
-struct _osd {            
+#endif
+struct _osd {
     int font_size;
     int font_xscale;
     int font_yscale;
@@ -179,37 +189,39 @@ struct _osd {
     int logo_width;
     int pos_time_x;
     int pos_time_y;
-    int time_transparency;
     int time_rotation;
     int pos_user_text_x;
     int pos_user_text_y;
-    int user_text_transparency;
     int user_text_rotation;
     int pos_uptime_x;
     int pos_uptime_y;
-    int uptime_transparency;
     int uptime_rotation;
     int pos_logo_x;
     int pos_logo_y;
     int logo_transparency;
     int logo_rotation;
-    int start_delay;            
-    bool enabled;            
+    int start_delay;
+    bool enabled;
     bool time_enabled;
     bool user_text_enabled;
     bool uptime_enabled;
-    bool logo_enabled;         
+    bool logo_enabled;
     const char *font_path;
     const char *time_format;
     const char *uptime_format;
     const char *user_text_format;
     const char *logo_path;
-    unsigned int font_color;
-    unsigned int font_stroke_color;
+    // Individual color settings for each text element
+    unsigned int time_font_color;
+    unsigned int time_font_stroke_color;
+    unsigned int uptime_font_color;
+    unsigned int uptime_font_stroke_color;
+    unsigned int user_text_font_color;
+    unsigned int user_text_font_stroke_color;
     _regions regions;
     _stream_stats stats;
     std::atomic<int> thread_signal;
-};  
+};
 struct _stream {
     int gop;
     int max_gop;
@@ -238,10 +250,10 @@ struct _stream {
     const char *jpeg_path;
     _osd osd;
     _stream_stats stats;
-#if defined(AUDIO_SUPPORT)    
+#if defined(AUDIO_SUPPORT)
     bool audio_enabled;
 #endif
-};	
+};
 struct _motion {
     int monitor_stream;
     int debounce_time;
@@ -268,10 +280,9 @@ struct _websocket {
     bool ws_secured;
     bool http_secured;
     int port;
-    int loglevel;
     int first_image_delay;
     const char *name;
-    const char *usertoken{""};
+    const char *token{"auto"};
 };
 struct _sysinfo {
     const char *cpu = nullptr;
@@ -279,9 +290,16 @@ struct _sysinfo {
 
 class CFG {
 	public:
+        // Destructor to clean up JSON object
+        ~CFG() {
+            if (jsonConfig) {
+                json_object_put(jsonConfig);
+                jsonConfig = nullptr;
+            }
+        }
 
         bool config_loaded = false;
-        libconfig::Config lc{};
+        json_object *jsonConfig = nullptr;
         std::string filePath{};
 
 		CFG();
@@ -292,7 +310,7 @@ class CFG {
 
 #if defined(AUDIO_SUPPORT)
         _audio audio{};
-#endif  
+#endif
 		_general general{};
 		_rtsp rtsp{};
 		_sensor sensor{};
@@ -316,6 +334,8 @@ class CFG {
             items = &intItems;
         } else if constexpr (std::is_same_v<T, unsigned int>) {
             items = &uintItems;
+        } else if constexpr (std::is_same_v<T, float>) {
+            items = &floatItems;
         } else {
             return result;
         }
@@ -339,6 +359,8 @@ class CFG {
             items = &intItems;
         } else if constexpr (std::is_same_v<T, unsigned int>) {
             items = &uintItems;
+        } else if constexpr (std::is_same_v<T, float>) {
+            items = &floatItems;
         } else {
             return false;
         }
@@ -362,11 +384,14 @@ class CFG {
         std::vector<ConfigItem<const char *>> charItems{};
         std::vector<ConfigItem<int>> intItems{};
         std::vector<ConfigItem<unsigned int>> uintItems{};
+        std::vector<ConfigItem<float>> floatItems{};
 
         std::vector<ConfigItem<bool>> getBoolItems();
         std::vector<ConfigItem<const char *>> getCharItems() ;
         std::vector<ConfigItem<int>> getIntItems();
         std::vector<ConfigItem<unsigned int>> getUintItems();
+        std::vector<ConfigItem<float>> getFloatItems();
+        void migrateOldColorSettings();
 };
 
 // The configuration is kept in a global singleton that's accessed via this

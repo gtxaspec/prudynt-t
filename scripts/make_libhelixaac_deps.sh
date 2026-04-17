@@ -44,6 +44,9 @@ fi
 
 cd "$LIBHELIX_DIR"
 
+git reset --hard HEAD
+git clean -fd
+
 # Checkout desired version
 if [[ -n "$LIBHELIX_VER" && "$LIBHELIX_VER" != "master" ]]; then
     git checkout $LIBHELIX_VER

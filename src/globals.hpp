@@ -28,11 +28,8 @@ struct AudioFrame
 
 struct H264NALUnit
 {
-	std::vector<uint8_t> data;
-    /* timestamp fix, can be removed if solved
-	struct timeval time;
-	int64_t imp_ts;
-    */
+    std::vector<uint8_t> data;
+    struct timeval time;
 };
 
 struct BackchannelFrame

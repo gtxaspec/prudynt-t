@@ -24,8 +24,12 @@ protected:
         unsigned char rtpPayloadTypeIfDynamic,
         FramedSource* inputSource);
 
+protected:
+    virtual char const* getAuxSDPLine(RTPSink* rtpSink, FramedSource* inputSource);
+
 private:
     int audioChn;
+    char* fAuxSDPLine = nullptr;
 };
 
 #endif // IMPAudioServerMediaSubsession_hpp

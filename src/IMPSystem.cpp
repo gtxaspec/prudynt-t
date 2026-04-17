@@ -3,6 +3,9 @@
 
 #define MODULE "IMP_SYSTEM"
 
+// Static member definition
+int64_t IMPSystem::impTimestampBase = 0;
+
 IMPSensorInfo IMPSystem::create_sensor_info(const char *sensor_name)
 {
     IMPSensorInfo out;
@@ -120,8 +123,9 @@ int IMPSystem::init()
     ret = IMP_ISP_Tuning_SetISPRunningMode((IMPISPRunningMode)cfg->image.running_mode);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPRunningMode(" << cfg->image.running_mode << ")");
 
-    ret = IMP_ISP_Tuning_SetISPBypass(IMPISP_TUNING_OPS_MODE_ENABLE);
-    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPBypass(" << IMPISP_TUNING_OPS_MODE_ENABLE << ")");
+    // Configurable ISP bypass
+    ret = IMP_ISP_Tuning_SetISPBypass(cfg->image.isp_bypass ? IMPISP_TUNING_OPS_MODE_ENABLE : IMPISP_TUNING_OPS_MODE_DISABLE);
+    LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetISPBypass(" << (cfg->image.isp_bypass ? IMPISP_TUNING_OPS_MODE_ENABLE : IMPISP_TUNING_OPS_MODE_DISABLE) << ")");
 
     IMPISPAntiflickerAttr flickerAttr;
     memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
@@ -183,17 +187,26 @@ int IMPSystem::init()
         ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
         LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
     }
-#elif defined(PLATFORM_T21) || defined(PLATFORM_T30)
+#elif defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T30)
     ret = IMP_ISP_Tuning_SetHiLightDepress(cfg->image.highlight_depress);
     LOG_DEBUG_OR_ERROR(ret, "IMP_ISP_Tuning_SetHiLightDepress(" << cfg->image.highlight_depress << ")");
 #endif
 
     LOG_DEBUG("ISP Tuning Defaults set");
 
-    ret = IMP_ISP_Tuning_SetSensorFPS(cfg->sensor.fps, 1);
-    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetSensorFPS(" << cfg->sensor.fps << ", 1)");
+    // Clamp sensor FPS to a sane value based on stream0 desired FPS and sensor limits
+    int desired_sensor_fps = cfg->stream0.fps > 0 ? cfg->stream0.fps : 25;
+    // cfg->sensor.fps is read from /proc/jz/sensor/max_fps; min from min_fps
+    if (cfg->sensor.min_fps > 0 && desired_sensor_fps < cfg->sensor.min_fps) {
+        desired_sensor_fps = cfg->sensor.min_fps;
+    }
+    if (cfg->sensor.fps > 0 && desired_sensor_fps > (int)cfg->sensor.fps) {
+        desired_sensor_fps = cfg->sensor.fps;
+    }
+    ret = IMP_ISP_Tuning_SetSensorFPS(desired_sensor_fps, 1);
+    LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_ISP_Tuning_SetSensorFPS(" << desired_sensor_fps << ", 1)");
 
-#if defined(PLATFORM_T21)
+#if defined(PLATFORM_T20) || defined(PLATFORM_T21)
     //T20 T21 only set FPS if it is read after set.
     uint32_t fps_num, fps_den;
     ret = IMP_ISP_Tuning_GetSensorFPS(&fps_num, &fps_den);

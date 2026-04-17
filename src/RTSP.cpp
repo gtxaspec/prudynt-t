@@ -1,7 +1,12 @@
 #include "RTSP.hpp"
 #include "IMPBackchannel.hpp"
 #include "BackchannelServerMediaSubsession.hpp"
+#include "GroupsockHelper.hh"
+#include <stdlib.h>
+#include <stdio.h>
+#include <iomanip>
 
+#undef MODULE
 #define MODULE "RTSP"
 
 void RTSP::addSubsession(int chnNr, _stream &stream)
@@ -99,13 +104,35 @@ void RTSP::addSubsession(int chnNr, _stream &stream)
 
     char *url = rtspServer->rtspURL(sms);
     LOG_INFO("stream " << chnNr << " available at: " << url);
+
+    // Update RTSP status interface
+    RTSPStatus::StreamInfo streamInfo;
+    streamInfo.format = stream.format;
+    streamInfo.fps = stream.fps;
+    streamInfo.width = stream.width;
+    streamInfo.height = stream.height;
+    streamInfo.endpoint = stream.rtsp_endpoint;
+    streamInfo.url = url;
+    streamInfo.bitrate = stream.bitrate;
+    streamInfo.mode = stream.mode;
+    streamInfo.enabled = stream.enabled;
+
+    std::string streamName = "stream" + std::to_string(chnNr);
+    RTSPStatus::updateStreamStatus(streamName, streamInfo);
+
+    delete[] url; // Free the URL string allocated by rtspURL()
 }
 
 void RTSP::start()
 {
+    // Initialize RTSP status interface
+    if (!RTSPStatus::initialize()) {
+        LOG_WARN("Failed to initialize RTSP status interface");
+    }
+
     scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
-    
+
     if (cfg->rtsp.auth_required)
     {
         UserAuthenticationDatabase *auth = new UserAuthenticationDatabase;
@@ -125,13 +152,25 @@ void RTSP::start()
     }
     OutPacketBuffer::maxSize = cfg->rtsp.out_buffer_size;
 
+    // PRUDYNT-T: Set shared timestamp base for A-V sync
+    // Generate a single timestamp base that both audio and video RTPSinks will use
+    // This eliminates the massive A-V sync differences caused by random timestamp bases
+    uint32_t sharedTimestampBase = our_random32();
+    char timestampBaseStr[16];
+    snprintf(timestampBaseStr, sizeof(timestampBaseStr), "%u", sharedTimestampBase);
+    setenv("PRUDYNT_SHARED_TIMESTAMP_BASE", timestampBaseStr, 1);
+
+    char logMsg[64];
+    snprintf(logMsg, sizeof(logMsg), "Set shared RTP timestamp base: %u (0x%08x)", sharedTimestampBase, sharedTimestampBase);
+    LOG_INFO(logMsg);
+
 #if defined(USE_AUDIO_STREAM_REPLICATOR)
     if (cfg->audio.input_enabled)
     {
         audioSource = IMPDeviceSource<AudioFrame, audio_stream>::createNew(*env, 0, global_audio[audioChn], "audio");
 
         if (global_audio[audioChn]->imp_audio->format == IMPAudioFormat::PCM)
-            audioSource = (IMPDeviceSource<AudioFrame, audio_stream> *)EndianSwap16::createNew(*env, audioSource);    
+            audioSource = (IMPDeviceSource<AudioFrame, audio_stream> *)EndianSwap16::createNew(*env, audioSource);
 
         global_audio[audioChn]->streamReplicator = StreamReplicator::createNew(*env, audioSource, false);
     }
@@ -157,7 +196,7 @@ void RTSP::start()
         {
             global_audio[audioChn]->streamReplicator->detachInputSource();
         }
-        if(audioSource != nullptr) 
+        if(audioSource != nullptr)
         {
             delete audioSource;
             audioSource = nullptr;
@@ -174,6 +213,9 @@ void RTSP::start()
     */
 
     LOG_DEBUG("Stop RTSP Server.");
+
+    // Cleanup RTSP status interface
+    RTSPStatus::cleanup();
 
     // Cleanup RTSP server and environment
     Medium::close(rtspServer);

@@ -56,20 +56,15 @@ int OSD::renderGlyph(const char *characters)
                     g.ymin = gmetrics.yOffset;
                     g.glyph = glyph;
 
-                    g.bitmap.resize(g.width * g.height * 4);
+                    // Store only alpha values, colors will be applied during drawing
+                    g.bitmap.resize(g.width * g.height);
                     for (int y = 0; y < g.height; ++y)
                     {
                         for (int x = 0; x < g.width; ++x)
                         {
                             int pixelIndex = y * g.width + x;
                             uint8_t alpha = ((uint8_t *)imageBuffer.pixels)[pixelIndex];
-                            if (alpha > 0)
-                            {
-                                g.bitmap[pixelIndex * 4] = BGRA_TEXT[0];
-                                g.bitmap[pixelIndex * 4 + 1] = BGRA_TEXT[1];
-                                g.bitmap[pixelIndex * 4 + 2] = BGRA_TEXT[2];
-                                g.bitmap[pixelIndex * 4 + 3] = alpha;
-                            }
+                            g.bitmap[pixelIndex] = alpha;
                         }
                     }
 
@@ -96,15 +91,19 @@ void setPixel(uint8_t *image, int x, int y, const uint8_t *color, int WIDTH, int
     }
 }
 
-void OSD::drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineSize, int WIDTH, int HEIGHT) {
+void OSD::drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineSize, int WIDTH, int HEIGHT, const uint8_t* strokeColor) {
     for (int j = -outlineSize; j <= outlineSize; ++j) {
         for (int i = -outlineSize; i <= outlineSize; ++i) {
             if (i * i + j * j <= outlineSize * outlineSize) { // Use circular distance
                 for (int h = 0; h < g.height; ++h) {
                     for (int w = 0; w < g.width; ++w) {
-                        int srcIndex = (h * g.width + w) * 4;
-                        if (g.bitmap[srcIndex + 3] > 0) { // Check alpha value
-                            setPixel(image, x + w + i, y + h + j, BGRA_STROKE, WIDTH, HEIGHT);
+                        int srcIndex = h * g.width + w;
+                        uint8_t glyphAlpha = g.bitmap[srcIndex];
+                        if (glyphAlpha > 0) { // Check alpha value
+                            // Combine glyph alpha with stroke color alpha
+                            uint8_t combinedAlpha = (uint8_t)((glyphAlpha * strokeColor[3]) / 255);
+                            uint8_t pixelColor[4] = {strokeColor[0], strokeColor[1], strokeColor[2], combinedAlpha};
+                            setPixel(image, x + w + i, y + h + j, pixelColor, WIDTH, HEIGHT);
                         }
                     }
                 }
@@ -137,10 +136,28 @@ void OSD::drawOutline(uint8_t *image, const Glyph &g, int x, int y, int outlineS
     }
 }
 */
-int OSD::drawText(uint8_t *image, const char *text, int WIDTH, int HEIGHT, int outlineSize)
+int OSD::drawText(uint8_t *image, const char *text, int WIDTH, int HEIGHT, int outlineSize, unsigned int font_color, unsigned int font_stroke_color)
 {
     int penX = 1;
     int penY = 1;
+
+    // Extract BGRA components from colors
+    uint8_t textColor[4] = {
+        (uint8_t)(font_color & 0xFF),         // B
+        (uint8_t)((font_color >> 8) & 0xFF),  // G
+        (uint8_t)((font_color >> 16) & 0xFF), // R
+        (uint8_t)((font_color >> 24) & 0xFF)  // A
+    };
+
+    uint8_t strokeColor[4] = {
+        (uint8_t)(font_stroke_color & 0xFF),         // B
+        (uint8_t)((font_stroke_color >> 8) & 0xFF),  // G
+        (uint8_t)((font_stroke_color >> 16) & 0xFF), // R
+        (uint8_t)((font_stroke_color >> 24) & 0xFF)  // A
+    };
+
+    // Debug: Log alpha values for transparency verification
+    LOG_DEBUG("OSD Text Alpha - Text: " << (int)textColor[3] << ", Stroke: " << (int)strokeColor[3]);
 
     // Draw text and outline
     while (*text)
@@ -154,17 +171,21 @@ int OSD::drawText(uint8_t *image, const char *text, int WIDTH, int HEIGHT, int o
             int y = penY + (sft->yScale + g.ymin);
 
             // Draw the outline
-            drawOutline(image, g, x, y, outlineSize, WIDTH, HEIGHT);
+            drawOutline(image, g, x, y, outlineSize, WIDTH, HEIGHT, strokeColor);
 
             // Draw the actual text
             for (int j = 0; j < g.height; ++j)
             {
                 for (int i = 0; i < g.width; ++i)
                 {
-                    int srcIndex = (j * g.width + i) * 4;
-                    if (g.bitmap[srcIndex + 3] > 0)
-                    { // Check alpha value
-                        setPixel(image, x + i, y + j, &g.bitmap[srcIndex], WIDTH, HEIGHT);
+                    int srcIndex = j * g.width + i;
+                    uint8_t glyphAlpha = g.bitmap[srcIndex];
+                    if (glyphAlpha > 0)
+                    {
+                        // Combine glyph alpha with text color alpha
+                        uint8_t combinedAlpha = (uint8_t)((glyphAlpha * textColor[3]) / 255);
+                        uint8_t pixelColor[4] = {textColor[0], textColor[1], textColor[2], combinedAlpha};
+                        setPixel(image, x + i, y + j, pixelColor, WIDTH, HEIGHT);
                     }
                 }
             }
@@ -216,15 +237,7 @@ int OSD::libschrift_init()
         return -1;
     }
 
-    BGRA_TEXT[2] = (osd.font_color >> 16) & 0xFF;
-    BGRA_TEXT[1] = (osd.font_color >> 8) & 0xFF;
-    BGRA_TEXT[0] = (osd.font_color >> 0) & 0xFF;
-    BGRA_TEXT[3] = 0;
 
-    BGRA_STROKE[2] = (osd.font_stroke_color >> 16) & 0xFF;
-    BGRA_STROKE[1] = (osd.font_stroke_color >> 8) & 0xFF;
-    BGRA_STROKE[0] = (osd.font_stroke_color >> 0) & 0xFF;
-    BGRA_STROKE[3] = 255;
 
     size_t fileSize = fontFile.tellg();
     std::vector<uint8_t> fontData;
@@ -251,7 +264,7 @@ int OSD::libschrift_init()
     return 0;
 }
 
-void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *irgnAttr, const char *text, int posX, int posY, int angle)
+void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *irgnAttr, const char *text, int posX, int posY, int angle, unsigned int font_color, unsigned int font_stroke_color)
 {
 
     // size and stroke
@@ -270,7 +283,7 @@ void OSD::set_text(OSDItem *osdItem, IMPOSDRgnAttr *irgnAttr, const char *text, 
     osdItem->data = (uint8_t *)malloc(item_size);
     memset(osdItem->data, 0, item_size);
 
-    drawText(osdItem->data, text, item_width, item_height, stroke_width);
+    drawText(osdItem->data, text, item_width, item_height, stroke_width, font_color, font_stroke_color);
 
     if (angle)
     {
@@ -538,7 +551,7 @@ void OSD::init()
     {
         // use cfg->set to set noSave, so auto values will not written to config
         cfg->set<int>(getConfigPath("font_size"), fontSize, true);
-    } 
+    }
 
     if (libschrift_init() != 0)
     {
@@ -567,15 +580,17 @@ void OSD::init()
         osdTime.rgnAttr.type = OSD_REG_PIC;
         osdTime.rgnAttr.fmt = PIX_FMT_BGRA;
         set_text(&osdTime, &osdTime.rgnAttr, osd.time_format,
-                 osd.pos_time_x, osd.pos_time_y, osd.time_rotation);
+                 osd.pos_time_x, osd.pos_time_y, osd.time_rotation,
+                 osd.time_font_color, osd.time_font_stroke_color);
         IMP_OSD_SetRgnAttr(osdTime.imp_rgn, &osdTime.rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 1;
-        grpRgnAttr.gAlphaEn = 0;
-        grpRgnAttr.fgAlhpa = osd.time_transparency;
+        grpRgnAttr.gAlphaEn = 1;  // Enable alpha blending for per-pixel transparency
+        grpRgnAttr.fgAlhpa = 255; // Full foreground alpha to allow per-pixel alpha control
+        grpRgnAttr.bgAlhpa = 0;   // Transparent background
         IMP_OSD_SetGrpRgnAttr(osdTime.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
@@ -605,15 +620,17 @@ void OSD::init()
         osdUser.rgnAttr.type = OSD_REG_PIC;
         osdUser.rgnAttr.fmt = PIX_FMT_BGRA;
         set_text(&osdUser, &osdUser.rgnAttr, osd.user_text_format,
-                 osd.pos_user_text_x, osd.pos_user_text_y, osd.user_text_rotation);
+                 osd.pos_user_text_x, osd.pos_user_text_y, osd.user_text_rotation,
+                 osd.user_text_font_color, osd.user_text_font_stroke_color);
         IMP_OSD_SetRgnAttr(osdUser.imp_rgn, &osdUser.rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 2;
-        grpRgnAttr.gAlphaEn = 1;
-        grpRgnAttr.fgAlhpa = osd.user_text_transparency;
+        grpRgnAttr.gAlphaEn = 1;  // Enable alpha blending for per-pixel transparency
+        grpRgnAttr.fgAlhpa = 255; // Full foreground alpha to allow per-pixel alpha control
+        grpRgnAttr.bgAlhpa = 0;   // Transparent background
         IMP_OSD_SetGrpRgnAttr(osdUser.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
@@ -640,15 +657,17 @@ void OSD::init()
         osdUptm.rgnAttr.type = OSD_REG_PIC;
         osdUptm.rgnAttr.fmt = PIX_FMT_BGRA;
         set_text(&osdUptm, &osdUptm.rgnAttr, osd.uptime_format,
-                 osd.pos_uptime_x, osd.pos_uptime_y, osd.uptime_rotation);
+                 osd.pos_uptime_x, osd.pos_uptime_y, osd.uptime_rotation,
+                 osd.uptime_font_color, osd.uptime_font_stroke_color);
         IMP_OSD_SetRgnAttr(osdUptm.imp_rgn, &osdUptm.rgnAttr);
 
         IMPOSDGrpRgnAttr grpRgnAttr;
         memset(&grpRgnAttr, 0, sizeof(IMPOSDGrpRgnAttr));
         grpRgnAttr.show = 1;
         grpRgnAttr.layer = 3;
-        grpRgnAttr.gAlphaEn = 1;
-        grpRgnAttr.fgAlhpa = osd.uptime_transparency;
+        grpRgnAttr.gAlphaEn = 1;  // Enable alpha blending for per-pixel transparency
+        grpRgnAttr.fgAlhpa = 255; // Full foreground alpha to allow per-pixel alpha control
+        grpRgnAttr.bgAlhpa = 0;   // Transparent background
         IMP_OSD_SetGrpRgnAttr(osdUptm.imp_rgn, osdGrp, &grpRgnAttr);
     }
 
@@ -796,7 +815,7 @@ void OSD::updateDisplayEverySecond()
     {
         flag |= 7;
         // Update the last second tracker
-        last_updated_second = ltime->tm_sec; 
+        last_updated_second = ltime->tm_sec;
     }
     else
     {
@@ -805,14 +824,15 @@ void OSD::updateDisplayEverySecond()
         // this should relieve the system
         if (flag != 0)
         {
-            
+
             // Format and update system time
             if ((flag & 1) && osd.time_enabled)
             {
                 strftime(timeFormatted, sizeof(timeFormatted), osd.time_format, ltime);
 
                 set_text(&osdTime, nullptr, timeFormatted,
-                         osd.pos_time_x, osd.pos_time_y, osd.time_rotation);
+                         osd.pos_time_x, osd.pos_time_y, osd.time_rotation,
+                         osd.time_font_color, osd.time_font_stroke_color);
 
                 flag ^= 1;
                 return;
@@ -848,7 +868,8 @@ void OSD::updateDisplayEverySecond()
                 }
 
                 set_text(&osdUser, nullptr, user_text.c_str(),
-                         osd.pos_user_text_x, osd.pos_user_text_y, osd.user_text_rotation);
+                         osd.pos_user_text_x, osd.pos_user_text_y, osd.user_text_rotation,
+                         osd.user_text_font_color, osd.user_text_font_stroke_color);
 
                 user_text.clear();
 
@@ -868,11 +889,12 @@ void OSD::updateDisplayEverySecond()
                 snprintf(uptimeFormatted, sizeof(uptimeFormatted), osd.uptime_format, days, hours, minutes);
 
                 set_text(&osdUptm, nullptr, uptimeFormatted,
-                         osd.pos_uptime_x, osd.pos_uptime_y, osd.uptime_rotation);
+                         osd.pos_uptime_x, osd.pos_uptime_y, osd.uptime_rotation,
+                         osd.uptime_font_color, osd.uptime_font_stroke_color);
 
                 flag ^= 4;
                 return;
-            }          
+            }
         }
     }
 }

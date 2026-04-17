@@ -15,6 +15,13 @@
 #include <sys/inotify.h>
 
 #include <iomanip>
+#include <cerrno>
+#include <cstring>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
 #define MODULE "WEBSOCKET"
 
@@ -355,9 +362,6 @@ enum
 };
 
 static const char *const osd_keys[] = {
-    "time_transparency",
-    "user_text_transparency",
-    "uptime_transparency",
     "logo_transparency",
 
     "font_size",
@@ -388,8 +392,14 @@ static const char *const osd_keys[] = {
     "uptime_format",
     "user_text_format",
     "logo_path",
-    "font_color",
-    "font_stroke_color",
+
+    // Individual color settings for each text element
+    "time_font_color",
+    "time_font_stroke_color",
+    "uptime_font_color",
+    "uptime_font_stroke_color",
+    "user_text_font_color",
+    "user_text_font_stroke_color",
 };
 
 /* MOTION */
@@ -505,22 +515,22 @@ int flag;                           // bitmask info store e.g. JSON separator ("
     }
 };
 
-const char* generateToken(int length) 
+const char* generateToken()
 {
     static const char characters[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    static const int maxIndex = sizeof(characters) - 1;  
+    static const size_t charCount = strlen(characters); // exclude terminating null
     static char tokenBuffer[WEBSOCKET_TOKEN_LENGTH + 1];
 
     std::random_device rd;
     std::mt19937 generator(rd());
-    std::uniform_int_distribution<> distribution(0, maxIndex);
+    std::uniform_int_distribution<size_t> distribution(0, charCount - 1);
 
-    // Generate random characters
-    for (int i = 0; i < length; i++) 
+    // Always generate exactly WEBSOCKET_TOKEN_LENGTH characters
+    for (int i = 0; i < WEBSOCKET_TOKEN_LENGTH; i++)
     {
         tokenBuffer[i] = characters[distribution(generator)];
     }
-    tokenBuffer[length] = '\0';  // Ensure null termination
+    tokenBuffer[WEBSOCKET_TOKEN_LENGTH] = '\0';
 
     return tokenBuffer;
 }
@@ -529,7 +539,7 @@ int restart_threads_by_signal(int &flag)
 {
     // inform main to restart threads
     std::unique_lock lck(mutex_main);
-    if (!global_restart_rtsp && !global_restart_video && !global_restart_audio) 
+    if (!global_restart_rtsp && !global_restart_video && !global_restart_audio)
     {
         if ((flag & PNT_FLAG_RESTART_RTSP) || (flag & PNT_FLAG_RESTART_VIDEO) || (flag & PNT_FLAG_RESTART_AUDIO))
         {
@@ -593,27 +603,27 @@ void append_session_msg(std::string &ws_send_msg, const char *t, Args &&...a)
 
 void add_json_null(std::string &message) {
     append_session_msg(
-        message, "%s", pnt_ws_msg[PNT_WS_MSG_NULL]);    
+        message, "%s", pnt_ws_msg[PNT_WS_MSG_NULL]);
 }
 
 void add_json_bool(std::string &message, bool bl) {
     append_session_msg(
-        message, "%s", bl ? pnt_ws_msg[PNT_WS_MSG_TRUE] : pnt_ws_msg[PNT_WS_MSG_FALSE]);   
+        message, "%s", bl ? pnt_ws_msg[PNT_WS_MSG_TRUE] : pnt_ws_msg[PNT_WS_MSG_FALSE]);
 }
 
 void add_json_str(std::string &message, const char *value) {
     append_session_msg(
-        message, "\"%s\"", value);   
+        message, "\"%s\"", value);
 }
 
 void add_json_num(std::string &message, int value) {
     append_session_msg(
-        message, "%d", value);   
+        message, "%d", value);
 }
 
 void add_json_uint(std::string &message, unsigned int value) {
     append_session_msg(
-        message, "\"%#x\"", value);   
+        message, "\"%#x\"", value);
 }
 
 void add_json_key(std::string &message, bool separator, const char *key, const char * opener = "") {
@@ -651,7 +661,7 @@ signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
                 cfg->set<int>(u_ctx->path, atoi(ctx->buf));
             add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
         }
-        else 
+        else
         {
             switch (ctx->path_match)
             {
@@ -663,8 +673,8 @@ signed char WS::general_callback(struct lejp_ctx *ctx, char reason)
                         Logger::setLevel(ctx->buf);
                     }
                 }
-                add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));                
-                break;                    
+                add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
+                break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
                 break;
@@ -747,7 +757,7 @@ signed char WS::rtsp_callback(struct lejp_ctx *ctx, char reason)
                 break;
             }
         }
-        
+
     }
     else if (reason == LEJPCB_OBJECT_END)
     {
@@ -791,8 +801,8 @@ signed char WS::sensor_callback(struct lejp_ctx *ctx, char reason)
                 break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
-                break;                
-            }            
+                break;
+            }
         }
     }
     else if (reason == LEJPCB_OBJECT_END)
@@ -910,9 +920,9 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                     }
                 }
                 add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-                break;               
+                break;
             case PNT_IMAGE_SINTER_STRENGTH:
-#if !defined(PLATFORM_T21)             
+#if !defined(PLATFORM_T21)
                 if (reason == LEJPCB_VAL_NUM_INT)
                 {
                     if (cfg->set<int>(u_ctx->path, atoi(ctx->buf)))
@@ -922,7 +932,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                 }
                 add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
 #else
-                add_json_null(u_ctx->message);                
+                add_json_null(u_ctx->message);
 #endif
                 break;
             case PNT_IMAGE_TEMPER_STRENGTH:
@@ -1082,7 +1092,7 @@ signed char WS::image_callback(struct lejp_ctx *ctx, char reason)
                 break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
-                break;                 
+                break;
             }
         }
     }
@@ -1132,7 +1142,7 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
             add_json_bool(u_ctx->message, cfg->get<bool>(u_ctx->path));
         }
         // integer values
-        else if (ctx->path_match == PNT_AUDIO_INPUT_NOISE_SUPPRESSION || 
+        else if (ctx->path_match == PNT_AUDIO_INPUT_NOISE_SUPPRESSION ||
                  ctx->path_match == PNT_AUDIO_INPUT_SAMPLE_RATE ||
                  ctx->path_match == PNT_AUDIO_INPUT_BITRATE ||
                  ctx->path_match == PNT_AUDIO_OUTPUT_SAMPLE_RATE )
@@ -1263,10 +1273,10 @@ signed char WS::audio_callback(struct lejp_ctx *ctx, char reason)
                 if (reason == LEJPCB_VAL_STR_END)
                     cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
                 add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
-                break;                
+                break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
-                break;                  
+                break;
             }
         }
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
@@ -1323,7 +1333,7 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
                 if (reason == LEJPCB_VAL_STR_END)
                     cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
                 add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
-                break;                
+                break;
             case PNT_STREAM_SCALE_ENABLED:
                 if (reason == LEJPCB_VAL_TRUE)
                 {
@@ -1344,7 +1354,7 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
                 if (reason == LEJPCB_VAL_STR_END)
                     cfg->set<const char *>(u_ctx->path, strdup(ctx->buf));
                 add_json_str(u_ctx->message, cfg->get<const char *>(u_ctx->path));
-                break;                
+                break;
             case PNT_STREAM_STATS:
                 if (reason == LEJPCB_VAL_NULL)
                 {
@@ -1363,10 +1373,10 @@ signed char WS::stream_callback(struct lejp_ctx *ctx, char reason)
                     append_session_msg(
                         u_ctx->message, "{\"fps\":%d,\"Bps\":%d}", fps, bps);
                 }
-                break;                
+                break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
-                break;                
+                break;
             };
         }
     }
@@ -1440,7 +1450,7 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
                 }
             }
             add_json_num(u_ctx->message, cfg->get<int>(u_ctx->path));
-            break;       
+            break;
         case PNT_STREAM2_JPEG_CHANNEL:
             if (reason == LEJPCB_VAL_NUM_INT)
             {
@@ -1466,7 +1476,7 @@ signed char WS::stream2_callback(struct lejp_ctx *ctx, char reason)
             break;
         default:
             u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
-            break;             
+            break;
         }
     }
     else if (reason == LEJPCB_OBJECT_END)
@@ -1647,7 +1657,7 @@ signed char WS::osd_callback(struct lejp_ctx *ctx, char reason)
                 break;
             default:
                 u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
-                break;                 
+                break;
             };
         }
     }
@@ -1717,7 +1727,7 @@ signed char WS::motion_callback(struct lejp_ctx *ctx, char reason)
         }
         else
         {
-            u_ctx->flag &= ~PNT_FLAG_SEPARATOR;             
+            u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
         }
     }
     else if (reason == LECPCB_PAIR_NAME && ctx->path_match == PNT_MOTION_ROIS)
@@ -1858,11 +1868,11 @@ signed char WS::info_callback(struct lejp_ctx *ctx, char reason)
     if (reason & LEJP_FLAG_CB_IS_VALUE && ctx->path_match)
     {
         combine_path(u_ctx->path, u_ctx->root, ctx->path);
-        
+
         add_json_key(u_ctx->message, (u_ctx->flag & PNT_FLAG_SEPARATOR), info_keys[ctx->path_match - 1]);
 
         u_ctx->flag |= PNT_FLAG_SEPARATOR;
-        
+
         switch (ctx->path_match)
         {
         case PNT_INFO_IMP_SYSTEM_VERSION:
@@ -1881,7 +1891,7 @@ signed char WS::info_callback(struct lejp_ctx *ctx, char reason)
             break;
         default:
             u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
-            break;               
+            break;
         }
     }
     else if (reason == LEJPCB_OBJECT_END)
@@ -1935,7 +1945,7 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
                 {
                     msg_id = PNT_WS_MSG_ERROR;
                 }
-                add_json_str(u_ctx->message, pnt_ws_msg[msg_id]);                                          
+                add_json_str(u_ctx->message, pnt_ws_msg[msg_id]);
             }
             else
             {
@@ -1944,15 +1954,15 @@ signed char WS::action_callback(struct lejp_ctx *ctx, char reason)
             break;
         case PNT_SAVE_CONFIG:
             cfg->updateConfig();
-            add_json_str(u_ctx->message, pnt_ws_msg[PNT_WS_MSG_INITIATED]); 
+            add_json_str(u_ctx->message, pnt_ws_msg[PNT_WS_MSG_INITIATED]);
             break;
         case PNT_CAPTURE:
             u_ctx->flag |= PNT_FLAG_WS_REQUEST_PREVIEW;
-            add_json_str(u_ctx->message, pnt_ws_msg[PNT_WS_MSG_INITIATED]); 
+            add_json_str(u_ctx->message, pnt_ws_msg[PNT_WS_MSG_INITIATED]);
             break;
         default:
             u_ctx->flag &= ~PNT_FLAG_SEPARATOR;
-            break;               
+            break;
         }
     }
     else if (reason == LEJPCB_OBJECT_END)
@@ -2037,20 +2047,20 @@ signed char WS::root_callback(struct lejp_ctx *ctx, char reason)
     return 0;
 }
 
-const char* generateSessionID() 
+const char* generateSessionID()
 {
     static char idBuffer[SESSION_ID_LENGTH + 1];
     std::random_device rd;
     std::mt19937 eng(rd());
     std::uniform_int_distribution<uint32_t> distr;
-    
+
     uint32_t randomValue = distr(eng);
     uint32_t timeStamp = (uint32_t)std::time(nullptr);
-    
+
     // Format: 8 chars from random + 8 chars from timestamp
-    snprintf(idBuffer, sizeof(idBuffer), "%08x%08x", 
+    snprintf(idBuffer, sizeof(idBuffer), "%08x%08x",
              randomValue, timeStamp);
-    
+
     return idBuffer;
 }
 
@@ -2086,21 +2096,34 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         lws_hdr_copy(wsi, content_type, sizeof(content_type), WSI_TOKEN_HTTP_CONTENT_TYPE);
     }
 
+    // Add debug logging for all WebSocket callbacks
+    if (reason != LWS_CALLBACK_HTTP_WRITEABLE && reason != LWS_CALLBACK_SERVER_WRITEABLE) {
+        LOG_DEBUG("WS Callback: reason=" << reason << ", ip=" << client_ip);
+    }
+
+    // Special handling for critical WebSocket callbacks
+    if (reason == 71) {
+        LOG_DEBUG("Connection error detected (reason=71) - ignoring");
+        // Don't return early, let it fall through to normal processing
+    }
+
     switch (reason)
     {
     // ############################ WEBSOCKET ###############################
     case LWS_CALLBACK_ESTABLISHED:
-        LOG_DDEBUGWS("LWS_CALLBACK_ESTABLISHED id:" << u_ctx->id << ", ip:" << client_ip);
+        LOG_DEBUG("LWS_CALLBACK_ESTABLISHED ip:" << client_ip);
 
         // check if security is required and validate token
         url_length = lws_get_urlarg_by_name_safe(wsi, "token", url_token, sizeof(url_token));
-        LOG_DEBUG("url_token: " << url_token);
-        if (strcmp(token, url_token) == 0 || (strcmp(cfg->websocket.usertoken, "") != 0 && strcmp(cfg->websocket.usertoken, url_token) == 0))
+        LOG_DEBUG("Expected token: " << std::string(token, WEBSOCKET_TOKEN_LENGTH));
+        LOG_DEBUG("Received token: " << url_token);
+        if (strcmp(token, url_token) == 0 || (strcmp(cfg->websocket.token, "auto") != 0 && strcmp(cfg->websocket.token, "") != 0 && strcmp(cfg->websocket.token, url_token) == 0))
         {
             /* initialize new u_ctx session structure.
              * assign current wsi and a new sessionid
              */
             new (user) user_ctx(generateSessionID(), wsi);
+            LOG_DEBUG("WebSocket connection authenticated and user context initialized");
         }
         else
         {
@@ -2110,28 +2133,48 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                 LOG_DEBUG("Connection refused.");
                 return -1;
             }
+            else
+            {
+                LOG_DEBUG("Allowing unauthenticated connection (ws_secured=false)");
+                new (user) user_ctx(generateSessionID(), wsi);
+            }
         }
+        // Immediately send a small server ack so clients can verify the socket is usable
+        // and tools like wscat show incoming data right after connect.
+        u_ctx = (user_ctx *)user; // per-session data already placement-new'ed above
+        u_ctx->tx_message.append("{\"hello\":\"prudynt\",\"session\":\"");
+        u_ctx->tx_message.append(u_ctx->id);
+        u_ctx->tx_message.append("\"}");
+        lws_callback_on_writable(wsi);
+
+        LOG_DEBUG("LWS_CALLBACK_ESTABLISHED completed successfully");
         break;
 
     case LWS_CALLBACK_RECEIVE:
-        LOG_DDEBUGWS("LWS_CALLBACK_RECEIVE " << 
-            " id:" << u_ctx->id << 
-            " ,flag:" << u_ctx->flag << 
-            " ,ip:" << client_ip << 
-            " ,len:" << len << 
+        LOG_DDEBUGWS("LWS_CALLBACK_RECEIVE " <<
+            " id:" << u_ctx->id <<
+            " ,flag:" << u_ctx->flag <<
+            " ,ip:" << client_ip <<
+            " ,len:" << len <<
             " ,last:" << lws_is_final_fragment(wsi));
 
-        /* larger requests can be segmented into several requests, 
+        /* larger requests can be segmented into several requests,
          * so we have to collect all the data until we reach the last segment.
          * On receiving the first segment we should clear the rx_message
          */
         if (lws_is_first_fragment(wsi))
             u_ctx->rx_message.clear();
 
+        // Prevent unbounded message growth
+        if (u_ctx->rx_message.size() + len > MAX_WS_MESSAGE_SIZE) {
+            LOG_ERROR("WebSocket message too large, dropping connection");
+            return -1;
+        }
+
         u_ctx->rx_message.append((char *)in, len);
 
         if (!lws_is_final_fragment(wsi))
-            return 0;    
+            return 0;
 
         LOG_DDEBUGWS("u_ctx->rx_message: id:" << u_ctx->id << ", rx:" << u_ctx->rx_message);
 
@@ -2139,7 +2182,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         //u_ctx->flag |= PNT_FLAG_WS_REQUEST_PENDING;
 
         // parse json and write response into u_ctx->message
-        u_ctx->message = "{";               // open response json 
+        u_ctx->message = "{";               // open response json
         lejp_construct(&ctx, root_callback, u_ctx, root_keys, LWS_ARRAY_SIZE(root_keys));
         lejp_parse(&ctx, (uint8_t *)u_ctx->rx_message.c_str(), u_ctx->rx_message.length());
         lejp_destruct(&ctx);
@@ -2150,6 +2193,12 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         // splitt overlapping responses with a ";"
         if(u_ctx->flag & PNT_FLAG_WS_REQUEST_PENDING) {
             u_ctx->tx_message.append(";");
+        }
+
+        // Prevent unbounded tx_message growth
+        if (u_ctx->tx_message.size() > MAX_WS_TX_QUEUE_SIZE) {
+            LOG_ERROR("WebSocket TX queue too large, clearing queue");
+            u_ctx->tx_message.clear();
         }
 
         u_ctx->flag |= PNT_FLAG_WS_REQUEST_PENDING;
@@ -2166,7 +2215,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                 return 0;
             };
 
-            // set prview pending flag 
+            // set prview pending flag
             u_ctx->flag |= PNT_FLAG_WS_PREVIEW_PENDING;
 
             /* 'first_request_delay'
@@ -2203,10 +2252,10 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                 u_ctx->snapshot.last_snapshot_request = now;
                 u_ctx->snapshot.rps = u_ctx->snapshot.r;
                 u_ctx->snapshot.r = 0;
-                
+
                 u_ctx->snapshot.throttle +=
                     global_jpeg[0]->stream->stats.fps - u_ctx->snapshot.rps;
-                
+
                 if (u_ctx->snapshot.throttle > 100)
                 {
                     u_ctx->snapshot.throttle = 100;
@@ -2223,9 +2272,9 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             LOG_DDEBUGWS("shedule preview image. id:" << u_ctx->id << " delay:" << delay);
             lws_sul_schedule(lws_get_context(wsi), 0, &u_ctx->sul, send_snapshot, delay);
 
-            // send response for the image request 
+            // send response for the image request
             u_ctx->tx_message.append(u_ctx->message);
-            lws_callback_on_writable(wsi);                             
+            lws_callback_on_writable(wsi);
         } else {
 
             // send response for all 'non image request' json requests
@@ -2244,8 +2293,8 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
             u_ctx->flag &= ~PNT_FLAG_WS_REQUEST_PENDING;
 
             /* send all outstanding messages
-             * if messages faster received than an answer can be send, they will append to 
-             * tx_message and separated with a ";". now we split them and send each 
+             * if messages faster received than an answer can be send, they will append to
+             * tx_message and separated with a ";". now we split them and send each
              * segment separate
              */
             std::stringstream ss(u_ctx->tx_message);
@@ -2257,7 +2306,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
                 lws_write(wsi, (unsigned char *)item.c_str() + LWS_PRE, item.length() - LWS_PRE, LWS_WRITE_TEXT);
             }
 
-            u_ctx->tx_message.clear();            
+            u_ctx->tx_message.clear();
         }
 
         // delayed snapshot request via websocket, sending the image
@@ -2275,9 +2324,9 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         break;
 
     case LWS_CALLBACK_CLOSED:
-        LOG_DDEBUGWS("LWS_CALLBACK_CLOSED id:" << u_ctx->id << ", ip:" << client_ip << ", flag:" << u_ctx->flag);
+        LOG_DEBUG("LWS_CALLBACK_CLOSED ip:" << client_ip << " - WebSocket connection closed");
 
-        // cleanup delete possibly existing shedules for this session    
+        // cleanup delete possibly existing shedules for this session
         lws_sul_cancel(&u_ctx->sul);
 
         u_ctx->~user_ctx();
@@ -2286,11 +2335,20 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
     // ############################ HTTP ###############################
     case LWS_CALLBACK_HTTP:
+    {
+
         LOG_DDEBUGWS("LWS_CALLBACK_HTTP ip:" << client_ip << " url:" << (char *)url_ptr << " method:" << request_method);
 
         // check if security is required and validate token
+        // If this is actually an Upgrade: websocket request, do not handle as HTTP
+        char upgrade_hdr[32] = {0};
+        if (lws_hdr_copy(wsi, upgrade_hdr, sizeof(upgrade_hdr), WSI_TOKEN_UPGRADE) > 0) {
+            LOG_DEBUG("HTTP request contains Upgrade:'" << upgrade_hdr << "' — deferring to WS handshake");
+            return 0; // let lws drive the websocket upgrade path
+        }
+
         url_length = lws_get_urlarg_by_name_safe(wsi, "token", url_token, sizeof(url_token));
-        if (strcmp(token, url_token) == 0 || (strcmp(cfg->websocket.usertoken, "") != 0 && strcmp(cfg->websocket.usertoken, url_token) == 0))
+        if (strcmp(token, url_token) == 0 || (strcmp(cfg->websocket.token, "auto") != 0 && strcmp(cfg->websocket.token, "") != 0 && strcmp(cfg->websocket.token, url_token) == 0))
         {
             /* initialize new u_ctx session structure.
             * assign current wsi and a new sessionid
@@ -2359,10 +2417,17 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
         u_ctx->flag |= PNT_FLAG_HTTP_SEND_INVALID;
         lws_callback_on_writable(wsi);
         return 0;
+        }
+
         break;
 
     case LWS_CALLBACK_HTTP_BODY:
         LOG_DDEBUGWS("LWS_CALLBACK_HTTP_BODY ip:" << client_ip);
+        // Prevent unbounded HTTP body growth
+        if (u_ctx->rx_message.size() + len > MAX_WS_MESSAGE_SIZE) {
+            LOG_ERROR("HTTP body too large, dropping connection");
+            return -1;
+        }
         u_ctx->rx_message.append((char *)in, len);
         break;
 
@@ -2383,7 +2448,7 @@ int WS::ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *use
 
             /* copy response into u_ctx->message into u_ctx->tx_message
              * can be helpfull to handle overlapping requests in future
-             */ 
+             */
             u_ctx->tx_message = u_ctx->message;
             u_ctx->tx_message.clear();
 
@@ -2481,36 +2546,146 @@ void WS::start()
 {
     char *ip = NULL;
 
-    // create websocket authentication token and write it into /run/
+    // create websocket authentication token and write it into /run/prudynt/
     // only websocket connect with token parameter accepted
     // ws://<ip>:<port>/?token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    std::string generatedToken = generateToken(WEBSOCKET_TOKEN_LENGTH);
-    memset(token, 0, sizeof(token));  // Clear the token buffer first
-    memcpy(token, generatedToken.c_str(), std::min(generatedToken.length(), (size_t)WEBSOCKET_TOKEN_LENGTH));
-    std::ofstream outFile("/run/prudynt_websocket_token");
-    outFile << token;
-    outFile.close();
-    LOG_DEBUG("Generated token length: " << generatedToken.length() << ", Token: '" << token << "'");
 
-    lws_set_log_level(cfg->websocket.loglevel, lwsl_emit_stderr);
+    memset(token, 0, sizeof(token));
 
-    protocols.name = cfg->websocket.name;
-    protocols.callback = ws_callback;
-    protocols.per_session_data_size = sizeof(user_ctx);
-    protocols.rx_buffer_size = 65536;
+    // Check if user has configured a specific token (not "auto" or empty)
+    if (cfg->websocket.token &&
+        strcmp(cfg->websocket.token, "auto") != 0 &&
+        strcmp(cfg->websocket.token, "") != 0 &&
+        strlen(cfg->websocket.token) == WEBSOCKET_TOKEN_LENGTH) {
+        memcpy(token, cfg->websocket.token, WEBSOCKET_TOKEN_LENGTH);
+        LOG_DEBUG("Using configured token: '" << std::string(token, WEBSOCKET_TOKEN_LENGTH) << "'");
+    }
+    else {
+        // Token is "auto" or empty, use boot-session persistent token
+        // Create /run/prudynt directory if it doesn't exist
+        std::filesystem::create_directories("/run/prudynt");
+
+        const char* tokenFile = "/run/prudynt/websocket_token";
+        std::ifstream inFile(tokenFile);
+
+        if (inFile.is_open() && inFile.good()) {
+            // Try to read existing boot-session token
+            inFile.read(token, WEBSOCKET_TOKEN_LENGTH);
+            if (inFile.gcount() == WEBSOCKET_TOKEN_LENGTH) {
+                LOG_DEBUG("Reusing boot-session token: '" << std::string(token, WEBSOCKET_TOKEN_LENGTH) << "'");
+            } else {
+                // File exists but is invalid, generate new token for this boot session
+                const char* generatedToken = generateToken();
+                memcpy(token, generatedToken, WEBSOCKET_TOKEN_LENGTH);
+                LOG_DEBUG("Invalid boot-session token, generated new: '" << std::string(token, WEBSOCKET_TOKEN_LENGTH) << "'");
+            }
+            inFile.close();
+        } else {
+            // No existing token file, generate new token for this boot session
+            const char* generatedToken = generateToken();
+            memcpy(token, generatedToken, WEBSOCKET_TOKEN_LENGTH);
+            LOG_DEBUG("No boot-session token, generated new: '" << std::string(token, WEBSOCKET_TOKEN_LENGTH) << "'");
+        }
+
+        // Save the token for this boot session (survives app restart, not reboot)
+        std::ofstream outFile(tokenFile);
+        if (outFile.is_open()) {
+            outFile.write(token, WEBSOCKET_TOKEN_LENGTH);
+            outFile.close();
+        }
+    }
+
+    // Always write the token to legacy location for backward compatibility
+    std::ofstream legacyFile("/run/prudynt_websocket_token");
+    if (legacyFile.is_open()) {
+        legacyFile.write(token, WEBSOCKET_TOKEN_LENGTH);
+        legacyFile.close();
+    }
+
+    // Hook libwebsockets logging into our logger for visibility
+    auto lws_emit = [](int /*level*/, const char *line) {
+        Logger::log(Logger::DEBUG, FILENAME, LogMsg() << "[lws] " << std::string(line ? line : ""));
+    };
+
+    uint32_t lmask = LLL_ERR;
+    switch (Logger::level) {
+        case Logger::DEBUG:
+            lmask = 0x7FFFFFFF; // everything compiled in
+            break;
+        case Logger::INFO:
+            lmask = LLL_ERR | LLL_WARN | LLL_NOTICE | LLL_INFO;
+            break;
+        case Logger::NOTICE:
+            lmask = LLL_ERR | LLL_WARN | LLL_NOTICE;
+            break;
+        case Logger::WARN:
+            lmask = LLL_ERR | LLL_WARN;
+            break;
+        default:
+            lmask = LLL_ERR;
+            break;
+    }
+    lws_set_log_level(lmask, lws_emit);
+    LOG_INFO("libwebsockets version: " << lws_get_library_version());
+
+    // Preflight: detect if port is already in use to give a clearer error
+    int test_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (test_fd >= 0) {
+        int opt = 1; setsockopt(test_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        sockaddr_in sin{}; sin.sin_family = AF_INET; sin.sin_addr.s_addr = htonl(INADDR_ANY);
+        sin.sin_port = htons(cfg->websocket.port);
+        if (bind(test_fd, (sockaddr*)&sin, sizeof(sin)) < 0) {
+            LOG_ERROR("Port " << cfg->websocket.port << " appears busy: " << strerror(errno) << " (errno=" << errno << ")");
+        } else {
+            close(test_fd); // free it for lws
+        }
+    }
+
+    // Initialize member protocols_ array (lifetime >= context)
+    memset(protocols_, 0, sizeof(protocols_));
+    // Put our websocket protocol first so clients without Sec-WebSocket-Protocol still bind to it
+    protocols_[0].name = "ws"; // simple, valid token; matches typical clients
+    protocols_[0].callback = ws_callback;
+    protocols_[0].per_session_data_size = sizeof(user_ctx);
+    protocols_[0].rx_buffer_size = 2048;
+
+    // Accept legacy client subprotocol too, if requested
+    // Route plain HTTP traffic to dedicated http-only protocol (kept last)
+    protocols_[1].name = "http-only";
+    protocols_[1].callback = ws_callback;
+    protocols_[1].per_session_data_size = sizeof(user_ctx);
+    protocols_[1].rx_buffer_size = 2048;
+
 
     memset(&info, 0, sizeof(info));
     info.port = cfg->websocket.port;
-    info.iface = ip;
-    info.protocols = &protocols;
-    info.gid = -1;
-    info.uid = -1;
+    info.iface = ip; // null = all interfaces
+    info.protocols = protocols_; // array with terminating empty entry
+    info.options = 0; // Use default options
+    // Don't set any privilege-related fields - let libwebsockets handle it
+    // Reduce LWS context memory usage on low-RAM devices
+    info.count_threads = 1;
+    info.fd_limit_per_thread = 8;         // allow a few concurrent connections
+    info.pt_serv_buf_size = 2048;
+    info.max_http_header_data = 2048;
+    info.max_http_header_data2 = 2048;
+    info.max_http_header_pool = 4;
+    info.max_http_header_pool2 = 4;
+    info.extensions = NULL;               // disable extensions to reduce memory
+    info.ka_time = 60;                    // enable keepalive - 60 seconds
+    info.ka_probes = 3;                   // 3 keepalive probes
+    info.ka_interval = 10;                // 10 seconds between probes
+
+    // Dump context info before creation
+    LOG_INFO("WS context: port=" << info.port
+             << " iface=" << (info.iface ? info.iface : (char*)"<any>"));
 
     context = lws_create_context(&info);
 
     if (!context)
     {
-        LOG_ERROR("lws init failed");
+        LOG_ERROR("lws init failed (errno=" << errno << ")");
+        return; // do not claim started; exit thread
     }
 
     LOG_INFO("Server started on port " << cfg->websocket.port);
@@ -2520,8 +2695,7 @@ void WS::start()
         lws_service(context, 50);
     }
 
-    LOG_INFO("Server stopped.");
-
+    // Never reached in normal flow
     lws_context_destroy(context);
 }
 

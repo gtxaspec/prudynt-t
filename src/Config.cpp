@@ -3,14 +3,15 @@
 #include <iostream>
 #include <vector>
 #include <functional>
-#include <libconfig.h++>
+#include <json-c/json.h>
 #include "Config.hpp"
 #include "Logger.hpp"
+
+#define WEBSOCKET_TOKEN_LENGTH 32
 
 #define MODULE "CONFIG"
 
 namespace fs = std::filesystem;
-using namespace libconfig;
 
 bool validateIntGe0(const int &v)
 {
@@ -82,6 +83,67 @@ bool validateUint(const unsigned int &v)
     return true;
 }
 
+// Utility function to validate hexadecimal color format (#RRGGBBAA)
+bool isValidHexColor(const char* str) {
+    if (!str || strlen(str) != 9) {
+        return false;
+    }
+
+    if (str[0] != '#') {
+        return false;
+    }
+
+    for (int i = 1; i < 9; i++) {
+        char c = str[i];
+        if (!((c >= '0' && c <= '9') ||
+              (c >= 'A' && c <= 'F') ||
+              (c >= 'a' && c <= 'f'))) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// Utility function to convert RGBA hexadecimal color string to unsigned int
+unsigned int hexColorToUint(const char* str) {
+    if (!isValidHexColor(str)) {
+        return 0;
+    }
+
+    // Parse RGBA format: #RRGGBBAA
+    // Extract each component separately to handle RGBA format correctly
+    char rStr[3] = {str[1], str[2], '\0'};  // RR
+    char gStr[3] = {str[3], str[4], '\0'};  // GG
+    char bStr[3] = {str[5], str[6], '\0'};  // BB
+    char aStr[3] = {str[7], str[8], '\0'};  // AA
+
+    unsigned int r = strtoul(rStr, nullptr, 16);
+    unsigned int g = strtoul(gStr, nullptr, 16);
+    unsigned int b = strtoul(bStr, nullptr, 16);
+    unsigned int a = strtoul(aStr, nullptr, 16);
+
+    // Pack into ARGB format for internal use (A in bits 24-31, R in 16-23, G in 8-15, B in 0-7)
+    // This matches the bit extraction logic used in OSD::drawText()
+    return (a << 24) | (r << 16) | (g << 8) | b;
+}
+
+// Validation function for OSD color fields that accepts both integer and hex string formats
+bool validateOSDColor(const unsigned int &v) {
+    // For unsigned int values, any value is valid (same as validateUint)
+    return true;
+}
+
+// Validation function for OSD color fields when parsing from JSON string
+bool validateOSDColorString(const char* str) {
+    if (!str) {
+        return false;
+    }
+
+    // Check if it's a valid hexadecimal color format
+    return isValidHexColor(str);
+}
+
 bool validateSampleRate(const int &v)
 {
     std::set<int> allowed_rates = {8000, 16000, 24000, 44100, 48000};
@@ -93,13 +155,14 @@ std::vector<ConfigItem<bool>> CFG::getBoolItems()
     return {
 #if defined(AUDIO_SUPPORT)
         {"audio.input_enabled", audio.input_enabled, true, validateBool},
-        {"audio.output_enabled", audio.output_enabled, false, validateBool},
+        {"audio.output_enabled", audio.output_enabled, true, validateBool},
         {"audio.force_stereo", audio.force_stereo, false, validateBool},
 #if defined(LIB_AUDIO_PROCESSING)
         {"audio.input_high_pass_filter", audio.input_high_pass_filter, false, validateBool},
         {"audio.input_agc_enabled", audio.input_agc_enabled, false, validateBool},
 #endif
 #endif
+        {"image.isp_bypass", image.isp_bypass, true, validateBool},
         {"image.vflip", image.vflip, false, validateBool},
         {"image.hflip", image.hflip, false, validateBool},
         {"motion.enabled", motion.enabled, false, validateBool},
@@ -148,7 +211,9 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
         {"rtsp.name", rtsp.name, "thingino prudynt", validateCharNotEmpty},
         {"rtsp.password", rtsp.password, "thingino", validateCharNotEmpty},
         {"rtsp.username", rtsp.username, "thingino", validateCharNotEmpty},
-        {"sensor.model", sensor.model, "gc2053", validateCharNotEmpty, false, "/proc/jz/sensor/name"},
+        {"sensor.model", sensor.model, "unknown", validateCharNotEmpty, false, "/proc/jz/sensor/name"},
+        {"sensor.chip_id", sensor.chip_id, "unknown", validateCharNotEmpty, false, "/proc/jz/sensor/chip_id"},
+        {"sensor.version", sensor.version, "unknown", validateCharNotEmpty, false, "/proc/jz/sensor/version"},
         {"stream0.format", stream0.format, "H264", [](const char *v) { return strcmp(v, "H264") == 0 || strcmp(v, "H265") == 0; }},
         {"stream0.osd.font_path", stream0.osd.font_path, "/usr/share/fonts/UbuntuMono-Regular2.ttf", validateCharNotEmpty},
         {"stream0.osd.logo_path", stream0.osd.logo_path, "/usr/share/images/thingino_logo_1.bgra", validateCharNotEmpty},
@@ -175,8 +240,9 @@ std::vector<ConfigItem<const char *>> CFG::getCharItems()
         {"stream1.rtsp_info", stream1.rtsp_info, "stream1", validateCharNotEmpty},
        {"stream2.jpeg_path", stream2.jpeg_path, "/tmp/snapshot.jpg", validateCharNotEmpty},
         {"websocket.name", websocket.name, "wss prudynt", validateCharNotEmpty},
-        {"websocket.usertoken", websocket.usertoken, "", [](const char *v) {
-            return std::string(v).length() < 32;
+        {"websocket.token", websocket.token, "auto", [](const char *v) {
+            std::string token(v);
+            return token == "auto" || token.empty() || token.length() == WEBSOCKET_TOKEN_LENGTH;
         }},
     };
 };
@@ -242,17 +308,18 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"rtsp.session_reclaim", rtsp.session_reclaim, 65, validateIntGe0},
         {"sensor.i2c_bus", sensor.i2c_bus, 0, validateIntGe0, false, "/proc/jz/sensor/i2c_bus"},
         {"sensor.fps", sensor.fps, 25, validateInt120, false, "/proc/jz/sensor/max_fps"},
+        {"sensor.min_fps", sensor.min_fps, 5, validateInt120, false, "/proc/jz/sensor/min_fps"},
         {"sensor.height", sensor.height, 1080, validateIntGe0, false, "/proc/jz/sensor/height"},
         {"sensor.width", sensor.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},
         {"sensor.boot", sensor.boot, 0, validateIntGe0, false, "/proc/jz/sensor/boot"},
         {"sensor.mclk", sensor.mclk, 1, validateIntGe0, false, "/proc/jz/sensor/mclk"},
         {"sensor.video_interface", sensor.video_interface, 0, validateIntGe0, false, "/proc/jz/sensor/video_interface"},
-        {"sensor.gpio_reset", sensor.gpio_reset, 91, validateIntGe0, false, "/proc/jz/sensor/reset_gpio"},
+        {"sensor.gpio_reset", sensor.gpio_reset, -1, [](const int &v) { return v >= -1; }, false, "/proc/jz/sensor/reset_gpio"},
         {"stream0.bitrate", stream0.bitrate, 3000, validateIntGe0},
-        {"stream0.buffers", stream0.buffers, DEFAULT_BUFFERS_0, validateInt32},
+        {"stream0.buffers", stream0.buffers, DEFAULT_BUFFERS_0, [](const int &v) { return v >= 1 && v <= 8; }},
         {"stream0.fps", stream0.fps, 25, validateInt120},
         {"stream0.gop", stream0.gop, 20, validateIntGe0},
-        {"stream0.height", stream0.height, 1080, validateIntGe0, false, "/proc/jz/sensor/height"},
+        {"stream0.height", stream0.height, 1080, validateIntGe0},
         {"stream0.max_gop", stream0.max_gop, 60, validateIntGe0},
         {"stream0.osd.font_size", stream0.osd.font_size, OSD_AUTO_VALUE, validateIntGe0},
         {"stream0.osd.font_stroke", stream0.osd.font_stroke, 1, validateIntGe0},
@@ -271,18 +338,15 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream0.osd.pos_uptime_y", stream0.osd.pos_uptime_y, OSD_AUTO_VALUE, validateInt15360},
         {"stream0.osd.pos_user_text_x", stream0.osd.pos_user_text_x, OSD_AUTO_VALUE, validateInt15360},
         {"stream0.osd.pos_user_text_y", stream0.osd.pos_user_text_y, OSD_AUTO_VALUE, validateInt15360},
-        {"stream0.osd.start_delay", stream0.osd.start_delay, 1, [](const int &v) { return v >= 1 && v <= 5000; }},
+        {"stream0.osd.start_delay", stream0.osd.start_delay, 0, [](const int &v) { return v >= 0 && v <= 5000; }},
         {"stream0.osd.time_rotation", stream0.osd.time_rotation, 0, validateInt360},
-        {"stream0.osd.time_transparency", stream0.osd.time_transparency, 255, validateInt255},
         {"stream0.osd.uptime_rotation", stream0.osd.uptime_rotation, 0, validateInt360},
-        {"stream0.osd.uptime_transparency", stream0.osd.uptime_transparency, 255, validateInt255},
         {"stream0.osd.user_text_rotation", stream0.osd.user_text_rotation, 0, validateInt360},
-        {"stream0.osd.user_text_transparency", stream0.osd.user_text_transparency, 255, validateInt255},
         {"stream0.rotation", stream0.rotation, 0, validateInt2},
-        {"stream0.width", stream0.width, 1920, validateIntGe0, false, "/proc/jz/sensor/width"},
+        {"stream0.width", stream0.width, 1920, validateIntGe0},
         {"stream0.profile", stream0.profile, 2, validateInt2},
         {"stream1.bitrate", stream1.bitrate, 1000, validateIntGe0},
-        {"stream1.buffers", stream1.buffers, DEFAULT_BUFFERS_1, validateInt32},
+        {"stream1.buffers", stream1.buffers, DEFAULT_BUFFERS_1, [](const int &v) { return v >= 1 && v <= 8; }},
         {"stream1.fps", stream1.fps, 25, validateInt120},
         {"stream1.gop", stream1.gop, 20, validateIntGe0},
         {"stream1.height", stream1.height, 360, validateIntGe0},
@@ -304,12 +368,9 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream1.osd.pos_uptime_y", stream1.osd.pos_uptime_y, OSD_AUTO_VALUE, validateInt15360},
         {"stream1.osd.pos_user_text_x", stream1.osd.pos_user_text_x, OSD_AUTO_VALUE, validateInt15360},
         {"stream1.osd.pos_user_text_y", stream1.osd.pos_user_text_y, OSD_AUTO_VALUE, validateInt15360},
-        {"stream1.osd.start_delay", stream1.osd.start_delay, 1, [](const int &v) { return v >= 1 && v <= 5000; }},
+        {"stream1.osd.start_delay", stream1.osd.start_delay, 0, [](const int &v) { return v >= 0 && v <= 5000; }},
         {"stream1.osd.time_rotation", stream1.osd.time_rotation, 0, validateInt360},
-        {"stream1.osd.time_transparency", stream1.osd.time_transparency, 255, validateInt255},
         {"stream1.osd.uptime_rotation", stream1.osd.uptime_rotation, 0, validateInt360},
-        {"stream1.osd.uptime_transparency", stream1.osd.uptime_transparency, 255, validateInt255},
-        {"stream1.osd.user_text_transparency", stream1.osd.user_text_transparency, 255, validateInt255},
         {"stream1.osd.user_text_rotation", stream1.osd.user_text_rotation, 0, validateInt360},
         {"stream1.rotation", stream1.rotation, 0, validateInt2},
         {"stream1.width", stream1.width, 640, validateIntGe0},
@@ -318,7 +379,6 @@ std::vector<ConfigItem<int>> CFG::getIntItems()
         {"stream2.jpeg_quality", stream2.jpeg_quality, 75, [](const int &v) { return v > 0 && v <= 100; }},
         {"stream2.jpeg_idle_fps", stream2.jpeg_idle_fps, 1, [](const int &v) { return v >= 0 && v <= 30; }},
         {"stream2.fps", stream2.fps, 25, [](const int &v) { return v > 1 && v <= 30; }},
-        {"websocket.loglevel", websocket.loglevel, 4096, [](const int &v) { return v > 0 && v <= 4096; }},
         {"websocket.port", websocket.port, 8089, validateInt65535},
         {"websocket.first_image_delay", websocket.first_image_delay, 100, validateInt65535},
     };
@@ -328,89 +388,61 @@ std::vector<ConfigItem<unsigned int>> CFG::getUintItems()
 {
     return {
         {"sensor.i2c_address", sensor.i2c_address, 0x37, [](const unsigned int &v) { return v <= 0x7F; }, false, "/proc/jz/sensor/i2c_addr"},
-        {"stream0.osd.font_stroke_color", stream0.osd.font_stroke_color, 0xFF000000, validateUint},
-        {"stream0.osd.font_color", stream0.osd.font_color, 0xFFFFFFFF, validateUint},
-        {"stream1.osd.font_color", stream1.osd.font_color, 0xFFFFFFFF, validateUint},
-        {"stream1.osd.font_stroke_color", stream1.osd.font_stroke_color, 0xFF000000, validateUint},
+        // Individual color settings for stream0 text elements
+        {"stream0.osd.time_font_color", stream0.osd.time_font_color, 0xFFFFFFFF, validateOSDColor},
+        {"stream0.osd.time_font_stroke_color", stream0.osd.time_font_stroke_color, 0xFF000000, validateOSDColor},
+        {"stream0.osd.uptime_font_color", stream0.osd.uptime_font_color, 0xFFFFFFFF, validateOSDColor},
+        {"stream0.osd.uptime_font_stroke_color", stream0.osd.uptime_font_stroke_color, 0xFF000000, validateOSDColor},
+        {"stream0.osd.user_text_font_color", stream0.osd.user_text_font_color, 0xFFFFFFFF, validateOSDColor},
+        {"stream0.osd.user_text_font_stroke_color", stream0.osd.user_text_font_stroke_color, 0xFF000000, validateOSDColor},
+        // Individual color settings for stream1 text elements
+        {"stream1.osd.time_font_color", stream1.osd.time_font_color, 0xFFFFFFFF, validateOSDColor},
+        {"stream1.osd.time_font_stroke_color", stream1.osd.time_font_stroke_color, 0xFF000000, validateOSDColor},
+        {"stream1.osd.uptime_font_color", stream1.osd.uptime_font_color, 0xFFFFFFFF, validateOSDColor},
+        {"stream1.osd.uptime_font_stroke_color", stream1.osd.uptime_font_stroke_color, 0xFF000000, validateOSDColor},
+        {"stream1.osd.user_text_font_color", stream1.osd.user_text_font_color, 0xFFFFFFFF, validateOSDColor},
+        {"stream1.osd.user_text_font_stroke_color", stream1.osd.user_text_font_stroke_color, 0xFF000000, validateOSDColor},
     };
 };
 
-void ensurePathExists(Setting &root, const std::string &path)
-{
-    std::stringstream ss(path);
-    std::string segment;
-    Setting *current = &root;
-
-    while (std::getline(ss, segment, '.'))
-    {
-        if (!current->exists(segment))
-        {
-            current = &current->add(segment, Setting::TypeGroup);
-        }
-        else
-        {
-            current = &current->lookup(segment);
-        }
-    }
-}
-
-bool findSetting(const std::string &path, const Setting *&foundSetting, Setting *root)
-{
-
-    std::string::size_type pos = path.find_first_of('.');
-    std::string currentPath = path.substr(0, pos);
-
-    if (root->exists(currentPath))
-    {
-        if (pos == std::string::npos)
-        {
-            foundSetting = &root->lookup(currentPath);
-            return true;
-        }
-        else
-        {
-            return findSetting(path.substr(pos + 1), foundSetting, &root->lookup(currentPath));
-        }
-    }
-    else
-    {
-        foundSetting = nullptr;
-        return false;
-    }
-}
-
 bool CFG::readConfig()
 {
+    // Clean up any existing JSON object
+    if (jsonConfig) {
+        json_object_put(jsonConfig);
+        jsonConfig = nullptr;
+    }
 
     // Construct the path to the configuration file in the same directory as the program binary
     fs::path binaryPath = fs::read_symlink("/proc/self/exe").parent_path();
-    fs::path cfgFilePath = binaryPath / "prudynt.cfg";
+    fs::path cfgFilePath = binaryPath / "prudynt.json";
     filePath = cfgFilePath;
 
     // Try to load the configuration file from the specified paths
-    try
-    {
-        lc.readFile(cfgFilePath.c_str());
-        LOG_INFO("Loaded configuration from " + cfgFilePath.string());
-    }
-    catch (const FileIOException &)
-    {
-        fs::path etcPath = "/etc/prudynt.cfg";
+    std::string configPath;
+
+    // First try the binary directory
+    if (fs::exists(cfgFilePath)) {
+        configPath = cfgFilePath.string();
+        LOG_INFO("Loaded configuration from " + configPath);
+    } else {
+        // Try /etc/prudynt.json
+        fs::path etcPath = "/etc/prudynt.json";
         filePath = etcPath;
-        try
-        {
-            lc.readFile(etcPath.c_str());
-            LOG_INFO("Loaded configuration from " + etcPath.string());
-        }
-        catch (...)
-        {
-            LOG_WARN("Failed to load prudynt configuration file from /etc/config.");
+
+        if (fs::exists(etcPath)) {
+            configPath = etcPath.string();
+            LOG_INFO("Loaded configuration from " + configPath);
+        } else {
+            LOG_WARN("Failed to load prudynt configuration file from both locations.");
             return false; // Exit if configuration file is missing
         }
     }
-    catch (const ParseException &pex)
-    {
-        LOG_WARN("Parse error at " + std::string(pex.getFile()) + ":" + std::to_string(pex.getLine()) + " - " + pex.getError());
+
+    // Parse JSON file using json-c
+    jsonConfig = json_object_from_file(configPath.c_str());
+    if (!jsonConfig) {
+        LOG_WARN("JSON parse error: Failed to parse " + configPath);
         return false; // Exit on parsing error
     }
 
@@ -451,49 +483,133 @@ bool processLine(const std::string &line, T &value)
     }
 }
 
+// Helper function to check if this is a sensor parameter with proc path
 template <typename T>
-void handleConfigItem(Config &lc, ConfigItem<T> &item)
+bool isSensorProcParameter(const ConfigItem<T> &item) {
+    return item.procPath != nullptr &&
+           item.procPath[0] != '\0' &&
+           std::string(item.procPath).find("/proc/jz/sensor/") == 0;
+}
+
+template <typename T>
+void handleConfigItem(json_object *jsonConfig, ConfigItem<T> &item)
 {
     bool readFromProc = false;
     bool readFromConfig = false;
-    T configValue{};
 
-    if constexpr (std::is_same_v<T, const char *>)
-    {
-        std::string temp;
-        readFromConfig = lc.lookupValue(item.path, temp);
-        if (readFromConfig)
-        {
-            item.value = strdup(temp.c_str());
-        }
-    }
-    else
-    {
-        readFromConfig = lc.lookupValue(item.path, configValue);
-        if (readFromConfig)
-        {
-            item.value = configValue;
-        }
-    }
+    if (!jsonConfig) return;
 
-    if (!readFromConfig && item.procPath != nullptr && item.procPath[0] != '\0')
-    { // If not read from config and procPath is set
-        // Attempt to read from the proc filesystem
+    // For sensor parameters with proc paths, prioritize proc files over JSON
+    if (isSensorProcParameter(item)) {
+        // Try proc file first for sensor parameters
         std::ifstream procFile(item.procPath);
-        if (procFile)
-        {
+        if (procFile) {
             T value;
             std::string line;
-            if (std::getline(procFile, line))
-            {
-                if (processLine(line, value))
-                {
-                    if constexpr (std::is_same_v<T, const char *>)
-                    {
+            if (std::getline(procFile, line)) {
+                if (processLine(line, value)) {
+                    if constexpr (std::is_same_v<T, const char *>) {
                         item.value = strdup(value);
+                    } else {
+                        item.value = value;
                     }
-                    else
-                    {
+                    readFromProc = true;
+                }
+            }
+        }
+    }
+
+    // Only read from JSON if proc file failed or this is not a sensor proc parameter
+    if (!readFromProc) {
+        // Parse the path to navigate through nested JSON objects
+        std::vector<std::string> pathParts;
+        std::string path = item.path;
+        size_t pos = 0;
+        while ((pos = path.find('.')) != std::string::npos) {
+            pathParts.push_back(path.substr(0, pos));
+            path.erase(0, pos + 1);
+        }
+        pathParts.push_back(path);
+
+        // Navigate through the JSON structure
+        json_object *currentJson = jsonConfig;
+        for (size_t i = 0; i < pathParts.size() - 1; ++i) {
+            json_object *nextObj = nullptr;
+            if (json_object_object_get_ex(currentJson, pathParts[i].c_str(), &nextObj)) {
+                if (json_object_is_type(nextObj, json_type_object)) {
+                    currentJson = nextObj;
+                } else {
+                    return; // Path doesn't exist or not an object
+                }
+            } else {
+                return; // Path doesn't exist
+            }
+        }
+
+        // Try to read the value from JSON
+        const std::string& finalKey = pathParts.back();
+        json_object *valueObj = nullptr;
+        if (json_object_object_get_ex(currentJson, finalKey.c_str(), &valueObj)) {
+            if constexpr (std::is_same_v<T, const char *>) {
+                if (json_object_is_type(valueObj, json_type_string)) {
+                    const char *str = json_object_get_string(valueObj);
+                    item.value = strdup(str);
+                    readFromConfig = true;
+                }
+            } else if constexpr (std::is_same_v<T, bool>) {
+                if (json_object_is_type(valueObj, json_type_boolean)) {
+                    item.value = json_object_get_boolean(valueObj);
+                    readFromConfig = true;
+                }
+            } else if constexpr (std::is_same_v<T, int>) {
+                if (json_object_is_type(valueObj, json_type_int)) {
+                    item.value = json_object_get_int(valueObj);
+                    readFromConfig = true;
+                }
+            } else if constexpr (std::is_same_v<T, unsigned int>) {
+                if (json_object_is_type(valueObj, json_type_int)) {
+                    int64_t val = json_object_get_int64(valueObj);
+                    if (val >= 0) {
+                        item.value = static_cast<unsigned int>(val);
+                        readFromConfig = true;
+                    }
+                } else if (json_object_is_type(valueObj, json_type_string)) {
+                    // Check if this is an OSD color field that might be in hex format
+                    std::string path = item.path;
+                    if (path.find("font_color") != std::string::npos ||
+                        path.find("font_stroke_color") != std::string::npos) {
+                        const char *str = json_object_get_string(valueObj);
+                        if (isValidHexColor(str)) {
+                            item.value = hexColorToUint(str);
+                            readFromConfig = true;
+                        }
+                    }
+                }
+            } else if constexpr (std::is_same_v<T, float>) {
+                if (json_object_is_type(valueObj, json_type_double)) {
+                    item.value = static_cast<float>(json_object_get_double(valueObj));
+                    readFromConfig = true;
+                } else if (json_object_is_type(valueObj, json_type_int)) {
+                    item.value = static_cast<float>(json_object_get_int(valueObj));
+                    readFromConfig = true;
+                }
+            }
+        }
+    }
+
+    // For non-sensor parameters, try proc file as fallback if JSON failed
+    if (!readFromConfig && !readFromProc && !isSensorProcParameter(item) &&
+        item.procPath != nullptr && item.procPath[0] != '\0') {
+        // Attempt to read from the proc filesystem
+        std::ifstream procFile(item.procPath);
+        if (procFile) {
+            T value;
+            std::string line;
+            if (std::getline(procFile, line)) {
+                if (processLine(line, value)) {
+                    if constexpr (std::is_same_v<T, const char *>) {
+                        item.value = strdup(value);
+                    } else {
                         item.value = value;
                     }
                     readFromProc = true;
@@ -527,48 +643,50 @@ void handleConfigItem(Config &lc, ConfigItem<T> &item)
 }
 
 template <typename T>
-void handleConfigItem2(Config &lc, ConfigItem<T> &item)
+void handleConfigItem2(json_object *jsonConfig, ConfigItem<T> &item)
 {
-    std::string path(item.path);
-    size_t pos = path.find_last_of('.');
-    std::string sect = path.substr(0, pos);
-    std::string entr = path.substr(pos + 1);
+    if (!jsonConfig) return;
 
-    ensurePathExists(lc.getRoot(), item.path);
+    // Parse the path to navigate through nested JSON objects
+    std::vector<std::string> pathParts;
+    std::string path = item.path;
+    size_t pos = 0;
+    while ((pos = path.find('.')) != std::string::npos) {
+        pathParts.push_back(path.substr(0, pos));
+        path.erase(0, pos + 1);
+    }
+    pathParts.push_back(path);
 
-    Setting &section = lc.lookup(sect);
-    if (section.exists(entr))
-    {
-        section.remove(entr);
-    }
-
-    Setting::Type type;
-    if constexpr (std::is_same_v<T, bool>)
-    {
-        type = Setting::TypeBoolean;
-    }
-    else if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, const char *>)
-    {
-        type = Setting::TypeString;
-    }
-    else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, unsigned int>)
-    {
-        type = Setting::TypeInt;
+    // Navigate through the JSON structure, creating objects as needed
+    json_object *currentJson = jsonConfig;
+    for (size_t i = 0; i < pathParts.size() - 1; ++i) {
+        json_object *nextObj = nullptr;
+        if (!json_object_object_get_ex(currentJson, pathParts[i].c_str(), &nextObj)) {
+            // Create new object if it doesn't exist
+            nextObj = json_object_new_object();
+            json_object_object_add(currentJson, pathParts[i].c_str(), nextObj);
+        }
+        currentJson = nextObj;
     }
 
-    Setting &newSetting = section.add(entr, type);
-    if constexpr (std::is_same_v<T, unsigned int>)
-    {
-        newSetting = static_cast<long>(item.value);
-        newSetting.setFormat(Setting::FormatHex);
+    // Set the final value
+    const std::string& finalKey = pathParts.back();
+    json_object *valueObj = nullptr;
+
+    if constexpr (std::is_same_v<T, const char *>) {
+        valueObj = json_object_new_string(item.value);
+    } else if constexpr (std::is_same_v<T, bool>) {
+        valueObj = json_object_new_boolean(item.value);
+    } else if constexpr (std::is_same_v<T, int>) {
+        valueObj = json_object_new_int(item.value);
+    } else if constexpr (std::is_same_v<T, unsigned int>) {
+        valueObj = json_object_new_int64(item.value);
+    } else if constexpr (std::is_same_v<T, float>) {
+        valueObj = json_object_new_double(item.value);
     }
-    else if constexpr (std::is_same_v<T, const char *>)
-    {
-        newSetting = std::string(item.value);
-    }
-    else
-    {
-        newSetting = item.value;
+
+    if (valueObj) {
+        json_object_object_add(currentJson, finalKey.c_str(), valueObj);
     }
 }
 
@@ -576,36 +694,242 @@ bool CFG::updateConfig()
 {
     config_loaded = readConfig();
 
+    if (!jsonConfig) return false;
+
     for (auto &item : boolItems)
-        handleConfigItem2(lc, item);
+        handleConfigItem2(jsonConfig, item);
     for (auto &item : charItems)
-        handleConfigItem2(lc, item);
+        handleConfigItem2(jsonConfig, item);
     for (auto &item : intItems)
-        handleConfigItem2(lc, item);
+        handleConfigItem2(jsonConfig, item);
     for (auto &item : uintItems)
-        handleConfigItem2(lc, item);
+        handleConfigItem2(jsonConfig, item);
+    for (auto &item : floatItems)
+        handleConfigItem2(jsonConfig, item);
 
-    Setting &root = lc.getRoot();
+    // Handle ROIs
+    json_object *roisObj = nullptr;
+    if (json_object_object_get_ex(jsonConfig, "rois", &roisObj)) {
+        json_object_object_del(jsonConfig, "rois");
+    }
 
-    if (root.exists("rois"))
-        root.remove("rois");
-
-    Setting &rois = root.add("rois", Setting::TypeGroup);
+    roisObj = json_object_new_object();
+    json_object_object_add(jsonConfig, "rois", roisObj);
 
     for (int i = 0; i < motion.roi_count; i++)
     {
-        Setting &entry = rois.add("roi_" + std::to_string(i), Setting::TypeArray);
-        entry.add(Setting::TypeInt) = motion.rois[i].p0_x;
-        entry.add(Setting::TypeInt) = motion.rois[i].p0_y;
-        entry.add(Setting::TypeInt) = motion.rois[i].p1_x;
-        entry.add(Setting::TypeInt) = motion.rois[i].p1_y;
+        std::string roiKey = "roi_" + std::to_string(i);
+        json_object *roiArray = json_object_new_array();
+
+        json_object_array_add(roiArray, json_object_new_int(motion.rois[i].p0_x));
+        json_object_array_add(roiArray, json_object_new_int(motion.rois[i].p0_y));
+        json_object_array_add(roiArray, json_object_new_int(motion.rois[i].p1_x));
+        json_object_array_add(roiArray, json_object_new_int(motion.rois[i].p1_y));
+
+        json_object_object_add(roisObj, roiKey.c_str(), roiArray);
     }
 
-    lc.writeFile(filePath);
-    LOG_DEBUG("Config is written to " << filePath);
-
-    return true;
+    // Write JSON to file
+    const char *jsonString = json_object_to_json_string_ext(jsonConfig, JSON_C_TO_STRING_PRETTY | JSON_C_TO_STRING_NOSLASHESCAPE);
+    if (jsonString) {
+        std::ofstream configFile(filePath);
+        if (configFile.is_open()) {
+            configFile << jsonString;
+            configFile.close();
+            LOG_DEBUG("Config is written to " << filePath);
+            return true;
+        } else {
+            LOG_ERROR("Failed to write config to " << filePath);
+            return false;
+        }
+    } else {
+        LOG_ERROR("Failed to serialize JSON config");
+        return false;
+    }
 };
+
+std::vector<ConfigItem<float>> CFG::getFloatItems()
+{
+    return {
+        {"rtsp.packet_loss_threshold", rtsp.packet_loss_threshold, 0.05f, [](const float &v) { return v >= 0.0f && v <= 1.0f; }},
+        {"rtsp.bandwidth_margin", rtsp.bandwidth_margin, 1.2f, [](const float &v) { return v >= 1.0f && v <= 3.0f; }},
+    };
+};
+
+void CFG::migrateOldColorSettings()
+{
+    // Helper function to combine RGB color with alpha transparency
+    // Creates ARGB format for internal use (matches OSD::drawText() bit extraction)
+    auto combineColorWithAlpha = [](unsigned int rgb_color, int transparency) -> unsigned int {
+        // Extract RGB components from the input color
+        unsigned int r = (rgb_color >> 16) & 0xFF;
+        unsigned int g = (rgb_color >> 8) & 0xFF;
+        unsigned int b = rgb_color & 0xFF;
+
+        // Combine with alpha (transparency is 0-255, where 255 = opaque)
+        unsigned int alpha = (unsigned int)transparency & 0xFF;
+
+        // Pack into ARGB format for internal use (A in bits 24-31)
+        return (alpha << 24) | (r << 16) | (g << 8) | b;
+    };
+
+    // Check for old configuration format and migrate
+    json_object *stream0Obj = nullptr;
+    json_object *stream1Obj = nullptr;
+
+    if (json_object_object_get_ex(jsonConfig, "stream0", &stream0Obj)) {
+        json_object *osdObj = nullptr;
+        if (json_object_object_get_ex(stream0Obj, "osd", &osdObj)) {
+            // Check if old format exists (font_color + transparency fields)
+            json_object *fontColorObj = nullptr;
+            json_object *fontStrokeColorObj = nullptr;
+            json_object *timeTransparencyObj = nullptr;
+            json_object *uptimeTransparencyObj = nullptr;
+            json_object *userTextTransparencyObj = nullptr;
+
+            bool hasOldFormat = json_object_object_get_ex(osdObj, "font_color", &fontColorObj) &&
+                               json_object_object_get_ex(osdObj, "font_stroke_color", &fontStrokeColorObj) &&
+                               (json_object_object_get_ex(osdObj, "time_transparency", &timeTransparencyObj) ||
+                                json_object_object_get_ex(osdObj, "uptime_transparency", &uptimeTransparencyObj) ||
+                                json_object_object_get_ex(osdObj, "user_text_transparency", &userTextTransparencyObj));
+
+            if (hasOldFormat) {
+                unsigned int fontColor = 0xFFFFFFFF;  // Default white
+                unsigned int fontStrokeColor = 0xFF000000;  // Default black
+                int timeTransparency = 255;
+                int uptimeTransparency = 255;
+                int userTextTransparency = 255;
+
+                // Read old values
+                if (json_object_is_type(fontColorObj, json_type_int)) {
+                    fontColor = json_object_get_int64(fontColorObj);
+                } else if (json_object_is_type(fontColorObj, json_type_string)) {
+                    const char *str = json_object_get_string(fontColorObj);
+                    if (isValidHexColor(str)) {
+                        fontColor = hexColorToUint(str);
+                    }
+                }
+
+                if (json_object_is_type(fontStrokeColorObj, json_type_int)) {
+                    fontStrokeColor = json_object_get_int64(fontStrokeColorObj);
+                } else if (json_object_is_type(fontStrokeColorObj, json_type_string)) {
+                    const char *str = json_object_get_string(fontStrokeColorObj);
+                    if (isValidHexColor(str)) {
+                        fontStrokeColor = hexColorToUint(str);
+                    }
+                }
+
+                if (timeTransparencyObj && json_object_is_type(timeTransparencyObj, json_type_int)) {
+                    timeTransparency = json_object_get_int(timeTransparencyObj);
+                }
+                if (uptimeTransparencyObj && json_object_is_type(uptimeTransparencyObj, json_type_int)) {
+                    uptimeTransparency = json_object_get_int(uptimeTransparencyObj);
+                }
+                if (userTextTransparencyObj && json_object_is_type(userTextTransparencyObj, json_type_int)) {
+                    userTextTransparency = json_object_get_int(userTextTransparencyObj);
+                }
+
+                // Create new individual color settings
+                json_object_object_add(osdObj, "time_font_color",
+                    json_object_new_int64(combineColorWithAlpha(fontColor, timeTransparency)));
+                json_object_object_add(osdObj, "time_font_stroke_color",
+                    json_object_new_int64(combineColorWithAlpha(fontStrokeColor, timeTransparency)));
+                json_object_object_add(osdObj, "uptime_font_color",
+                    json_object_new_int64(combineColorWithAlpha(fontColor, uptimeTransparency)));
+                json_object_object_add(osdObj, "uptime_font_stroke_color",
+                    json_object_new_int64(combineColorWithAlpha(fontStrokeColor, uptimeTransparency)));
+                json_object_object_add(osdObj, "user_text_font_color",
+                    json_object_new_int64(combineColorWithAlpha(fontColor, userTextTransparency)));
+                json_object_object_add(osdObj, "user_text_font_stroke_color",
+                    json_object_new_int64(combineColorWithAlpha(fontStrokeColor, userTextTransparency)));
+
+                // Remove old settings
+                json_object_object_del(osdObj, "font_color");
+                json_object_object_del(osdObj, "font_stroke_color");
+                json_object_object_del(osdObj, "time_transparency");
+                json_object_object_del(osdObj, "uptime_transparency");
+                json_object_object_del(osdObj, "user_text_transparency");
+            }
+        }
+    }
+
+    // Repeat for stream1
+    if (json_object_object_get_ex(jsonConfig, "stream1", &stream1Obj)) {
+        json_object *osdObj = nullptr;
+        if (json_object_object_get_ex(stream1Obj, "osd", &osdObj)) {
+            // Similar migration logic for stream1
+            json_object *fontColorObj = nullptr;
+            json_object *fontStrokeColorObj = nullptr;
+            json_object *timeTransparencyObj = nullptr;
+            json_object *uptimeTransparencyObj = nullptr;
+            json_object *userTextTransparencyObj = nullptr;
+
+            bool hasOldFormat = json_object_object_get_ex(osdObj, "font_color", &fontColorObj) &&
+                               json_object_object_get_ex(osdObj, "font_stroke_color", &fontStrokeColorObj) &&
+                               (json_object_object_get_ex(osdObj, "time_transparency", &timeTransparencyObj) ||
+                                json_object_object_get_ex(osdObj, "uptime_transparency", &uptimeTransparencyObj) ||
+                                json_object_object_get_ex(osdObj, "user_text_transparency", &userTextTransparencyObj));
+
+            if (hasOldFormat) {
+                unsigned int fontColor = 0xFFFFFFFF;
+                unsigned int fontStrokeColor = 0xFF000000;
+                int timeTransparency = 255;
+                int uptimeTransparency = 255;
+                int userTextTransparency = 255;
+
+                // Read old values (similar to stream0)
+                if (json_object_is_type(fontColorObj, json_type_int)) {
+                    fontColor = json_object_get_int64(fontColorObj);
+                } else if (json_object_is_type(fontColorObj, json_type_string)) {
+                    const char *str = json_object_get_string(fontColorObj);
+                    if (isValidHexColor(str)) {
+                        fontColor = hexColorToUint(str);
+                    }
+                }
+
+                if (json_object_is_type(fontStrokeColorObj, json_type_int)) {
+                    fontStrokeColor = json_object_get_int64(fontStrokeColorObj);
+                } else if (json_object_is_type(fontStrokeColorObj, json_type_string)) {
+                    const char *str = json_object_get_string(fontStrokeColorObj);
+                    if (isValidHexColor(str)) {
+                        fontStrokeColor = hexColorToUint(str);
+                    }
+                }
+
+                if (timeTransparencyObj && json_object_is_type(timeTransparencyObj, json_type_int)) {
+                    timeTransparency = json_object_get_int(timeTransparencyObj);
+                }
+                if (uptimeTransparencyObj && json_object_is_type(uptimeTransparencyObj, json_type_int)) {
+                    uptimeTransparency = json_object_get_int(uptimeTransparencyObj);
+                }
+                if (userTextTransparencyObj && json_object_is_type(userTextTransparencyObj, json_type_int)) {
+                    userTextTransparency = json_object_get_int(userTextTransparencyObj);
+                }
+
+                // Create new individual color settings
+                json_object_object_add(osdObj, "time_font_color",
+                    json_object_new_int64(combineColorWithAlpha(fontColor, timeTransparency)));
+                json_object_object_add(osdObj, "time_font_stroke_color",
+                    json_object_new_int64(combineColorWithAlpha(fontStrokeColor, timeTransparency)));
+                json_object_object_add(osdObj, "uptime_font_color",
+                    json_object_new_int64(combineColorWithAlpha(fontColor, uptimeTransparency)));
+                json_object_object_add(osdObj, "uptime_font_stroke_color",
+                    json_object_new_int64(combineColorWithAlpha(fontStrokeColor, uptimeTransparency)));
+                json_object_object_add(osdObj, "user_text_font_color",
+                    json_object_new_int64(combineColorWithAlpha(fontColor, userTextTransparency)));
+                json_object_object_add(osdObj, "user_text_font_stroke_color",
+                    json_object_new_int64(combineColorWithAlpha(fontStrokeColor, userTextTransparency)));
+
+                // Remove old settings
+                json_object_object_del(osdObj, "font_color");
+                json_object_object_del(osdObj, "font_stroke_color");
+                json_object_object_del(osdObj, "time_transparency");
+                json_object_object_del(osdObj, "uptime_transparency");
+                json_object_object_del(osdObj, "user_text_transparency");
+            }
+        }
+    }
+}
 
 CFG::CFG()
 {
@@ -618,44 +942,58 @@ void CFG::load()
     charItems = getCharItems();
     intItems = getIntItems();
     uintItems = getUintItems();
+    floatItems = getFloatItems();
 
     config_loaded = readConfig();
 
-    for (auto &item : boolItems)
-        handleConfigItem(lc, item);
-    for (auto &item : charItems)
-        handleConfigItem(lc, item);
-    for (auto &item : intItems)
-        handleConfigItem(lc, item);
-    for (auto &item : uintItems)
-        handleConfigItem(lc, item);
+    if (jsonConfig) {
+        // Handle backward compatibility migration first
+        migrateOldColorSettings();
+
+        for (auto &item : boolItems)
+            handleConfigItem(jsonConfig, item);
+        for (auto &item : charItems)
+            handleConfigItem(jsonConfig, item);
+        for (auto &item : intItems)
+            handleConfigItem(jsonConfig, item);
+        for (auto &item : uintItems)
+            handleConfigItem(jsonConfig, item);
+        for (auto &item : floatItems)
+            handleConfigItem(jsonConfig, item);
+    }
 
     if (stream2.jpeg_channel == 0)
     {
         stream2.width = stream0.width;
         stream2.height = stream0.height;
-    } 
+    }
     else
     {
         stream2.width = stream1.width;
-        stream2.height = stream1.height;        
+        stream2.height = stream1.height;
     }
 
-    Setting &root = lc.getRoot();
-
-    if (root.exists("rois"))
-    {
-        Setting &rois = root.lookup("rois");
-        for (int i = 0; i < motion.roi_count; i++)
+    // Handle ROIs from JSON
+    if (jsonConfig) {
+        json_object *roisObj = nullptr;
+        if (json_object_object_get_ex(jsonConfig, "rois", &roisObj) &&
+            json_object_is_type(roisObj, json_type_object))
         {
-            if (rois.exists("roi_" + std::to_string(i)))
+            for (int i = 0; i < motion.roi_count; i++)
             {
-                if (rois[i].getLength() == 4)
+                std::string roiKey = "roi_" + std::to_string(i);
+                json_object *roiArray = nullptr;
+                if (json_object_object_get_ex(roisObj, roiKey.c_str(), &roiArray) &&
+                    json_object_is_type(roiArray, json_type_array))
                 {
-                    motion.rois[i].p0_x = rois[i][0];
-                    motion.rois[i].p0_y = rois[i][1];
-                    motion.rois[i].p1_x = rois[i][2];
-                    motion.rois[i].p1_y = rois[i][3];
+                    int arrayLen = json_object_array_length(roiArray);
+                    if (arrayLen == 4)
+                    {
+                        motion.rois[i].p0_x = json_object_get_int(json_object_array_get_idx(roiArray, 0));
+                        motion.rois[i].p0_y = json_object_get_int(json_object_array_get_idx(roiArray, 1));
+                        motion.rois[i].p1_x = json_object_get_int(json_object_array_get_idx(roiArray, 2));
+                        motion.rois[i].p1_y = json_object_get_int(json_object_array_get_idx(roiArray, 3));
+                    }
                 }
             }
         }

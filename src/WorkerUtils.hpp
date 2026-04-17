@@ -12,9 +12,13 @@ struct StartHelper
     std::binary_semaphore has_started{0};
 };
 
+// WorkerUtils provides utility functions that are shared across different worker classes.
+// This includes time-related functions that use a monotonic clock to avoid issues
+// with system time changes (e.g., from NTP).
 namespace WorkerUtils {
 
-unsigned long long tDiffInMs(struct timeval *startTime);
+void getMonotonicTimeOfDay(struct timeval *tv);
+unsigned long long getMonotonicTimeDiffInMs(struct timeval *startTime);
 
 } // namespace WorkerUtils
 

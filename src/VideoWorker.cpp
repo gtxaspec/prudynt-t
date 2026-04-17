@@ -5,8 +5,10 @@
 #include "IMPFramesource.hpp"
 #include "Logger.hpp"
 #include "WorkerUtils.hpp"
+#include "TimestampManager.hpp"
 #include "globals.hpp"
 
+#undef MODULE
 #define MODULE "VideoWorker"
 
 VideoWorker::VideoWorker(int chn)
@@ -32,14 +34,14 @@ void VideoWorker::run()
 
     while (global_video[encChn]->running)
     {
-        /* bool helper to check if this is the active jpeg channel and a jpeg is requested while 
+        /* bool helper to check if this is the active jpeg channel and a jpeg is requested while
          * the channel is inactive
          */
         run_for_jpeg = (encChn == global_jpeg[0]->streamChn && global_video[encChn]->run_for_jpeg);
 
-        /* now we need to verify that 
+        /* now we need to verify that
          * 1. a client is connected (hasDataCallback)
-         * 2. a jpeg is requested 
+         * 2. a jpeg is requested
          */
         if (global_video[encChn]->hasDataCallback || run_for_jpeg)
         {
@@ -53,12 +55,14 @@ void VideoWorker::run()
                     continue;
                 }
 
-                /* timestamp fix, can be removed if solved
-                int64_t nal_ts = stream.pack[stream.packCount - 1].timestamp;
-                struct timeval encoder_time;
-                encoder_time.tv_sec = nal_ts / 1000000;
-                encoder_time.tv_usec = nal_ts % 1000000;
-                */
+
+                // SINGLE SOURCE OF TRUTH: Use TimestampManager (which uses IMP hardware timestamps)
+                struct timeval monotonic_time;
+                TimestampManager::getInstance().getTimestamp(&monotonic_time);
+
+                // TIMESTAMP DEBUG: Log video frame processing (use first pack timestamp)
+                int64_t pack_timestamp = (stream.packCount > 0) ? stream.pack[0].timestamp : -1;
+                LOG_DEBUG("VIDEO_TIMESTAMP_1_PROCESS: pack_timestamp=" << pack_timestamp << " monotonic_time.tv_sec=" << monotonic_time.tv_sec << " monotonic_time.tv_usec=" << monotonic_time.tv_usec);
 
                 for (uint32_t i = 0; i < stream.packCount; ++i)
                 {
@@ -75,12 +79,9 @@ void VideoWorker::run()
                         uint8_t *start = (uint8_t *) stream.pack[i].virAddr;
                         uint8_t *end = (uint8_t *) stream.pack[i].virAddr + stream.pack[i].length;
 #endif
-                        H264NALUnit nalu;
 
-                        /* timestamp fix, can be removed if solved
-                        nalu.imp_ts = stream.pack[i].timestamp;
-                        nalu.time = encoder_time;
-                        */
+                        H264NALUnit nalu;
+                        nalu.time = monotonic_time;
 
                         // We use start+4 because the encoder inserts 4-byte MPEG
                         //'startcodes' at the beginning of each NAL. Live555 complains
@@ -138,9 +139,9 @@ void VideoWorker::run()
                             }
                         }
 #if defined(USE_AUDIO_STREAM_REPLICATOR)
-                        /* Since the audio stream is permanently in use by the stream replicator, 
+                        /* Since the audio stream is permanently in use by the stream replicator,
                          * and the audio grabber and encoder standby is also controlled by the video threads
-                         * we need to wakeup the audio thread 
+                         * we need to wakeup the audio thread
                         */
                         if (cfg->audio.input_enabled && !global_audio[0]->active && !global_restart)
                         {
@@ -154,7 +155,7 @@ void VideoWorker::run()
 
                 IMP_Encoder_ReleaseStream(encChn, &stream);
 
-                ms = WorkerUtils::tDiffInMs(&global_video[encChn]->stream->stats.ts);
+                ms = WorkerUtils::getMonotonicTimeDiffInMs(&global_video[encChn]->stream->stats.ts);
                 if (ms > 1000)
                 {
                     /* currently we write into osd and stream stats,
@@ -167,7 +168,7 @@ void VideoWorker::run()
 
                     fps = 0;
                     bps = 0;
-                    gettimeofday(&global_video[encChn]->stream->stats.ts, NULL);
+                    WorkerUtils::getMonotonicTimeOfDay(&global_video[encChn]->stream->stats.ts);
                     global_video[encChn]->stream->osd.stats.ts = global_video[encChn]
                                                                      ->stream->stats.ts;
                     /*
@@ -252,9 +253,15 @@ void *VideoWorker::thread_entry(void *arg)
     if (ret != 0)
         return 0;
 
+    // Proactively request an IDR to ensure SPS/PPS are emitted promptly
+    IMP_Encoder_RequestIDR(encChn);
+    LOG_DEBUG("IMP_Encoder_RequestIDR(" << encChn << ")");
+    // Also schedule a couple more IDR requests in the first seconds, just in case
+    global_video[encChn]->idr_fix = 2;
+
     /* 'active' indicates, the thread is activly polling and grabbing images
      * 'running' describes the runlevel of the thread, if this value is set to false
-     *           the thread exits and cleanup all ressources 
+     *           the thread exits and cleanup all ressources
      */
     global_video[encChn]->active = true;
     global_video[encChn]->running = true;

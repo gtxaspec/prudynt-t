@@ -13,6 +13,8 @@
 #define WEBSOCKET_TOKEN_LENGTH 32
 #define SESSION_ID_LENGTH 16
 #define ROOT_MAX_LENGTH 16
+#define MAX_WS_MESSAGE_SIZE 4096
+#define MAX_WS_TX_QUEUE_SIZE 8192
 
 // WebSocket
 class WS
@@ -22,8 +24,8 @@ public:
         static void *run(void* arg);
 
 private:
-        lws_protocols protocols{};
-        struct lws_context_creation_info info;
+        lws_protocols protocols_[3]{}; // ws, http-only, terminator
+        struct lws_context_creation_info info{};
         struct lws_context *context{};
 
         static int ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);

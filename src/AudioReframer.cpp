@@ -50,7 +50,7 @@ void AudioReframer::getReframedFrame(uint8_t* frameData, int64_t& timestamp)
     samplesAccumulated -= outputSamplesPerFrame;
 
     timestamp = currentTimestamp;
-    currentTimestamp += (outputSamplesPerFrame * 1000) / inputSampleRate;
+    currentTimestamp += (static_cast<int64_t>(outputSamplesPerFrame) * 1000000) / inputSampleRate;
 }
 
 bool AudioReframer::hasMoreFrames() const

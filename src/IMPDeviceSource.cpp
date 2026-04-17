@@ -1,6 +1,7 @@
 #include "IMPDeviceSource.hpp"
 #include <iostream>
 #include "GroupsockHelper.hh"
+#include "WorkerUtils.hpp"
 
 // explicit instantiation
 template class IMPDeviceSource<H264NALUnit, video_stream>;
@@ -14,7 +15,7 @@ IMPDeviceSource<FrameType, Stream> *IMPDeviceSource<FrameType, Stream>::createNe
 
 template<typename FrameType, typename Stream>
 IMPDeviceSource<FrameType, Stream>::IMPDeviceSource(UsageEnvironment &env, int encChn, std::shared_ptr<Stream> stream, const char *name)
-    : FramedSource(env), encChn(encChn), stream{stream}, name{name}, eventTriggerId(0)     
+    : FramedSource(env), encChn(encChn), stream{stream}, name{name}, eventTriggerId(0)
 {
     std::lock_guard lock_stream {mutex_main};
     std::lock_guard lock_callback {stream->onDataCallbackLock};
@@ -75,11 +76,11 @@ void IMPDeviceSource<FrameType, Stream>::deliverFrame()
             fFrameSize = nal.data.size();
         }
 
-        /* timestamp fix, can be removed if solved
         fPresentationTime = nal.time;
-        */
-        gettimeofday(&fPresentationTime, NULL);
-        
+
+        // TIMESTAMP DEBUG: Log RTP presentation time assignment
+        LOG_DEBUG("RTP_TIMESTAMP_3_PRESENTATION: fPresentationTime.tv_sec=" << fPresentationTime.tv_sec << " fPresentationTime.tv_usec=" << fPresentationTime.tv_usec);
+
         memcpy(fTo, &nal.data[0], fFrameSize);
 
         if (fFrameSize > 0)

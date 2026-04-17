@@ -25,29 +25,43 @@ int IMPFramesource::init()
     IMPFSChnAttr chnAttr;
     memset(&chnAttr, 0, sizeof(IMPFSChnAttr));
 
-    ret = IMP_FrameSource_GetChnAttr(chnNr, &chnAttr);
+    (void)IMP_FrameSource_GetChnAttr(chnNr, &chnAttr);
 
-    if ((sensor->width != stream->width) ||
-        (sensor->height != stream->height))
-    {
-        scale = 1;
-    }
-    else
-    {
-        scale = 0;
-    }
+    // That's a great idea but it does not work as intended. Needs more investigation.
+    //if ((sensor->width != stream->width) || (sensor->height != stream->height)) {
+    //    scale = 1;
+    //} else {
+    //    scale = 0;
+    //}
+    scale = 1;
 
+    // Set required base attributes
+    chnAttr.picWidth = stream->width;
+    chnAttr.picHeight = stream->height;
     chnAttr.pixFmt = PIX_FMT_NV12;
     chnAttr.outFrmRateNum = stream->fps;
     chnAttr.outFrmRateDen = 1;
-    chnAttr.nrVBs = stream->buffers;
+    // Keep buffers as configured; default to 2 if unset, to remain memory-friendly on low-RAM devices
+    chnAttr.nrVBs = (stream->buffers > 0 ? stream->buffers : 2);
     chnAttr.type = FS_PHY_CHANNEL;
+
     chnAttr.crop.enable = 0;
     chnAttr.crop.top = 0;
     chnAttr.crop.left = 0;
     chnAttr.crop.width = sensor->width;
     chnAttr.crop.height = sensor->height;
-    chnAttr.scaler.enable = scale;
+
+#if defined(PLATFORM_T31) || defined(PLATFORM_C100) || defined(PLATFORM_T40) || defined(PLATFORM_T41)
+    // Initialize frame-crop (fcrop) explicitly (only available on newer platforms)
+    chnAttr.fcrop.enable = 0;
+    chnAttr.fcrop.top = 0;
+    chnAttr.fcrop.left = 0;
+    chnAttr.fcrop.width = chnAttr.picWidth;
+    chnAttr.fcrop.height = chnAttr.picHeight;
+#endif
+
+    // Scaler config (only if dimensions differ)
+    chnAttr.scaler.enable = scale ? 1 : 0;
     if (stream->rotation != 0) {
         chnAttr.scaler.outwidth = stream->height;
         chnAttr.scaler.outheight = stream->width;
@@ -62,6 +76,12 @@ int IMPFramesource::init()
         chnAttr.picWidth = stream->width;
         chnAttr.picHeight = stream->height;
     }
+
+    LOG_DEBUG("Channel " << chnNr << " configuration (post-attr):");
+    LOG_DEBUG("  pic: " << chnAttr.picWidth << "x" << chnAttr.picHeight);
+    LOG_DEBUG("  crop.enable=" << chnAttr.crop.enable << " crop=" << chnAttr.crop.width << "x" << chnAttr.crop.height);
+    LOG_DEBUG("  scaler.enable=" << chnAttr.scaler.enable << " out=" << chnAttr.scaler.outwidth << "x" << chnAttr.scaler.outheight);
+    LOG_DEBUG("  fps=" << chnAttr.outFrmRateNum << "/" << chnAttr.outFrmRateDen << " nrVBs=" << chnAttr.nrVBs << " pixFmt=" << chnAttr.pixFmt);
 
 #if !defined(KERNEL_VERSION_4)
 #if defined(PLATFORM_T31) && !defined(PLATFORM_C100)

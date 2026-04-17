@@ -35,7 +35,7 @@ class Motion {
         std::string getConfigPath(const char *itemName);
 
         std::atomic<bool> moving;
-        std::atomic<bool> indicator;    
+        std::atomic<bool> indicator;
         IMP_IVS_MoveParam move_param;
         IMPIVSInterface *move_intf;
         std::thread detect_thread;

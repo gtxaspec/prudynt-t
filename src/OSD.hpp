@@ -57,7 +57,7 @@ public:
     static uint16_t get_abs_pos(const uint16_t max,const uint16_t size,const int pos);
     int startup_delay{0};
     bool is_started = false;
-    
+
 private:
 
     // libschrift
@@ -67,22 +67,20 @@ private:
     int load_font();
     int libschrift_init();
     int renderGlyph(const char* characters);
-    void drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineSize, int WIDTH, int HEIGHT);
+    void drawOutline(uint8_t* image, const Glyph& g, int x, int y, int outlineSize, int WIDTH, int HEIGHT, const uint8_t* strokeColor);
     int calculateTextSize(const char* text, uint16_t& width, uint16_t& height, int outlineSize);
-    int drawText(uint8_t* image, const char* text, int WIDTH, int HEIGHT, int outlineSize);
-    uint8_t BGRA_STROKE[4];
-    uint8_t BGRA_TEXT[4];
+    int drawText(uint8_t* image, const char* text, int WIDTH, int HEIGHT, int outlineSize, unsigned int font_color, unsigned int font_stroke_color);
 
     _osd &osd;
     int last_updated_second;
-    
+
 
     OSDItem osdTime{};
     OSDItem osdUser{};
     OSDItem osdUptm{};
     OSDItem osdLogo{};
 
-    void set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, int posX, int posY, int angle);
+    void set_text(OSDItem *osdItem, IMPOSDRgnAttr *rgnAttr, const char *text, int posX, int posY, int angle, unsigned int font_color, unsigned int font_stroke_color);
     std::string getConfigPath(const char *itemName);
 
     IMPEncoderCHNAttr channelAttributes;
@@ -91,7 +89,7 @@ private:
     int osdGrp{};
     int encChn{};
     const char *parent;
-    
+
     char hostname[64];
     char ip[INET_ADDRSTRLEN]{};
 

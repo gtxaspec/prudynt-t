@@ -71,9 +71,9 @@ void IMPEncoder::initProfile()
         IMP_Encoder_SetDefaultParam(&chnAttr, encoderProfile, IMP_ENC_RC_MODE_FIXQP,
                                     stream->width, stream->height, 24, 1, 0, 0, stream->jpeg_quality, 0);
         // 1000 / stream->jpeg_refresh
-        LOG_DEBUG("STREAM PROFILE " << encChn << ", " << 
-                    encGrp << ", " << stream->format << ", " << 
-                    chnAttr.rcAttr.outFrmRate.frmRateNum << "fps, profile:" << 
+        LOG_DEBUG("STREAM PROFILE " << encChn << ", " <<
+                    encGrp << ", " << stream->format << ", " <<
+                    chnAttr.rcAttr.outFrmRate.frmRateNum << "fps, profile:" <<
                     stream->profile << ", " << stream->width << "x" << stream->height);
         return;
     }
@@ -293,14 +293,14 @@ void IMPEncoder::initProfile()
     rcAttr->attrHSkip.hSkipAttr.bBlackEnhance = 0;
     rcAttr->attrHSkip.maxHSkipType = IMP_Encoder_STYPE_N1X;
 #endif //defined(PLATFORM_T10) || defined(PLATFORM_T20) || defined(PLATFORM_T21) || defined(PLATFORM_T23) || defined(PLATFORM_T30)
-    LOG_DEBUG("STREAM PROFILE " << 
-        stream->rtsp_endpoint << ", " << 
-        "fps:" << chnAttr.rcAttr.outFrmRate.frmRateNum << ", " << 
-        "bps:" << stream->bitrate << ", " << 
-        "gop:" << stream->gop << ", " << 
+    LOG_DEBUG("STREAM PROFILE " <<
+        stream->rtsp_endpoint << ", " <<
+        "fps:" << chnAttr.rcAttr.outFrmRate.frmRateNum << ", " <<
+        "bps:" << stream->bitrate << ", " <<
+        "gop:" << stream->gop << ", " <<
         "profile:" << stream->profile << ", " <<
-//        "mode:" << rcMode << ", " << 
-        stream->width << "x" << 
+//        "mode:" << rcMode << ", " <<
+        stream->width << "x" <<
         stream->height);
 }
 
@@ -355,7 +355,7 @@ int IMPEncoder::init()
     {
         IMPEncoderJpegeQl pstJpegeQl;
         // fix for bad jpeg image quality on T10 based cameras
-        if(strncmp(cfg->sysinfo.cpu, "T10", 3)==0) 
+        if(strncmp(cfg->sysinfo.cpu, "T10", 3)==0)
         {
             pstJpegeQl.user_ql_en = 0;
             LOG_DEBUG("JPEG use default quantization table");

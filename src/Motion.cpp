@@ -130,7 +130,7 @@ int Motion::init()
 {
     LOG_INFO("Initialize motion detection.");
 
-    if((cfg->motion.monitor_stream == 0 && !cfg->stream0.enabled) || 
+    if((cfg->motion.monitor_stream == 0 && !cfg->stream0.enabled) ||
        (cfg->motion.monitor_stream == 1 && !cfg->stream1.enabled)) {
 
         LOG_ERROR("Monitor stream is disabled, abort.");
@@ -141,7 +141,7 @@ int Motion::init()
     ret = IMP_IVS_CreateGroup(0);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_IVS_CreateGroup(0)");
 
-    //automatically set frame size / height 
+    //automatically set frame size / height
     ret = IMP_Encoder_GetChnAttr(cfg->motion.monitor_stream, &channelAttributes);
     if (ret == 0)
     {
@@ -160,7 +160,7 @@ int Motion::init()
         if (cfg->motion.roi_1_y == IVS_AUTO_VALUE)
         {
             cfg->set<int>(getConfigPath("roi_1_y"), channelAttributes.encAttr.picHeight - 1, true);
-        }        
+        }
     }
 
     memset(&move_param, 0, sizeof(IMP_IVS_MoveParam));
@@ -171,10 +171,10 @@ int Motion::init()
     move_param.frameInfo.width = cfg->motion.frame_width;
     move_param.frameInfo.height = cfg->motion.frame_height;
 
-    LOG_INFO("Motion detection:" << 
-             " sensibility: " << move_param.sense[0] << 
-             ", skipCnt:" << move_param.skipFrameCnt << 
-             ", width:" << move_param.frameInfo.width << 
+    LOG_INFO("Motion detection:" <<
+             " sensibility: " << move_param.sense[0] <<
+             ", skipCnt:" << move_param.skipFrameCnt <<
+             ", width:" << move_param.frameInfo.width <<
              ", height:" << move_param.frameInfo.height);
 
     move_param.roiRect[0].p0.x = cfg->motion.roi_0_x;
@@ -183,10 +183,10 @@ int Motion::init()
     move_param.roiRect[0].p1.y = cfg->motion.roi_1_y - 1;
     move_param.roiRectCnt = cfg->motion.roi_count;
 
-    LOG_INFO("Motion detection roi[0]:" << 
-             " roi_0_x: " << cfg->motion.roi_0_x << 
-             ", roi_0_y:" << cfg->motion.roi_0_y << 
-             ", roi_1_x: " << cfg->motion.roi_1_x << 
+    LOG_INFO("Motion detection roi[0]:" <<
+             " roi_0_x: " << cfg->motion.roi_0_x <<
+             ", roi_0_y:" << cfg->motion.roi_0_y <<
+             ", roi_1_x: " << cfg->motion.roi_1_x <<
              ", roi_1_y:" << cfg->motion.roi_1_y);
 
     move_intf = IMP_IVS_CreateMoveInterface(&move_param);
@@ -200,16 +200,16 @@ int Motion::init()
     ret = IMP_IVS_StartRecvPic(ivsChn);
     LOG_DEBUG_OR_ERROR_AND_EXIT(ret, "IMP_IVS_StartRecvPic(" << ivsChn << ")")
 
-    fs = { 
-        /**< Device ID */ DEV_ID_FS, 
-        /**< Group ID */  cfg->motion.monitor_stream, 
-        /**< output ID */ 1 
+    fs = {
+        /**< Device ID */ DEV_ID_FS,
+        /**< Group ID */  cfg->motion.monitor_stream,
+        /**< output ID */ 1
     };
 
-    ivs_cell = { 
-        /**< Device ID */ DEV_ID_IVS, 
-        /**< Group ID */  0, 
-        /**< output ID */ 0 
+    ivs_cell = {
+        /**< Device ID */ DEV_ID_IVS,
+        /**< Group ID */  0,
+        /**< output ID */ 0
     };
 
     ret = IMP_System_Bind(&fs, &ivs_cell);
