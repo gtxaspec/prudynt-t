@@ -7,7 +7,8 @@ on:
 
 env:
   TAG_NAME: release
-  TOOLCHAIN_URL: https://github.com/themactep/thingino-firmware/releases/download/toolchain-x86_64/thingino-toolchain-x86_64_xburst1_4_4_musl_gcc14-linux-mipsel.tar.gz
+  TOOLCHAIN_URL_XBURST1: https://github.com/themactep/thingino-firmware/releases/download/toolchain-x86_64/thingino-toolchain-x86_64_xburst1_4_4_musl_gcc14-linux-mipsel.tar.gz
+  TOOLCHAIN_URL_XBURST2: https://github.com/themactep/thingino-firmware/releases/download/toolchain-x86_64/thingino-toolchain-x86_64_xburst2_musl_gcc14-linux-mipsel.tar.gz
   TOOLCHAIN_DIR: /opt/mipsel-thingino-linux-musl_sdk-buildroot
   CCACHE_DIR: ${{ github.workspace }}/.ccache
 
@@ -25,6 +26,7 @@ jobs:
           - T23
           - T30
           - T31
+          - T40
           - C100
         build_type:
           - static
@@ -44,6 +46,18 @@ jobs:
             build-essential bc bison cpio curl file flex git libncurses-dev \
             make rsync unzip wget whiptail gcc lzop u-boot-tools \
             ca-certificates cmake ccache
+
+      - name: Determine toolchain URL
+        id: toolchain_url
+        run: |
+          case "${{ matrix.target }}" in
+            T40)
+              echo "TOOLCHAIN_URL=${{ env.TOOLCHAIN_URL_XBURST2 }}" >> $GITHUB_ENV
+              ;;
+            *)
+              echo "TOOLCHAIN_URL=${{ env.TOOLCHAIN_URL_XBURST1 }}" >> $GITHUB_ENV
+              ;;
+          esac
 
       - name: Download and extract toolchain
         run: |
